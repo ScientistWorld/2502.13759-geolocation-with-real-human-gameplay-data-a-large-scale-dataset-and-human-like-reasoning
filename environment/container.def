@@ -21,6 +21,15 @@ From: nvidia/cuda:12.1.0-runtime-ubuntu22.04
         && ln -sf /usr/bin/vim.tiny /usr/bin/vim \
         && rm -rf /var/lib/apt/lists/*
 
+    # Install uv package manager
+    curl -LsSf https://astral.sh/uv/install.sh | sh 2>/dev/null || \
+        pip3 install uv 2>/dev/null || true
+    if [ -f "$HOME/.local/bin/uv" ]; then
+        ln -sf "$HOME/.local/bin/uv" /usr/local/bin/uv
+    elif [ -f /root/.local/bin/uv ]; then
+        ln -sf /root/.local/bin/uv /usr/local/bin/uv
+    fi
+
     # Create user directory
     mkdir -p /home/user
     chmod 755 /home/user
@@ -34,3 +43,4 @@ From: nvidia/cuda:12.1.0-runtime-ubuntu22.04
     export PYTHONUNBUFFERED=1
     export TRANSFORMERS_CACHE=/home/user/shared/hf_cache
     export HF_HOME=/home/user/shared/hf_cache
+    export PYTHONPATH=/dev/shm/pylib
