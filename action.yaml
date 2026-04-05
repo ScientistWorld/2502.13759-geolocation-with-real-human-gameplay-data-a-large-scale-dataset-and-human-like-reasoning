@@ -27,8 +27,8 @@
 #   milestone: core_claim
 #   notes: "Reproduced the core claim. Environment packaged."
 
-action: pending
+action: submit
 gpus: 1
 test: false
-milestone: none
-notes: ""
+milestone: method_runs
+notes: "GeoCoT reproduction: download models, run GeoCoT vs CoT on Im2GPS3K, evaluate, generate scores.json"
