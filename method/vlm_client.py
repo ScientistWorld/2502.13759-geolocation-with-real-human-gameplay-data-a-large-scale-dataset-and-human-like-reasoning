@@ -163,9 +163,10 @@ class LLaVAClient(VLMClient):
         # Default to shared models directory
         if model_path is None:
             for candidate in [
-                "/home/user/shared/models/llava-hf/llava-1.5-7b-hf",
                 "/home/user/shared/models/llava-v1.5-7b",
+                "/home/user/shared/models/llava-hf/llava-1.5-7b-hf",
                 os.path.join(os.path.dirname(__file__), "..", "llava-hf/llava-1.5-7b-hf"),
+                os.path.join(os.path.dirname(__file__), "..", "llava-v1.5-7b"),
             ]:
                 if os.path.isdir(candidate):
                     model_path = candidate

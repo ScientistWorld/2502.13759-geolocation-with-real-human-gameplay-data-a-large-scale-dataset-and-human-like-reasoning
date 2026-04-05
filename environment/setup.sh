@@ -12,46 +12,43 @@ cd /home/user
 
 echo "=== Step 1: Installing Python packages ==="
 
-# Install PyTorch with CUDA 12.1 support
-uv pip install --system torch torchvision --index-url https://download.pytorch.org/whl/cu121 || \
-uv pip install --system torch torchvision
+# Install to /dev/shm/pylib for consistent access
+PYPATH="/dev/shm/pylib"
+mkdir -p "$PYPATH"
 
-# Install transformers and related packages
-uv pip install --system \
+# Install PyTorch with CUDA 12.1 support
+uv pip install --system --target "$PYPATH" torch torchvision --index-url https://download.pytorch.org/whl/cu121 2>&1 || \
+uv pip install --system --target "$PYPATH" torch torchvision 2>&1 || \
+pip3 install --target "$PYPATH" torch torchvision --index-url https://download.pytorch.org/whl/cu121 2>&1 || true
+
+# Install all other packages
+uv pip install --system --target "$PYPATH" \
     transformers>=4.40.0 \
     accelerate \
     bitsandbytes \
     sentencepiece \
     protobuf \
-    tiktoken
-
-# Install vision/image processing
-uv pip install --system \
+    tiktoken \
     pillow \
     opencv-python-headless \
     numpy \
-    scipy
-
-# Install data processing
-uv pip install --system \
+    scipy \
     pandas \
     scikit-learn \
-    tqdm
-
-# Install Qwen2.5-VL specific dependencies
-uv pip install --system \
+    tqdm \
     qwen-vl-utils \
-    einops
-
-# Install evaluation utilities
-uv pip install --system \
+    einops \
     jiwer \
-    rapidfuzz
+    rapidfuzz \
+    2>&1 || pip3 install --target "$PYPATH" \
+    transformers accelerate sentencepiece protobuf tiktoken pillow opencv-python-headless numpy scipy pandas scikit-learn tqdm qwen-vl-utils einops jiwer rapidfuzz 2>&1 || true
 
-# Install OpenAI client for GPT-4o evaluation (if API key available)
-uv pip install --system openai || echo "OpenAI client installation failed (expected if no API key)"
+# OpenAI client (optional)
+uv pip install --system --target "$PYPATH" openai 2>&1 || true
 
-echo "Python packages installed."
+# Set PYTHONPATH
+export PYTHONPATH="$PYPATH"
+echo "Python packages installed to $PYPATH"
 
 echo "=== Step 2: Downloading VLM model (Qwen2.5-VL) ==="
 
@@ -179,3 +176,69 @@ fi
 echo "=== Setup Complete ==="
 echo "Qwen2.5-VL: $([ -d '$QWN_MODEL_DIR' ] && echo 'available' || echo 'not found')"
 echo "Im2GPS3K: $([ -f '$IM2GPS3K_DIR/im2gps3k.csv' ] && echo 'available' || echo 'not found')"
+
+echo "=== Step 4: Downloading GeoCLIP dataset ==="
+GEOCLIP_DIR="/home/user/data/geoclip"
+mkdir -p "$GEOCLIP_DIR"
+
+if [ ! -f "$GEOCLIP_DIR/geoclip.csv" ] || [ ! -d "$GEOCLIP_DIR/images" ]; then
+    echo "Downloading GeoCLIP dataset from HuggingFace..."
+    # Get file listing from HuggingFace
+    curl -s "https://huggingface.co/api/datasets/aryanmagoon/GeoCLIP-data/tree/main" | python3 -c "
+import sys, json
+d = json.load(sys.stdin)
+files = [(f['path'], f['size']) for f in d if f['path'].endswith('.png')]
+print(f'Found {len(files)} PNG images')
+
+# Write metadata CSV
+import csv
+with open('$GEOCLIP_DIR/geoclip.csv', 'w', newline='') as f:
+    writer = csv.writer(f)
+    writer.writerow(['image_path', 'lat', 'lon', 'country', 'continent', 'city'])
+    for path, size in files:
+        name = path.replace('.png', '')
+        import re
+        m = re.match(r'(-?[\d.]+)_(-?[\d.]+)_([a-z]+)_(\d+)', name)
+        if m:
+            lat, lon, country, idx = m.groups()
+            continent = {'chile': 'South America', 'ecuador': 'South America',
+                        'kenya': 'Africa', 'madagascar': 'Africa'}.get(country, 'Unknown')
+            writer.writerow([path, lat, lon, country, continent, ''])
+print('CSV created')
+" 2>&1
+
+    # Download images using wget with parallel connections
+    echo "Downloading GeoCLIP images..."
+    mkdir -p "$GEOCLIP_DIR/images"
+    cd "$GEOCLIP_DIR/images"
+    curl -s "https://huggingface.co/api/datasets/aryanmagoon/GeoCLIP-data/tree/main" 2>/dev/null | python3 -c "
+import sys, json
+d = json.load(sys.stdin)
+for f in d:
+    if f['path'].endswith('.png'):
+        print(f'https://huggingface.co/datasets/aryanmagoon/GeoCLIP-data/resolve/main/{f[\"path\"]}')
+" 2>/dev/null | wget -i - -q --directory-prefix=. --timeout=30 --tries=3 -4 2>&1
+    echo "GeoCLIP download complete."
+
+    # Update CSV with full paths
+    python3 -c "
+import csv
+with open('$GEOCLIP_DIR/geoclip.csv', 'r') as f:
+    reader = csv.DictReader(f)
+    rows = list(reader)
+for row in rows:
+    row['image_path'] = '$GEOCLIP_DIR/images/' + row['image_path']
+with open('$GEOCLIP_DIR/geoclip.csv', 'w', newline='') as f:
+    writer = csv.DictWriter(f, fieldnames=['image_path','lat','lon','country','continent','city'])
+    writer.writeheader()
+    writer.writerows(rows)
+print('CSV updated with full paths')
+" 2>&1
+else
+    echo "GeoCLIP already exists at $GEOCLIP_DIR"
+fi
+
+echo "=== Final Status ==="
+echo "Qwen2.5-VL: $([ -d '$QWN_MODEL_DIR' ] && echo 'available' || echo 'not found')"
+echo "LLaVA: $([ -d '/home/user/shared/models/llava-v1.5-7b' ] && echo 'available' || echo 'not found')"
+echo "GeoCLIP: $([ -f '$GEOCLIP_DIR/geoclip.csv' ] && echo 'available' || echo 'not found')"

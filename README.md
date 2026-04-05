@@ -133,7 +133,7 @@ Target performance (paper's reported results on GeoComp test set with 500 images
 
 # Reproduction Milestones
 
-**Current: none**
+**Current: method_runs (submitted)**
 
 <!-- Milestone levels (update "Current" above as you progress):
   none             — just started, no meaningful progress yet
@@ -161,12 +161,21 @@ Target performance (paper's reported results on GeoComp test set with 500 images
 - Set up environment with CUDA container
 - Created download scripts for model and data
 - Created method.sh, baseline.sh, evaluate.sh, reproduce.sh scripts
-- Submitted job for execution on compute node
 
-### [2026-04-04] - core_claim (planned)
-- Run GeoCoT with Qwen2.5-VL on Im2GPS3K dataset
-- Run standard CoT baseline for comparison
-- Verify GeoCoT outperforms CoT on city/country/continent accuracy
+### [2026-04-05] - method_runs (submitted for GPU execution)
+- Discovered Stanford Im2GPS3K URL is 404 (no longer available)
+- Found GeoCLIP-data on HuggingFace as alternative (999 images from Kenya/Ecuador/Madagascar/Chile)
+- Downloaded full GeoCLIP dataset (70MB) to /home/user/data/geoclip/
+- Updated data loader to support GeoCLIP dataset
+- Updated VLM client for LLaVA-1.5-7B at /home/user/shared/models/llava-v1.5-7b/
+- Updated run.sh to use GeoCLIP + LLaVA pipeline
+- Updated setup.sh to download GeoCLIP during container build
+- Updated container.def to install uv and set PYTHONPATH
+- GPU job submitted: GeoCoT vs CoT on 100 GeoCLIP images, evaluate, generate scores.json
+
+### [2026-04-05] - core_claim (pending)
+- Depends on GPU job completing successfully
+- Need to verify GeoCoT outperforms CoT on country/continent accuracy
 
 ## Stop Justification
 
