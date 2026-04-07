@@ -12,14 +12,22 @@ From: https://cloud-images.ubuntu.com/minimal/releases/noble/release/ubuntu-24.0
     set -e
     cd /
 
-    # Add NVIDIA CUDA repository for Ubuntu 24.04 (noble)
-    wget -q https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/cda-keyring_1.1-1_all.deb 2>/dev/null || \
-    wget -q https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/cuda-keyring_1.1-1_all.deb
-    dpkg -i cuda-keyring_1.1-1_all.deb 2>/dev/null || true
-    rm -f cuda-keyring_1.1-1_all.deb
+    # Regenerate apt sources.list
+    cat > /etc/apt/sources.list << 'EOSOURCES'
+deb http://archive.ubuntu.com/ubuntu/ noble main universe restricted
+deb http://archive.ubuntu.com/ubuntu/ noble-updates main universe
+deb http://security.ubuntu.com/ubuntu/ noble-security main universe
+EOSOURCES
 
-    apt-get update 2>/dev/null || true
-    apt-get install -y --no-install-recommends cuda-runtime-12-5 2>/dev/null || true
+    # Add NVIDIA CUDA repository for Ubuntu 24.04 (noble)
+    wget -q https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/cuda-keyring_1.1-1_all.deb
+    dpkg -i cuda-keyring_1.1-1_all.deb
+    rm -f cuda-keyring_1.1-1_all.deb
+    apt-get update
+
+    # Install CUDA runtime
+    apt-get install -y --no-install-recommends cuda-runtime-12-5
+    rm -rf /var/lib/apt/lists/*
 
     # Set environment
     echo 'export HOME=/root' >> /etc/environment
