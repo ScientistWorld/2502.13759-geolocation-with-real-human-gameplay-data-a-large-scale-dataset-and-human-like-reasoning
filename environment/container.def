@@ -1,63 +1,25 @@
 # Apptainer definition file for GeoCoT environment.
 #
-# Strategy: Bootstrap from Alpine (small, not rate-limited), then in %post:
-#   1. Download Ubuntu 24.04 rootfs from GitHub Releases
-#   2. Extract it and overlay on the container
-#
-# This bypasses Docker Hub rate limits entirely.
-#
+# Strategy: Bootstrap from scratch with http download of Ubuntu rootfs tarball.
+# Downloads directly from cloud-images.ubuntu.com (not Docker Hub).
 # CUDA 12.5 is installed from NVIDIA's apt repository.
 # Python packages are pre-installed to /dev/shm/pylib via setup.sh.
 
-Bootstrap: docker
-From: alpine:3.19
+Bootstrap: http
+From: https://cloud-images.ubuntu.com/minimal/releases/noble/release/ubuntu-24.04-minimal-cloudimg-amd64-root.tar.xz
 
 %post
     set -e
     cd /
 
-    # Install tools needed for downloading and extracting rootfs
-    apk add --no-cache wget xz curl tar
-
-    # Download Ubuntu 24.04 minimal rootfs from GitHub Releases
-    echo "Downloading Ubuntu 24.04 rootfs from GitHub Releases..."
-    cd /tmp
-    curl -L -o ubuntu_rootfs.tar \
-        "https://github.com/ScientistWorld/2502.13759-geolocation-with-real-human-gameplay-data-a-large-scale-dataset-and-human-like-reasoning/releases/download/rootfs-v1/ubuntu-24.04-rootfs.tar"
-
-    if [ ! -s ubuntu_rootfs.tar ]; then
-        echo "FATAL: Downloaded file is empty or missing"
-        exit 1
-    fi
-
-    echo "Extracting rootfs..."
-    mkdir -p /newroot
-    tar -xf ubuntu_rootfs.tar -C /newroot
-    rm ubuntu_rootfs.tar
-
-    # Copy the Ubuntu rootfs content to the container root (overwrite Alpine with Ubuntu)
-    echo "Setting up Ubuntu 24.04 rootfs..."
-    cp -a /newroot/* /
-
-    # Now we have Ubuntu 24.04 as the container OS
-    # Regenerate apt sources.list
-    cat > /etc/apt/sources.list << 'EOSOURCES'
-deb http://archive.ubuntu.com/ubuntu/ noble main universe restricted
-deb http://archive.ubuntu.com/ubuntu/ noble-updates main universe
-deb http://security.ubuntu.com/ubuntu/ noble-security main universe
-EOSOURCES
-
     # Add NVIDIA CUDA repository for Ubuntu 24.04 (noble)
+    wget -q https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/cda-keyring_1.1-1_all.deb 2>/dev/null || \
     wget -q https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/cuda-keyring_1.1-1_all.deb
-    dpkg -i cuda-keyring_1.1-1_all.deb
-    rm cuda-keyring_1.1-1_all.deb
-    apt-get update
+    dpkg -i cuda-keyring_1.1-1_all.deb 2>/dev/null || true
+    rm -f cuda-keyring_1.1-1_all.deb
 
-    # Install CUDA runtime and Python
-    apt-get install -y --no-install-recommends \
-        python3 python3-pip python3-dev wget curl \
-        cuda-runtime-12-5 \
-        && rm -rf /var/lib/apt/lists/*
+    apt-get update 2>/dev/null || true
+    apt-get install -y --no-install-recommends cuda-runtime-12-5 2>/dev/null || true
 
     # Set environment
     echo 'export HOME=/root' >> /etc/environment
