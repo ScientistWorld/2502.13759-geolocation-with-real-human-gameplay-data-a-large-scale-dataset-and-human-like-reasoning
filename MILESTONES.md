@@ -39,18 +39,20 @@
 - Updated container.def to install uv and set PYTHONPATH
 - GPU job submitted: GeoCoT vs CoT on 100 GeoCLIP images, evaluate, generate scores.json
 
-### [2026-04-07] - method_runs (submitted for GPU execution, Docker Hub rate-limited)
+### [2026-04-07] - method_runs (submitted, build node path issue)
 - Docker Hub rate-limiting: all images (ubuntu, CUDA, etc.) returning 429 TOOMANYREQUESTS
-- Fix: downloaded Ubuntu 24.04 minimal rootfs directly from cloud-images.ubuntu.com CDN (not Docker Hub)
-- container.def now uses Bootstrap:localimage with ubuntu_rootfs.tar
-- CUDA 12.5 installed from NVIDIA's ubuntu2404 apt repos (keyring: cuda-keyring_1.1-1_all.deb)
+- Downloaded Ubuntu 24.04 minimal rootfs from cloud-images.ubuntu.com CDN to /home/user/shared/container/rootfs_build/ubuntu_rootfs.tar
+- Extracted rootfs to /home/user/shared/container/rootfs/ (~426MB)
+- CUDA 12.5 installed from NVIDIA's ubuntu2404 apt repos
+- localimage bootstrap with absolute path /home/user/shared/container/rootfs failed: build node cannot access /home/user (GPFS mount not visible on build node)
+- New approach: localimage with RELATIVE path ./shared/container/rootfs — batcher copies workspace to build node's scratch at /home/tl0463/scratch/, so relative path should resolve
 - Downloaded all 999 GeoCLIP images to /home/user/data/geoclip/ via HuggingFace
 - Pre-installed torch 2.6.0+cu124, transformers, pandas to /dev/shm/pylib
 - Fixed LLaVAClient: uses llava repo LlavaLlamaForCausalLM (not HF AutoModel)
   - Registers LlavaConfig with model_type=llava_llama override
   - Monkeypatches CLIPVisionConfig/CLIPModel.from_pretrained for offline CLIP loading
   - Uses proper conversation format with <im_start><image><im_end> tokens
-- GPU job re-submitted with localimage bootstrap bypassing Docker Hub
+- GPU job re-submitted with relative-path localimage bootstrap
 
 ### [2026-04-07] - core_claim (pending)
 - Depends on GPU job completing successfully
