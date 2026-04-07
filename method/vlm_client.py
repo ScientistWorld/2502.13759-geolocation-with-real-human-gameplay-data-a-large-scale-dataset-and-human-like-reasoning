@@ -151,50 +151,129 @@ class QwenVLClient(VLMClient):
 
 
 class LLaVAClient(VLMClient):
-    """LLaVA via transformers (local)."""
+    """LLaVA via transformers (local), using llava repo LlavaLlamaForCausalLM."""
 
     def __init__(self, model_path: Optional[str] = None, device: str = "cuda"):
-        try:
-            from transformers import AutoModelForVision2Seq, AutoProcessor
-            import torch
-        except ImportError:
-            raise ImportError("transformers and torch required for LLaVA")
+        import sys as _sys
+        import os as _os
+
+        # Set HF cache before imports
+        _os.environ.setdefault("HF_HOME", "/home/user/shared/models/hf_cache")
+        _os.environ.setdefault("TRANSFORMERS_CACHE", "/home/user/shared/models/hf_cache")
+        _os.environ.setdefault("HF_HUB_OFFLINE", "1")
+
+        # Add pylib and llava repo to path
+        _sys.path.insert(0, '/dev/shm/pylib')
+        _sys.path.insert(0, '/home/user/shared/models/llava_repo')
+
+        import torch
 
         # Default to shared models directory
         if model_path is None:
             for candidate in [
+                "/dev/shm/llava-v1.5-7b-config",
                 "/home/user/shared/models/llava-v1.5-7b",
                 "/home/user/shared/models/llava-hf/llava-1.5-7b-hf",
-                os.path.join(os.path.dirname(__file__), "..", "llava-hf/llava-1.5-7b-hf"),
                 os.path.join(os.path.dirname(__file__), "..", "llava-v1.5-7b"),
             ]:
                 if os.path.isdir(candidate):
                     model_path = candidate
                     break
             if model_path is None:
-                model_path = "llava-hf/llava-1.5-7b-hf"  # fallback: try HF download
+                model_path = "llava-hf/llava-1.5-7b-hf"
 
         self.model_path = model_path
         self.device = device if torch.cuda.is_available() else "cpu"
 
         print(f"Loading LLaVA from {self.model_path}...")
-        self.processor = AutoProcessor.from_pretrained(self.model_path)
-        self.model = AutoModelForVision2Seq.from_pretrained(
-            self.model_path, torch_dtype=torch.float16, device_map="auto"
+
+        # Monkeypatch CLIPVisionConfig.from_pretrained and CLIPModel.from_pretrained
+        # to use local CLIP path (required for offline loading)
+        from transformers import CLIPVisionConfig, CLIPModel
+
+        _original_clipconfig = CLIPVisionConfig.from_pretrained
+        def _patched_clipconfig(cls, pretrained_model_name_or_path, **kwargs):
+            name_map = {
+                "openai/clip-vit-large-patch14-336": "/home/user/shared/models/clip-vit-large-patch14-336",
+            }
+            if pretrained_model_name_or_path in name_map:
+                pretrained_model_name_or_path = name_map[pretrained_model_name_or_path]
+            kwargs['local_files_only'] = True
+            return _original_clipconfig(pretrained_model_name_or_path, **kwargs)
+        CLIPVisionConfig.from_pretrained = classmethod(_patched_clipconfig.__get__(None, CLIPVisionConfig))
+
+        _original_clipmodel = CLIPModel.from_pretrained
+        def _patched_clipmodel(cls, pretrained_model_name_or_path, **kwargs):
+            name_map = {
+                "openai/clip-vit-large-patch14-336": "/home/user/shared/models/clip-vit-large-patch14-336",
+            }
+            if pretrained_model_name_or_path in name_map:
+                pretrained_model_name_or_path = name_map[pretrained_model_name_or_path]
+            kwargs['local_files_only'] = True
+            return _original_clipmodel(pretrained_model_name_or_path, **kwargs)
+        CLIPModel.from_pretrained = classmethod(_patched_clipmodel.__get__(None, CLIPModel))
+
+        # Register LlavaLlamaForCausalLM with AutoModelForCausalLM
+        from llava.model.language_model.llava_llama import LlavaLlamaForCausalLM, LlavaConfig
+        from transformers import AutoModelForCausalLM
+        AutoModelForCausalLM.register(LlavaConfig, LlavaLlamaForCausalLM)
+
+        # Create config from model directory
+        import json
+        with open(os.path.join(model_path, "config.json")) as f:
+            config_dict = json.load(f)
+        # Override model_type to match the registered llava_llama type
+        config_dict["model_type"] = "llava_llama"
+        config = LlavaConfig.from_dict(config_dict)
+
+        self.model = AutoModelForCausalLM.from_pretrained(
+            model_path,
+            config=config,
+            torch_dtype=torch.float16,
+            device_map="auto",
+            local_files_only=True,
         )
+
+        # Load processor from transformers
+        from transformers.models.llava.processing_llava import LlavaProcessor
+        self.processor = LlavaProcessor.from_pretrained(model_path)
+
+        self._LlavaLlamaForCausalLM = LlavaLlamaForCausalLM
         print("Model loaded successfully.")
 
     def predict(self, image_path: str, prompt: str) -> str:
         import torch
+        from llava.conversation import default_conversation
+        from llava.constants import DEFAULT_IMAGE_TOKEN, DEFAULT_IM_START_TOKEN, DEFAULT_IM_END_TOKEN
+
         image = Image.open(image_path).convert("RGB")
-        inputs = self.processor(text=prompt, images=image, return_tensors="pt")
-        inputs = {k: v.to(self.model.device) for k, v in inputs.items()}
+
+        # Insert image tokens at the start of the user's message
+        # LLaVA-1.5 expects <im_start><image><im_end> to be present in the prompt
+        img_prefix = DEFAULT_IM_START_TOKEN + DEFAULT_IMAGE_TOKEN + DEFAULT_IM_END_TOKEN
+        qs = img_prefix + prompt
+
+        conv = default_conversation.copy()
+        conv.append_message(conv.roles[0], qs)
+        conv.append_message(conv.roles[1], None)
+        formatted_prompt = conv.get_prompt()
+
+        # Process inputs
+        input_dict = self.processor(text=formatted_prompt, images=image, return_tensors="pt")
+        input_ids = input_dict['input_ids'].to(self.model.device)
+        pixel_values = input_dict['pixel_values'].to(self.model.device)
 
         with torch.no_grad():
-            generated_ids = self.model.generate(
-                **inputs, max_new_tokens=256, do_sample=False
+            # Call generate with inputs (positional) and images (kwarg)
+            # LlavaLlamaForCausalLM.generate signature: (inputs, images, image_sizes, **kwargs)
+            output_ids = self.model.generate(
+                input_ids,
+                images=pixel_values,
+                max_new_tokens=256,
+                do_sample=False,
             )
-        response = self.processor.batch_decode(generated_ids, skip_special_tokens=True)[0]
+
+        response = self.processor.batch_decode(output_ids, skip_special_tokens=True)[0]
         return response
 
 

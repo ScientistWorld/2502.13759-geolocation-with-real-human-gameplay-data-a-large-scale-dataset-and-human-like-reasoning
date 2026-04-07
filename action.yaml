@@ -31,4 +31,4 @@ action: submit
 gpus: 1
 test: false
 milestone: method_runs
-notes: "GeoCoT reproduction: GeoCLIP dataset (999 images, Kenya/Ecuador/Madagascar/Chile) downloaded to /home/user/data/geoclip/. LLaVA-1.5-7B available at /home/user/shared/models/llava-v1.5-7b/. Running GeoCoT vs CoT with 100 images, then evaluate and generate scores.json."
+notes: "GeoCoT reproduction: GeoCLIP dataset (999 images, Kenya/Ecuador/Madagascar/Chile) downloaded. LLaVA-1.5-7B with llava repo (LlavaLlamaForCausalLM) at /dev/shm/llava-v1.5-7b-config/. CLIP vision tower at /home/user/shared/models/clip-vit-large-patch14-336/. Running GeoCoT vs CoT with 100 images on GPU."
