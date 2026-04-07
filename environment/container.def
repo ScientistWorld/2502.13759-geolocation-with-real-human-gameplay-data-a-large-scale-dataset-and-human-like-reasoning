@@ -1,18 +1,18 @@
 # Apptainer definition file for GeoCoT environment.
 #
-# Strategy: Bootstrap from scratch with http download of Ubuntu rootfs tarball.
-# Downloads directly from cloud-images.ubuntu.com (not Docker Hub).
+# Uses Ubuntu 24.04 minimal rootfs extracted from cloud-images.ubuntu.com.
+# Rootfs path is relative to batcher workspace directory.
 # CUDA 12.5 is installed from NVIDIA's apt repository.
 # Python packages are pre-installed to /dev/shm/pylib via setup.sh.
 
-Bootstrap: http
-From: https://cloud-images.ubuntu.com/minimal/releases/noble/release/ubuntu-24.04-minimal-cloudimg-amd64-root.tar.xz
+Bootstrap: localimage
+From: ./shared/container/rootfs
 
 %post
     set -e
     cd /
 
-    # Regenerate apt sources.list
+    # Regenerate apt sources.list (minimal rootfs may not have one)
     cat > /etc/apt/sources.list << 'EOSOURCES'
 deb http://archive.ubuntu.com/ubuntu/ noble main universe restricted
 deb http://archive.ubuntu.com/ubuntu/ noble-updates main universe
