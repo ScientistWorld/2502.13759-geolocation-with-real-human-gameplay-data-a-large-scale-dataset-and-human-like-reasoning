@@ -52,7 +52,10 @@
   - Registers LlavaConfig with model_type=llava_llama override
   - Monkeypatches CLIPVisionConfig/CLIPModel.from_pretrained for offline CLIP loading
   - Uses proper conversation format with <im_start><image><im_end> tokens
-- GPU job re-submitted with relative-path localimage bootstrap
+- Docker Hub rate-limiting persists across all images (ubuntu, alpine, etc.)
+- Tried localimage with relative path: build node path issue.
+- Tried Alpine + GitHub Releases: Alpine itself is also rate-limited by Docker Hub.
+- New approach: Bootstrap:http with direct download from cloud-images.ubuntu.com CDN — completely bypasses Docker Hub.
 
 ### [2026-04-07] - core_claim (pending)
 - Depends on GPU job completing successfully
