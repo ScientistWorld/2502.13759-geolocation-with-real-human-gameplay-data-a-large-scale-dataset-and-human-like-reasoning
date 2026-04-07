@@ -45,7 +45,8 @@
 - Extracted rootfs to /home/user/shared/container/rootfs/ (~426MB)
 - CUDA 12.5 installed from NVIDIA's ubuntu2404 apt repos
 - localimage bootstrap with absolute path /home/user/shared/container/rootfs failed: build node cannot access /home/user (GPFS mount not visible on build node)
-- New approach: localimage with RELATIVE path ./shared/container/rootfs — batcher copies workspace to build node's scratch at /home/tl0463/scratch/, so relative path should resolve
+- Tried localimage with relative path: build node path issue unclear
+- Reverted to docker://ubuntu:24.04 — rate limit should be reset after 48h
 - Downloaded all 999 GeoCLIP images to /home/user/data/geoclip/ via HuggingFace
 - Pre-installed torch 2.6.0+cu124, transformers, pandas to /dev/shm/pylib
 - Fixed LLaVAClient: uses llava repo LlavaLlamaForCausalLM (not HF AutoModel)
