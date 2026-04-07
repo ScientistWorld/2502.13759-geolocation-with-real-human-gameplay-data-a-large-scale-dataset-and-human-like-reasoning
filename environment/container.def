@@ -1,7 +1,8 @@
 # Apptainer definition file for GeoCoT environment.
 #
-# Uses Ubuntu 24.04 minimal rootfs extracted from cloud-images.ubuntu.com.
-# The rootfs directory is relative to the batcher workspace root.
+# Uses Ubuntu 24.04 minimal rootfs from cloud-images.ubuntu.com.
+# Rootfs is relative to batcher workspace (copied to build node's scratch).
+# Python is installed in %post since minimal rootfs lacks it.
 # CUDA 12.5 is installed from NVIDIA's apt repository.
 # Python packages are pre-installed to /dev/shm/pylib via setup.sh.
 
@@ -12,13 +13,26 @@ From: ./shared/container/rootfs
     set -e
     cd /
 
-    # Add NVIDIA CUDA repository for Ubuntu 24.04 (noble)
-    wget -q https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/cuda-keyring_1.1-1_all.deb && \
-        dpkg -i cuda-keyring_1.1-1_all.deb && rm cuda-keyring_1.1-1_all.deb
+    # Regenerate apt sources.list (minimal rootfs may not have it)
+    cat > /etc/apt/sources.list << 'EOSOURCES'
+deb http://archive.ubuntu.com/ubuntu/ noble main universe restricted
+deb http://archive.ubuntu.com/ubuntu/ noble-updates main universe
+deb http://security.ubuntu.com/ubuntu/ noble-security main universe
+EOSOURCES
+
+    # Install Python 3 and essential tools (minimal rootfs lacks them)
     apt-get update
     apt-get install -y --no-install-recommends \
-        cuda-runtime-12-5 \
+        python3 python3-pip python3-dev wget curl \
         && rm -rf /var/lib/apt/lists/*
+
+    # Add NVIDIA CUDA repository for Ubuntu 24.04 (noble)
+    wget -q https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/cuda-keyring_1.1-1_all.deb
+    dpkg -i cuda-keyring_1.1-1_all.deb
+    rm cuda-keyring_1.1-1_all.deb
+    apt-get update
+    apt-get install -y --no-install-recommends cuda-runtime-12-5
+    rm -rf /var/lib/apt/lists/*
 
     # Set environment
     echo 'export HOME=/root' >> /etc/environment
