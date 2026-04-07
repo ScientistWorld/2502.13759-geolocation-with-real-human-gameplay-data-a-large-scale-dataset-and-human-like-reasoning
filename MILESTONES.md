@@ -39,16 +39,18 @@
 - Updated container.def to install uv and set PYTHONPATH
 - GPU job submitted: GeoCoT vs CoT on 100 GeoCLIP images, evaluate, generate scores.json
 
-### [2026-04-07] - method_runs (submitted for GPU execution, fixed)
-- Fixed container.def: switched from library: bootstrap (requires Sylabs remote) to docker://ubuntu:22.04
+### [2026-04-07] - method_runs (submitted for GPU execution, Docker Hub rate-limited)
+- Docker Hub rate-limiting: all images (ubuntu, CUDA, etc.) returning 429 TOOMANYREQUESTS
+- Fix: downloaded Ubuntu 24.04 minimal rootfs directly from cloud-images.ubuntu.com CDN (not Docker Hub)
+- container.def now uses Bootstrap:localimage with ubuntu_rootfs.tar
+- CUDA 12.5 installed from NVIDIA's ubuntu2404 apt repos (keyring: cuda-keyring_1.1-1_all.deb)
 - Downloaded all 999 GeoCLIP images to /home/user/data/geoclip/ via HuggingFace
 - Pre-installed torch 2.6.0+cu124, transformers, pandas to /dev/shm/pylib
 - Fixed LLaVAClient: uses llava repo LlavaLlamaForCausalLM (not HF AutoModel)
   - Registers LlavaConfig with model_type=llava_llama override
   - Monkeypatches CLIPVisionConfig/CLIPModel.from_pretrained for offline CLIP loading
   - Uses proper conversation format with <im_start><image><im_end> tokens
-- Cleaned up setup.sh to only do pip installs (no model/data downloads)
-- GPU job re-submitted with fixes
+- GPU job re-submitted with localimage bootstrap bypassing Docker Hub
 
 ### [2026-04-07] - core_claim (pending)
 - Depends on GPU job completing successfully

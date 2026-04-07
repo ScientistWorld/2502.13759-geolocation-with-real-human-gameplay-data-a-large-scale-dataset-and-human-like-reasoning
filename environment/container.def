@@ -1,36 +1,37 @@
-Bootstrap: docker
-From: ubuntu:22.04
+# Apptainer definition file for GeoCoT environment.
+#
+# Uses Ubuntu 24.04 minimal rootfs from cloud-images.ubuntu.com (NOT Docker Hub).
+# CUDA 12.5 is installed from NVIDIA's apt repository.
+# Python packages are pre-installed to /dev/shm/pylib via setup.sh.
+
+Bootstrap: localimage
+From: /home/user/shared/container/rootfs
 
 %post
-    apt-get update && apt-get install -y --no-install-recommends \
-        python3 python3-pip python3-dev \
-        wget gnupg curl git \
-        libgl1-mesa-glx libglib2.0-0 \
-        libjpeg-dev zlib1g-dev libpng-dev \
-        && rm -rf /var/lib/apt/lists/*
+    set -e
+    cd /
 
-    # Install CUDA 12.1 from NVIDIA repos
-    wget -q https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_12.1.1-1_all.deb && \
-        dpkg -i cuda-keyring_12.1.1-1_all.deb && rm cuda-keyring_12.1.1-1_all.deb
-    apt-get update && apt-get install -y --no-install-recommends \
-        cuda-runtime-12-1 \
+    # Add NVIDIA CUDA repository for Ubuntu 24.04 (noble)
+    wget -q https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/cuda-keyring_1.1-1_all.deb && \
+        dpkg -i cuda-keyring_1.1-1_all.deb && rm cuda-keyring_1.1-1_all.deb
+    apt-get update
+    apt-get install -y --no-install-recommends \
+        cuda-runtime-12-5 \
         && rm -rf /var/lib/apt/lists/*
-
-    # Create user directory
-    mkdir -p /home/user
-    chmod 755 /home/user
 
     # Set environment
-    echo 'export HOME=/home/user' >> /etc/environment
+    echo 'export HOME=/root' >> /etc/environment
     echo 'export PYTHONUNBUFFERED=1' >> /etc/environment
     echo 'export PATH=/usr/local/cuda/bin:$PATH' >> /etc/environment
     echo 'export LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH' >> /etc/environment
+    echo 'export CUDA_HOME=/usr/local/cuda' >> /etc/environment
 
 %environment
-    export HOME=/home/user
+    export HOME=/root
     export PYTHONUNBUFFERED=1
     export PATH=/usr/local/cuda/bin:$PATH
     export LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH
+    export CUDA_HOME=/usr/local/cuda
     export TRANSFORMERS_CACHE=/home/user/shared/hf_cache
     export HF_HOME=/home/user/shared/hf_cache
     export PYTHONPATH=/dev/shm/pylib
