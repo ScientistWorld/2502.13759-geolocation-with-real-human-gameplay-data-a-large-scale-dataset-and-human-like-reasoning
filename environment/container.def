@@ -1,11 +1,12 @@
 # Apptainer definition file for GeoCoT environment.
 #
-# Uses Ubuntu 24.04 minimal rootfs from cloud-images.ubuntu.com (NOT Docker Hub).
+# Uses Ubuntu 24.04 minimal rootfs extracted from cloud-images.ubuntu.com.
+# The rootfs directory is relative to the batcher workspace root.
 # CUDA 12.5 is installed from NVIDIA's apt repository.
 # Python packages are pre-installed to /dev/shm/pylib via setup.sh.
 
 Bootstrap: localimage
-From: /home/user/shared/container/rootfs
+From: ./shared/container/rootfs
 
 %post
     set -e
