@@ -56,9 +56,9 @@
 - Tried localimage with relative path: build node path issue.
 - Tried Alpine + GitHub Releases: Alpine itself is also rate-limited by Docker Hub.
 - Bootstrap:http not supported by this Apptainer version ("invalid build source http").
-- Reverted to Bootstrap:localimage with relative path ./shared/container/rootfs.
-- Rootfs is complete: Python 3.12.3, apt, dpkg, wget all present.
-- CUDA keyring URL confirmed valid (HTTP 200).
+- Bootstrap:localimage with relative path failed: build node GPFS path is different from compute node.
+- Tried Bootstrap:docker rockylinux:9: Docker Hub consistently returns "registry response malformed" (rate-limited).
+- Bootstrap:sh: build host IS Ubuntu 24.04 — %post just adds CUDA from NVIDIA repos. No Docker Hub needed at all.
 
 ### [2026-04-07] - core_claim (pending)
 - Depends on GPU job completing successfully
