@@ -58,7 +58,8 @@
 - Bootstrap:http not supported by this Apptainer version ("invalid build source http").
 - Bootstrap:localimage with relative path failed: build node GPFS path is different from compute node.
 - Tried Bootstrap:docker rockylinux:9: Docker Hub consistently returns "registry response malformed" (rate-limited).
-- Bootstrap:sh: build host IS Ubuntu 24.04 — %post just adds CUDA from NVIDIA repos. No Docker Hub needed at all.
+- Bootstrap:sh: not supported by Apptainer 1.4.5 ("invalid build source sh").
+- Bootstrap:docker with Red Hat UBI 9 from registry.access.redhat.com — this registry is NOT Docker Hub and returned HTTP 200. Using NVIDIA's RHEL9 CUDA repos for CUDA 12.5.
 
 ### [2026-04-07] - core_claim (pending)
 - Depends on GPU job completing successfully
