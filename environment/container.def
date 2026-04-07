@@ -1,21 +1,15 @@
-# Apptainer definition file for GeoCoT environment.
-#
-# Build:  apptainer build container.sif container.def
-#
-# This container provides GPU support for running GeoCoT with local VLMs.
-# The workspace is bind-mounted at /home/user at runtime.
-# CUDA drivers are provided by the host (--nv flag or host LD_LIBRARY_PATH).
-
-Bootstrap: localimage
-From: /home/user/shared/container/python310_slim_bookworm.tar
+Bootstrap: docker
+From: ubuntu:22.04
 
 %post
     apt-get update && apt-get install -y --no-install-recommends \
+        python3 python3-pip python3-dev \
+        wget gnupg curl git \
         libgl1-mesa-glx libglib2.0-0 \
-        libjpeg-dev zlib1g-dev libpng-dev curl git wget gnupg \
+        libjpeg-dev zlib1g-dev libpng-dev \
         && rm -rf /var/lib/apt/lists/*
 
-    # Install CUDA 12.1 runtime from NVIDIA repos
+    # Install CUDA 12.1 from NVIDIA repos
     wget -q https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_12.1.1-1_all.deb && \
         dpkg -i cuda-keyring_12.1.1-1_all.deb && rm cuda-keyring_12.1.1-1_all.deb
     apt-get update && apt-get install -y --no-install-recommends \
