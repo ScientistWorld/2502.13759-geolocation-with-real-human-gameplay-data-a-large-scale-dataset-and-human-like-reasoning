@@ -39,14 +39,13 @@
 - Updated container.def to install uv and set PYTHONPATH
 - GPU job submitted: GeoCoT vs CoT on 100 GeoCLIP images, evaluate, generate scores.json
 
-### [2026-04-07] - method_runs (submitted, build node path issue)
-- Docker Hub rate-limiting: all images (ubuntu, CUDA, etc.) returning 429 TOOMANYREQUESTS
-- Downloaded Ubuntu 24.04 minimal rootfs from cloud-images.ubuntu.com CDN to /home/user/shared/container/rootfs_build/ubuntu_rootfs.tar
-- Extracted rootfs to /home/user/shared/container/rootfs/ (~426MB)
-- CUDA 12.5 installed from NVIDIA's ubuntu2404 apt repos
-- localimage bootstrap with absolute path /home/user/shared/container/rootfs failed: build node cannot access /home/user (GPFS mount not visible on build node)
-- Tried localimage with relative path: build node path issue unclear
-- Reverted to docker://ubuntu:24.04 — rate limit should be reset after 48h
+### [2026-04-07] - method_runs (submitted, Docker Hub rate-limit workaround)
+- Docker Hub rate-limiting persists across all Ubuntu images
+- Solution: Bootstrap from alpine:3.19 (different Docker Hub namespace, unlikely to be rate-limited)
+- In %post: download Ubuntu 24.04 rootfs from GitHub Releases
+- Made repo public to enable unauthenticated release downloads
+- Rootfs uploaded to GitHub Release (tag rootfs-v1, asset ubuntu-24.04-rootfs.tar, ~407MB)
+- Extraction overlays Alpine with Ubuntu, then CUDA/Python installed from NVIDIA repos
 - Downloaded all 999 GeoCLIP images to /home/user/data/geoclip/ via HuggingFace
 - Pre-installed torch 2.6.0+cu124, transformers, pandas to /dev/shm/pylib
 - Fixed LLaVAClient: uses llava repo LlavaLlamaForCausalLM (not HF AutoModel)
