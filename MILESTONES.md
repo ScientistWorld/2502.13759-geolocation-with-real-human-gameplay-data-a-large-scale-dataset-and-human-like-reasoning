@@ -36,11 +36,21 @@
 - Updated data loader to support GeoCLIP dataset
 - Updated VLM client for LLaVA-1.5-7B at /home/user/shared/models/llava-v1.5-7b/
 - Updated run.sh to use GeoCLIP + LLaVA pipeline
-- Updated setup.sh to download GeoCLIP during container build
 - Updated container.def to install uv and set PYTHONPATH
 - GPU job submitted: GeoCoT vs CoT on 100 GeoCLIP images, evaluate, generate scores.json
 
-### [2026-04-05] - core_claim (pending)
+### [2026-04-07] - method_runs (submitted for GPU execution, fixed)
+- Fixed container.def: switched from library: bootstrap (requires Sylabs remote) to docker://ubuntu:22.04
+- Downloaded all 999 GeoCLIP images to /home/user/data/geoclip/ via HuggingFace
+- Pre-installed torch 2.6.0+cu124, transformers, pandas to /dev/shm/pylib
+- Fixed LLaVAClient: uses llava repo LlavaLlamaForCausalLM (not HF AutoModel)
+  - Registers LlavaConfig with model_type=llava_llama override
+  - Monkeypatches CLIPVisionConfig/CLIPModel.from_pretrained for offline CLIP loading
+  - Uses proper conversation format with <im_start><image><im_end> tokens
+- Cleaned up setup.sh to only do pip installs (no model/data downloads)
+- GPU job re-submitted with fixes
+
+### [2026-04-07] - core_claim (pending)
 - Depends on GPU job completing successfully
 - Need to verify GeoCoT outperforms CoT on country/continent accuracy
 
