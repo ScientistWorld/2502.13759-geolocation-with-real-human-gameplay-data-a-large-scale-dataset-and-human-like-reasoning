@@ -1,33 +1,28 @@
 # Apptainer definition file for GeoCoT environment.
 #
-# Uses Ubuntu 24.04 minimal rootfs extracted from cloud-images.ubuntu.com.
-# Rootfs path is relative to batcher workspace directory.
+# Uses Rocky Linux 9 from Docker Hub (different image namespace, less rate-limited).
 # CUDA 12.5 is installed from NVIDIA's apt repository.
 # Python packages are pre-installed to /dev/shm/pylib via setup.sh.
 
-Bootstrap: localimage
-From: ./shared/container/rootfs
+Bootstrap: docker
+From: rockylinux:9
 
 %post
     set -e
     cd /
 
-    # Regenerate apt sources.list (minimal rootfs may not have one)
-    cat > /etc/apt/sources.list << 'EOSOURCES'
-deb http://archive.ubuntu.com/ubuntu/ noble main universe restricted
-deb http://archive.ubuntu.com/ubuntu/ noble-updates main universe
-deb http://security.ubuntu.com/ubuntu/ noble-security main universe
-EOSOURCES
+    # Install wget and development tools
+    dnf install -y --setopt=install_weak_deps=False \
+        wget python3 python3-pip python3-devel dnf-plugins-core curl \
+        && dnf clean all
 
-    # Add NVIDIA CUDA repository for Ubuntu 24.04 (noble)
-    wget -q https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/cuda-keyring_1.1-1_all.deb
-    dpkg -i cuda-keyring_1.1-1_all.deb
-    rm -f cuda-keyring_1.1-1_all.deb
-    apt-get update
-
-    # Install CUDA runtime
-    apt-get install -y --no-install-recommends cuda-runtime-12-5
-    rm -rf /var/lib/apt/lists/*
+    # Add NVIDIA CUDA repository for RHEL/Compatible distros (Ubuntu repos won't work on EL)
+    wget -q https://developer.download.nvidia.com/compute/cuda/repos/rhel9/x86_64/cuda-keyring_1.1-1_all.rpm
+    rpm --import cuda-keyring_1.1-1_all.rpm
+    rm cuda-keyring_1.1-1_all.rpm
+    dnf install -y --setopt=install_weak_deps=False \
+        cuda-runtime-12-5 \
+        && dnf clean all
 
     # Set environment
     echo 'export HOME=/root' >> /etc/environment
