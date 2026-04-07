@@ -1,34 +1,28 @@
 # Apptainer definition file for GeoCoT environment.
 #
-# Bootstrap:sh runs %post directly on the build HOST (Ubuntu 24.04).
-# Host already has Ubuntu 24.04 with Python 3.12 — just need to add CUDA.
-# Downloads rootfs to /tmp only (not overwriting host system).
-#
+# Uses Red Hat UBI 9 from registry.access.redhat.com (NOT Docker Hub).
+# Red Hat's registry is accessible without rate limits.
+# CUDA 12.5 is installed from NVIDIA's RHEL9 repository.
 # Python packages are pre-installed to /dev/shm/pylib via setup.sh.
 
-Bootstrap: sh
+Bootstrap: docker
+From: registry.access.redhat.com/ubi9:latest
 
 %post
     set -e
+    cd /
 
-    # Host is already Ubuntu 24.04 — just configure apt and install CUDA
-    # Ensure sources.list is correct
-    cat > /etc/apt/sources.list << 'EOSOURCES'
-deb http://archive.ubuntu.com/ubuntu/ noble main universe restricted
-deb http://archive.ubuntu.com/ubuntu/ noble-updates main universe
-deb http://security.ubuntu.com/ubuntu/ noble-security main universe
-EOSOURCES
+    # Install Python 3 and development tools (included in UBI)
+    dnf install -y --setopt=install_weak_deps=False \
+        python3 python3-pip python3-devel wget curl \
+        && dnf clean all
 
-    # Add NVIDIA CUDA repository for Ubuntu 24.04
-    wget -q -O /tmp/cuda-keyring.deb \
-        https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/cuda-keyring_1.1-1_all.deb
-    dpkg -i /tmp/cuda-keyring.deb
-    rm /tmp/cuda-keyring.deb
-    apt-get update
-
-    # Install CUDA runtime
-    apt-get install -y --no-install-recommends cuda-runtime-12-5
-    rm -rf /var/lib/apt/lists/*
+    # Add NVIDIA CUDA repository for RHEL-compatible distros
+    wget -q -O /etc/yum.repos.d/cuda-rhel9.repo \
+        https://developer.download.nvidia.com/compute/cuda/repos/rhel9/x86_64/cuda-rhel9.repo
+    dnf install -y --setopt=install_weak_deps=False \
+        cuda-runtime-12-5 \
+        && dnf clean all
 
     # Set environment
     echo 'export HOME=/root' >> /etc/environment
@@ -36,8 +30,6 @@ EOSOURCES
     echo 'export PATH=/usr/local/cuda/bin:$PATH' >> /etc/environment
     echo 'export LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH' >> /etc/environment
     echo 'export CUDA_HOME=/usr/local/cuda' >> /etc/environment
-
-    echo "Environment setup complete: Ubuntu 24.04 with CUDA 12.5"
 
 %environment
     export HOME=/root
