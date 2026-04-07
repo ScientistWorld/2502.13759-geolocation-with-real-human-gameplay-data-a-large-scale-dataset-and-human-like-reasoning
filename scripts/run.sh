@@ -27,19 +27,17 @@ mkdir -p "$RESULTS_DIR"
 echo ""
 echo "=== Step 1: Setting up Python packages ==="
 
-# /dev/shm/pylib is set via container environment; verify it works
-if python3 -c "import torch, transformers, pandas" 2>/dev/null; then
-    echo "Python packages available (via PYTHONPATH)"
+# /dev/shm/pylib should already be populated by setup.sh; verify it works
+export PYTHONPATH="/dev/shm/pylib:/home/user/shared/models/llava_repo:/home/user"
+if python3 -c "import torch; import transformers; import pandas" 2>/dev/null; then
+    echo "Python packages available at /dev/shm/pylib"
 else
-    echo "Installing packages to /dev/shm/pylib..."
-    mkdir -p /dev/shm/pylib
-    pip3 install --target /dev/shm/pylib torch torchvision --index-url https://download.pytorch.org/whl/cu121 2>&1 | tail -3 || true
-    pip3 install --target /dev/shm/pylib transformers accelerate sentencepiece protobuf tiktoken pillow opencv-python-headless numpy scipy pandas scikit-learn tqdm jiwer rapidfuzz 2>&1 | tail -3 || true
-    export PYTHONPATH="/dev/shm/pylib"
+    echo "Warning: packages not found at /dev/shm/pylib, checking system..."
+    python3 -c "import torch; import transformers; import pandas" 2>/dev/null || {
+        echo "ERROR: Python packages not available. Did setup.sh run?"
+        exit 1
+    }
 fi
-
-# Set PYTHONPATH for this session
-export PYTHONPATH="/dev/shm/pylib:$PYTHONPATH"
 
 # =============================================================================
 # Step 2: Check for VLM model
@@ -106,29 +104,34 @@ PYTHONPATH="/dev/shm/pylib:/home/user/shared/models/llava_repo:/home/user" pytho
     --method geocot 2>&1 || {
     echo "GeoCoT run encountered errors (see above)"
     echo "Creating placeholder predictions..."
-    PYTHONPATH="/dev/shm/pylib:/home/user/shared/models/llava_repo:/home/user" python3 -c "
+    python3 << 'EOPLACEHOLDER'
 import json
+import sys
+sys.path.insert(0, '/dev/shm/pylib')
 import pandas as pd
-df = pd.read_csv('$DATASET')
-df = df.head($MAX_IMAGES)
+DATASET = "/home/user/data/geoclip/geoclip.csv"
+MAX = 100
+df = pd.read_csv(DATASET)
+df = df.head(MAX)
 results = []
 for _, row in df.iterrows():
     results.append({
         'image_path': row['image_path'],
-        'ground_truth_city': row.get('city', ''),
-        'ground_truth_country': row.get('country', ''),
-        'ground_truth_continent': row.get('continent', ''),
-        'ground_truth_lat': row.get('lat'),
-        'ground_truth_lon': row.get('lon'),
+        'ground_truth_city': str(row.get('city', '')),
+        'ground_truth_country': str(row.get('country', '')),
+        'ground_truth_continent': str(row.get('continent', '')),
+        'ground_truth_lat': float(row.get('lat')) if pd.notna(row.get('lat')) else None,
+        'ground_truth_lon': float(row.get('lon')) if pd.notna(row.get('lon')) else None,
         'predicted_city': None,
         'predicted_country': None,
         'predicted_continent': None,
         'model_response': None,
         'error': 'VLM run failed'
     })
-with open('$RESULTS_DIR/geocot_predictions.json', 'w') as f:
+with open('/home/user/results/geocot_predictions.json', 'w') as f:
     json.dump(results, f, indent=2)
-"
+print(f"Placeholder predictions: {len(results)}")
+EOPLACEHOLDER
 }
 
 # =============================================================================
@@ -147,29 +150,34 @@ PYTHONPATH="/dev/shm/pylib:/home/user/shared/models/llava_repo:/home/user" pytho
     --method cot 2>&1 || {
     echo "CoT run encountered errors (see above)"
     echo "Creating placeholder predictions..."
-    PYTHONPATH="/dev/shm/pylib:/home/user/shared/models/llava_repo:/home/user" python3 -c "
+    python3 << 'EOPLACEHOLDER'
 import json
+import sys
+sys.path.insert(0, '/dev/shm/pylib')
 import pandas as pd
-df = pd.read_csv('$DATASET')
-df = df.head($MAX_IMAGES)
+DATASET = "/home/user/data/geoclip/geoclip.csv"
+MAX = 100
+df = pd.read_csv(DATASET)
+df = df.head(MAX)
 results = []
 for _, row in df.iterrows():
     results.append({
         'image_path': row['image_path'],
-        'ground_truth_city': row.get('city', ''),
-        'ground_truth_country': row.get('country', ''),
-        'ground_truth_continent': row.get('continent', ''),
-        'ground_truth_lat': row.get('lat'),
-        'ground_truth_lon': row.get('lon'),
+        'ground_truth_city': str(row.get('city', '')),
+        'ground_truth_country': str(row.get('country', '')),
+        'ground_truth_continent': str(row.get('continent', '')),
+        'ground_truth_lat': float(row.get('lat')) if pd.notna(row.get('lat')) else None,
+        'ground_truth_lon': float(row.get('lon')) if pd.notna(row.get('lon')) else None,
         'predicted_city': None,
         'predicted_country': None,
         'predicted_continent': None,
         'model_response': None,
         'error': 'VLM run failed'
     })
-with open('$RESULTS_DIR/cot_predictions.json', 'w') as f:
+with open('/home/user/results/cot_predictions.json', 'w') as f:
     json.dump(results, f, indent=2)
-"
+print(f"Placeholder predictions: {len(results)}")
+EOPLACEHOLDER
 }
 
 # =============================================================================
@@ -182,6 +190,8 @@ SCORE_FILE="/home/user/scoring/scores.json"
 mkdir -p "$(dirname $SCORE_FILE)"
 
 PYTHONPATH="/dev/shm/pylib:/home/user" python3 << 'EOPY'
+import sys
+sys.path.insert(0, '/dev/shm/pylib')
 import sys
 import json
 import os
@@ -243,7 +253,7 @@ scores = {"experiments": {}}
 if all_results:
     # Create experiment entry for the GeoCLIP/GeoCoT comparison
     scores["experiments"]["geoclip_geolocation"] = {
-        "description": "GeoCLIP geolocation: GeoCoT vs standard CoT using LLaVA-1.5-7B",
+        "description": "GeoCLIP geolocation: GeoCoT vs standard CoT using LLaVA-1.5-7B on 999 images from Kenya/Ecuador/Madagascar/Chile",
         "results": {}
     }
 
@@ -251,22 +261,20 @@ if all_results:
         if "error" in metrics:
             continue
 
-        entry = {}
+        entry = {"type": "unknown"}
         for key, value in metrics.items():
-            if isinstance(value, float) and not key.startswith('_') and key not in ['tp', 'fp', 'fn', 'total']:
+            if isinstance(value, float) and not key.startswith('_') and key not in ['tp', 'fp', 'fn', 'total', 'valid_predictions', 'total_predictions']:
                 entry[key] = round(value, 4)
 
         # Determine method type
         if 'geocot' in method_name and 'cot' not in method_name:
-            method_type = 'proposed'
+            entry['type'] = 'proposed'
         elif 'cot' in method_name:
-            method_type = 'baseline'
-        else:
-            method_type = 'proposed'
+            entry['type'] = 'baseline'
 
         label = method_name.replace('_predictions', '')
         scores["experiments"]["geoclip_geolocation"]["results"][label] = entry
-        print(f"  {label}: {entry}")
+        print(f"  {label} ({entry['type']}): {entry}")
 
 scores_path = '/home/user/scoring/scores.json'
 with open(scores_path, 'w') as f:
