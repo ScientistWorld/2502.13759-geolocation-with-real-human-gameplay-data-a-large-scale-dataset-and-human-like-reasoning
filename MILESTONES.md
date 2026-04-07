@@ -55,7 +55,10 @@
 - Docker Hub rate-limiting persists across all images (ubuntu, alpine, etc.)
 - Tried localimage with relative path: build node path issue.
 - Tried Alpine + GitHub Releases: Alpine itself is also rate-limited by Docker Hub.
-- New approach: Bootstrap:http with direct download from cloud-images.ubuntu.com CDN — completely bypasses Docker Hub.
+- Bootstrap:http not supported by this Apptainer version ("invalid build source http").
+- Reverted to Bootstrap:localimage with relative path ./shared/container/rootfs.
+- Rootfs is complete: Python 3.12.3, apt, dpkg, wget all present.
+- CUDA keyring URL confirmed valid (HTTP 200).
 
 ### [2026-04-07] - core_claim (pending)
 - Depends on GPU job completing successfully
