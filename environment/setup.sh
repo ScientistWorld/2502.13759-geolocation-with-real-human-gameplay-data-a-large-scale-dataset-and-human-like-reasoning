@@ -16,10 +16,9 @@ echo "=== Step 1: Installing Python packages ==="
 PYPATH="/dev/shm/pylib"
 mkdir -p "$PYPATH"
 
-# Install PyTorch with CUDA 12.1 support
-uv pip install --system --target "$PYPATH" torch torchvision --index-url https://download.pytorch.org/whl/cu121 2>&1 || \
-uv pip install --system --target "$PYPATH" torch torchvision 2>&1 || \
-pip3 install --target "$PYPATH" torch torchvision --index-url https://download.pytorch.org/whl/cu121 2>&1 || true
+# Install PyTorch 2.6.0+ (required to load .bin model files due to security fix)
+uv pip install --system --force-reinstall --target "$PYPATH" torch==2.6.0 torchvision 2>&1 | tail -5 || \
+uv pip install --system --force-reinstall --target "$PYPATH" torch torchvision 2>&1 | tail -5 || true
 
 # Install all other packages
 uv pip install --system --target "$PYPATH" \

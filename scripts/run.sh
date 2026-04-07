@@ -50,8 +50,10 @@ echo "=== Step 2: Checking for VLM model ==="
 VLM_TYPE="llava"
 MODEL_NAME="LLaVA-1.5-7B"
 
-# Check for LLaVA
-if [ -d "/home/user/shared/models/llava-v1.5-7b" ]; then
+# Check for LLaVA (preference: /dev/shm version with preprocessor_config.json)
+if [ -d "/dev/shm/llava-v1.5-7b-config" ]; then
+    echo "Found LLaVA-1.5-7B at /dev/shm/llava-v1.5-7b-config"
+elif [ -d "/home/user/shared/models/llava-v1.5-7b" ]; then
     echo "Found LLaVA-1.5-7B at /home/user/shared/models/llava-v1.5-7b"
 elif [ -d "/home/user/shared/models/llava-hf/llava-1.5-7b-hf" ]; then
     echo "Found LLaVA-1.5-7B at /home/user/shared/models/llava-hf/llava-1.5-7b-hf"
@@ -76,7 +78,7 @@ DATASET=""
 if [ -f "/home/user/data/geoclip/geoclip.csv" ]; then
     DATASET="/home/user/data/geoclip/geoclip.csv"
     echo "Found GeoCLIP dataset at $DATASET"
-    NUM_IMAGES=$(PYTHONPATH="/dev/shm/pylib:/home/user" python3 -c "import pandas as pd; df = pd.read_csv('$DATASET'); print(len(df))")
+    NUM_IMAGES=$(PYTHONPATH="/dev/shm/pylib:/home/user/shared/models/llava_repo:/home/user" python3 -c "import pandas as pd; df = pd.read_csv('$DATASET'); print(len(df))")
     echo "Total images: $NUM_IMAGES"
 elif [ -f "/home/user/data/im2gps3k/im2gps3k.csv" ]; then
     DATASET="/home/user/data/im2gps3k/im2gps3k.csv"
@@ -95,8 +97,8 @@ echo "=== Step 4: Running GeoCoT ==="
 MAX_IMAGES=100
 echo "Running GeoCoT with $MODEL_NAME (max $MAX_IMAGES images)..."
 
-export PYTHONPATH="/dev/shm/pylib:/home/user"
-python3 -m method.run_geocot \
+export PYTHONPATH="/dev/shm/pylib:/home/user/shared/models/llava_repo:/home/user"
+PYTHONPATH="/dev/shm/pylib:/home/user/shared/models/llava_repo:/home/user" python3 -m method.run_geocot \
     --dataset "$DATASET" \
     --output "$RESULTS_DIR/geocot_predictions.json" \
     --vlm "$VLM_TYPE" \
@@ -104,7 +106,7 @@ python3 -m method.run_geocot \
     --method geocot 2>&1 || {
     echo "GeoCoT run encountered errors (see above)"
     echo "Creating placeholder predictions..."
-    PYTHONPATH="/dev/shm/pylib:/home/user" python3 -c "
+    PYTHONPATH="/dev/shm/pylib:/home/user/shared/models/llava_repo:/home/user" python3 -c "
 import json
 import pandas as pd
 df = pd.read_csv('$DATASET')
@@ -137,7 +139,7 @@ echo "=== Step 5: Running CoT Baseline ==="
 
 echo "Running standard CoT with $MODEL_NAME (max $MAX_IMAGES images)..."
 
-PYTHONPATH="/dev/shm/pylib:/home/user" python3 -m method.run_geocot \
+PYTHONPATH="/dev/shm/pylib:/home/user/shared/models/llava_repo:/home/user" python3 -m method.run_geocot \
     --dataset "$DATASET" \
     --output "$RESULTS_DIR/cot_predictions.json" \
     --vlm "$VLM_TYPE" \
@@ -145,7 +147,7 @@ PYTHONPATH="/dev/shm/pylib:/home/user" python3 -m method.run_geocot \
     --method cot 2>&1 || {
     echo "CoT run encountered errors (see above)"
     echo "Creating placeholder predictions..."
-    PYTHONPATH="/dev/shm/pylib:/home/user" python3 -c "
+    PYTHONPATH="/dev/shm/pylib:/home/user/shared/models/llava_repo:/home/user" python3 -c "
 import json
 import pandas as pd
 df = pd.read_csv('$DATASET')
