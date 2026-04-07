@@ -31,4 +31,4 @@ action: submit
 gpus: 1
 test: false
 milestone: method_runs
-notes: "GeoCoT reproduction: Bootstrap:docker ubuntu:24.04. CUDA 12.5 from NVIDIA ubuntu2404 repos. torch 2.6.0+cu124 at /dev/shm/pylib. GeoCLIP (999 images) at /home/user/data/geoclip/. LLaVA-1.5-7B at /dev/shm/llava-v1.5-7b-config/. CLIP at /home/user/shared/models/clip-vit-large-patch14-336/. LLaVAClient uses llava repo with offline CLIP patching. Running GeoCoT vs CoT on 100 images."
+notes: "GeoCoT reproduction: Bootstrap:docker alpine:3.19 then %post downloads Ubuntu 24.04 rootfs from GitHub Releases (repo is public). CUDA 12.5 from NVIDIA ubuntu2404 repos. torch 2.6.0+cu124 at /dev/shm/pylib. GeoCLIP (999 images) at /home/user/data/geoclip/. LLaVA-1.5-7B at /dev/shm/llava-v1.5-7b-config/. CLIP at /home/user/shared/models/clip-vit-large-patch14-336/. LLaVAClient uses llava repo with offline CLIP patching. Running GeoCoT vs CoT on 100 images."
