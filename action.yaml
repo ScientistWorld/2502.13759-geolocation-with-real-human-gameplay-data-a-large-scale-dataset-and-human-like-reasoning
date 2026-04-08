@@ -5,4 +5,4 @@ action: submit
 gpus: 1
 test: false
 milestone: method_runs
-notes: "Bootstrap:localimage /dev/shm/azurelinux.tar (30MB). Azure Linux 3.0 layer downloaded from MCR. /dev/shm is 126GB tmpfs. Previous Bootstrap:localimage /tmp/ path failed (isolated build namespace). /dev/shm is top-level, should be accessible. Azure Linux layer has NO device nodes - Apptainer may still fail at mknod /dev/null. Will wait for result."
+notes: "Bootstrap:localimage /dev/shm/azurelinux.tar (30MB). Azure Linux 3.0 layer from MCR (mcr.microsoft.com, HTTP 200). Tar freshly downloaded and verified. /dev/shm is 126GB tmpfs. Previous failures: /tmp/ (isolated namespace), /home/user/ GPFS (build can't see), Bootstrap:docker RedHat (malformed), Bootstrap:yum (nodev mknod). /dev/shm is top-level tmpfs - should be accessible to build. Will wait for result."
