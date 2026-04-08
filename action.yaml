@@ -1,8 +1,8 @@
 # IMPORTANT: Once you set action to 'submit' or 'done', STOP immediately.
 # Do NOT sleep, poll, or wait for jobs. The system reads this file
 # only after your turn ends. Sleeping blocks the entire pipeline.
-action: submit
+action: pending
 gpus: 1
 test: false
-milestone: method_runs
-notes: "Retry Bootstrap:docker MCR Azure Linux 3.0. Scheduler said registry error is transient_external. MCR works with curl (HTTP 200), Apptainer docker conveyor may be hitting proxy/network issue. Previous failure: 'invalid character s after top-level value' - likely Apptainer got v1 JWS manifest instead of v2 JSON. Retry may succeed if transient."
+milestone: none
+notes: ""
