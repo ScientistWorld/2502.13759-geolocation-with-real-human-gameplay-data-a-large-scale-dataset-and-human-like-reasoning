@@ -1,10 +1,9 @@
 # Apptainer definition file for GeoCoT environment.
 #
-# BUILDTIME: Bootstrap:docker from Rocky Linux 9 on Docker Hub.
-#   Using rockylinux:9 instead of Azure Linux from MCR because MCR returns
-#   JWS manifests that Apptainer's docker conveyor cannot parse.
-#   Rocky Linux 9 has Python 3.11 in AppStream repos.
+# BUILDTIME: Bootstrap:localimage from pre-downloaded Azure Linux tar.
+#   The azurelinux.tar is a valid Docker image created from MCR blobs.
+#   Using localimage avoids registry issues (JWS from MCR, rate limits from Docker Hub).
 # RUNTIME: Job script installs Python + CUDA on compute node.
 
-Bootstrap: docker
-From: rockylinux:9
+Bootstrap: localimage
+From: /home/user/environment/azurelinux.tar
