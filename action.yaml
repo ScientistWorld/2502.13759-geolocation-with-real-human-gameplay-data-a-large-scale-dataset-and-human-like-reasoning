@@ -5,4 +5,4 @@ action: submit
 gpus: 1
 test: false
 milestone: method_runs
-notes: "Bootstrap:localimage /dev/shm/azurelinux.tar (30MB). Azure Linux 3.0 layer from MCR (mcr.microsoft.com, HTTP 200). Tar freshly downloaded and verified. /dev/shm is 126GB tmpfs. Previous failures: /tmp/ (isolated namespace), /home/user/ GPFS (build can't see), Bootstrap:docker RedHat (malformed), Bootstrap:yum (nodev mknod). /dev/shm is top-level tmpfs - should be accessible to build. Will wait for result."
+notes: "Bootstrap:localimage /home/user/azurelinux.tar on GPFS. Azure Linux 3.0 layer from MCR (mcr.microsoft.com). Tar freshly downloaded to GPFS. Previous: /dev/shm/ (isolated namespace can't see host mounts), /tmp/ (isolated namespace), Bootstrap:docker RedHat (malformed), Bootstrap:yum (nodev mknod). Now trying GPFS /home/user/ path - workspace is on GPFS, build node should see it."

@@ -1,10 +1,9 @@
 # Apptainer definition file for GeoCoT environment.
 #
-# BUILDTIME: Pre-built Azure Linux 3.0 tar on /dev/shm.
+# BUILDTIME: Pre-built Azure Linux 3.0 tar in workspace.
 #   Image layer downloaded from mcr.microsoft.com (HTTP 200, no rate limits).
-#   /dev/shm is a 126GB tmpfs accessible from build and compute nodes.
 #   Bootstrap:localimage bypasses registry fetching entirely.
 # RUNTIME: Job script installs Python + CUDA on compute node.
 
 Bootstrap: localimage
-From: /dev/shm/azurelinux.tar
+From: /home/user/environment/azurelinux.tar
