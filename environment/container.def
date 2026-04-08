@@ -4,6 +4,8 @@
 #   registry.access.redhat.com verified HTTP 200 — not rate-limited.
 #   Using specific tag :8.10 (avoids tag manifest resolution).
 #   Empty %post = no device creation = no nodev/fakeroot issues.
+# FALLBACK: If registry fetch fails, pre-downloaded image tar is available
+#   at /home/user/shared/container/images/ubi8-ubi.tar (Bootstrap: localimage).
 # RUNTIME: Job script installs Python + CUDA on compute node.
 
 Bootstrap: docker
