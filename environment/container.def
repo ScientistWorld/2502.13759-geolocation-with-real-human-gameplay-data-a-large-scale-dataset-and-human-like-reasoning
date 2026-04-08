@@ -1,9 +1,9 @@
 # Apptainer definition file for GeoCoT environment.
 #
-# BUILDTIME: Pre-built Azure Linux 3.0 tar in workspace.
-#   Image layer downloaded from mcr.microsoft.com (HTTP 200, no rate limits).
-#   Bootstrap:localimage bypasses registry fetching entirely.
+# BUILDTIME: Bootstrap:docker from Azure Linux 3.0 on MCR (mcr.microsoft.com).
+#   MCR is HTTP 200 accessible with no Docker Hub rate limits.
+#   Azure Linux 3.0 has Python 3.11+ built-in.
 # RUNTIME: Job script installs Python + CUDA on compute node.
 
-Bootstrap: localimage
-From: /home/user/environment/azurelinux.tar
+Bootstrap: docker
+From: mcr.microsoft.com/azurelinux/base/core:3.0

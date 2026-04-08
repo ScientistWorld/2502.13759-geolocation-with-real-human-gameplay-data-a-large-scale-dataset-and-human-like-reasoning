@@ -5,4 +5,4 @@ action: submit
 gpus: 1
 test: false
 milestone: method_runs
-notes: "Bootstrap:localimage /home/user/environment/azurelinux.tar with /dev/null etc as regular files. Azure Linux 3.0 from MCR. Key fix: added /dev/null,/dev/zero,/dev/full,/dev/random,/dev/urandom as REGULAR FILES (0 bytes) in Docker tar. Kernel resolves open('/dev/null') on regular file to real /dev/null. Previous: all paths (/dev/shm,/tmp,/home/user/) invisible to Apptainer build namespace. Workspace IS accessible - tar now in /home/user/environment/. Hoping Apptainer won't mknod when /dev/null already exists."
+notes: "Bootstrap:docker mcr.microsoft.com/azurelinux/base/core:3.0. MCR uses standard Docker V2 API (HTTP 200 verified). Previous: localimage paths all failed (build namespace can't see /home/user/). MCR docker conveyor fetches from registry directly - no local path needed. Azure Linux 3.0 has Python 3.11. Will wait for result."
