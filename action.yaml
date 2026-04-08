@@ -5,4 +5,4 @@ action: submit
 gpus: 1
 test: false
 milestone: method_runs
-notes: "Bootstrap:docker Red Hat UBI 8 from registry.access.redhat.com (accessible, not rate-limited). Empty %post. CUDA installed at job runtime. /dev/shm/pylib has Python packages. GeoCLIP (999 images). LLaVA-1.5-7B. GeoCoT vs CoT on 100 images."
+notes: "Bootstrap:docker Red Hat UBI 8.10 from registry.access.redhat.com (specific tag, not latest). Red Hat registry is HTTP 200 accessible from this env — no Docker Hub rate limits. Previous :latest attempt got 'malformed registry response', retrying with :8.10. Empty %post. CUDA at runtime. /dev/shm/pylib has Python. GeoCLIP 999 images. LLaVA-1.5-7B."
