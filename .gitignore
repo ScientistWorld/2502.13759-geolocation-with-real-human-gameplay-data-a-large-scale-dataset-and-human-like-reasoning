@@ -55,3 +55,7 @@ dist/
 *.whl
 wandb/
 .wandb/
+
+# Auto-added by swarm
+environment/container.squashfs
+*.squashfs
