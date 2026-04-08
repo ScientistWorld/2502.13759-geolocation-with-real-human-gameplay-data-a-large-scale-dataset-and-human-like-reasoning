@@ -5,4 +5,4 @@ action: submit
 gpus: 1
 test: false
 milestone: method_runs
-notes: "Bootstrap:localimage via symlink: /tmp/ubi8-ubi.tar -> /home/user/shared/container/images/ubi8-ubi.tar. /tmp is FUSE tmpfs (64MB, accessible during build). /home/user is GPFS. Symlink bridges tmpfs -> GPFS. Previous: direct /tmp/claude-code-tmp/ failed (build context has separate /tmp tmpfs). /home/user/ failed (build node can't see /home/user). Empty %post."
+notes: "Bootstrap:docker Azure Linux 3.0 from MCR (mcr.microsoft.com). MCR is HTTP 200, no rate limits. Layer verified: 0 device nodes, 2296 entries. Previous approaches: Bootstrap:docker RedHat (registry malformed), Bootstrap:localimage (path not accessible), Bootstrap:yum (nodev mknod). Empty %post."

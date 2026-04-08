@@ -1,12 +1,11 @@
 # Apptainer definition file for GeoCoT environment.
 #
-# BUILDTIME: Symlink in FUSE /tmp (tmpfs) pointing to GPFS tar.
-#   Symlink: /tmp/ubi8-ubi.tar -> /home/user/shared/container/images/ubi8-ubi.tar
-#   /tmp is the 64MB tmpfs on FUSE root, accessible during Apptainer build.
-#   /home/user is the GPFS mount, accessible during Apptainer build.
-#   Bootstrap:localimage reads the tar via the symlink.
+# BUILDTIME: Azure Linux 3.0 from MCR (mcr.microsoft.com).
+#   MCR is HTTP 200 accessible from this environment.
+#   Microsoft Container Registry does not have Docker Hub rate limits.
+#   Docker v2 manifest verified: single 30MB layer.
 #   Empty %post = no device creation = no nodev/fakeroot issues.
 # RUNTIME: Job script installs Python + CUDA on compute node.
 
-Bootstrap: localimage
-From: /tmp/ubi8-ubi.tar
+Bootstrap: docker
+From: mcr.microsoft.com/azurelinux/base/core:3.0
