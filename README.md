@@ -252,6 +252,66 @@ Target performance (paper's reported results on GeoComp test set with 500 images
 
 </details>
 
+### Iteration 1: MiniMax-M2.7
+- **Milestone**: `method_runs` | **Status**: done
+- **Working time**: 37m | **GPU**: 0.0h
+
+<details>
+<summary>Progress Log</summary>
+
+### [2026-04-04] - none
+- Read paper thoroughly: GeoCoT (Geographical Chain-of-Thought) for image geolocation
+- Paper proposes a 5-step structured prompting framework for VLMs
+- Core claim: GeoCoT improves geolocation accuracy by up to 25% vs baselines
+- Key challenge: GeoComp dataset and GPT-4o not directly available
+
+### [2026-04-04] - method_runs (in progress)
+- Implemented GeoCoT prompting method (5 reasoning steps)
+- Implemented VLM client supporting Qwen2.5-VL and LLaVA
+- Implemented geolocation evaluation metrics (classification + distance)
+- Set up environment with CUDA container
+- Created download scripts for model and data
+- Created method.sh, baseline.sh, evaluate.sh, reproduce.sh scripts
+
+### [2026-04-05] - method_runs (submitted for GPU execution)
+- Discovered Stanford Im2GPS3K URL is 404 (no longer available)
+- Found GeoCLIP-data on HuggingFace as alternative (999 images from Kenya/Ecuador/Madagascar/Chile)
+- Downloaded full GeoCLIP dataset (70MB) to /home/user/data/geoclip/
+- Updated data loader to support GeoCLIP dataset
+- Updated VLM client for LLaVA-1.5-7B at /home/user/shared/models/llava-v1.5-7b/
+- Updated run.sh to use GeoCLIP + LLaVA pipeline
+- Updated container.def to install uv and set PYTHONPATH
+- GPU job submitted: GeoCoT vs CoT on 100 GeoCLIP images, evaluate, generate scores.json
+
+### [2026-04-07-08] - method_runs (submitted, Docker Hub rate-limit workaround)
+- Docker Hub rate-limiting: all images (ubuntu, alpine, etc.) returning 429 TOOMANYREQUESTS
+- Downloaded Ubuntu 24.04 minimal rootfs from cloud-images.ubuntu.com CDN to /home/user/shared/container/rootfs_build/
+- Tried localimage with relative path: build node path issue (GPFS not accessible).
+- Tried Bootstrap:http, Bootstrap:sh — not supported by Apptainer 1.4.5
+- Bootstrap:docker with Red Hat UBI 9 from registry.access.redhat.com — ALSO rate-limited ("registry response malformed")
+- Bootstrap:yum fails: cannot create device nodes in build directory ("operation not permitted")
+- Retry: docker://index.docker.io/library/ubuntu:24.04 (fully qualified) — STILL rate-limited
+- localimage bootstrap: build node can't resolve `/home/user/` path — GPFS mount point differs
+- Build node `/scratch/gpfs/...` path also doesn't exist — path discovery approach failed
+- `/dev/null` creation in %post fails: fakeroot can't mknod on nodev filesystem
+  (build node temp dir has `nodev` mount option)
+- GPFS disallows device node creation even from compute node
+- Docker Hub unavailable from this network (503 Service Unavailable)
+- Bootstrap:yum approach: base OS works, but %post install triggers /dev/null issue
+- Bootstrap:yum with empty %post: "invalid yum header, no mirrorurl specified" — yum can't resolve mirrors
+- Bootstrap:yum with vault URL: same error — Apptainer can't bootstrap yum from URL
+- debootstrap not installed on build node: "executable file not found in $PATH"
+- Build node workspace: 64MB FUSE filesystem at /home/tl0463/scratch/ (nodev, no space)
+- Compute node GPFS at /home/user/ — not accessible from build node
+- Build node's GPFS at /scratch/gpfs/... — not accessible from compute node
+- Docker Hub: 503 Service Unavailable (down, not just rate-limited)
+- GHCR.io, GCR.io, MCR.io: require authentication or lack needed images
+- **Bootstrap:yum rockylinux:9**: "invalid yum header, no mirrorurl specified" — yum can't resolve Rocky mirrors
+- **Bootstrap:docker Red Hat UBI 8 (current attempt)**: registry.access.redhat.com verified HTTP 200
+  - Not rate-limited like Docker Hub. UBI 8 has Python 3.6+. Empty %post.
+
+</details>
+
 
 ---
 

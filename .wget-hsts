@@ -1,4 +1,5 @@
 # HSTS 1.0 Known Hosts database for GNU Wget.
 # Edit at your own risk.
 # <hostname>	<port>	<incl. subdomains>	<created>	<max-age>
+mcr.microsoft.com	0	1	1775680485	31536000
 github.com	0	1	1775637052	31536000
