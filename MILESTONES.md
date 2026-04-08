@@ -47,10 +47,11 @@
 - Bootstrap:docker with Red Hat UBI 9 from registry.access.redhat.com — ALSO rate-limited ("registry response malformed")
 - Bootstrap:yum fails: cannot create device nodes in build directory ("operation not permitted")
 - Retry: docker://index.docker.io/library/ubuntu:24.04 (fully qualified) — STILL rate-limited
-- Switch to: Bootstrap:localimage with pre-extracted Ubuntu 24.04 rootfs at /home/user/shared/container/rootfs
-  - GPFS-mounted on both build and compute nodes at /home/user — no path mismatch
+- Switch to: Bootstrap:localimage with pre-extracted Ubuntu 24.04 rootfs
+  - Build node accesses GPFS at `/scratch/gpfs/ZHUANGL/tl0463/ResearchGym/Infrastruture/swarm/` (not `/home/user/`)
+  - Compute node accesses same GPFS at `/home/user/` — same filesystem, different mount points
+  - `From: /scratch/gpfs/ZHUANGL/tl0463/ResearchGym/Infrastruture/swarm/shared/container/rootfs`
   - No Docker Hub pull needed — bypasses rate limits entirely
-  - %post installs Python + CUDA 12.5 on top of the rootfs
 
 ## Stop Justification
 

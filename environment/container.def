@@ -5,7 +5,7 @@
 # CUDA 12.5 is installed from NVIDIA's apt repository in %post.
 
 Bootstrap: localimage
-From: /home/user/shared/container/rootfs
+From: /scratch/gpfs/ZHUANGL/tl0463/ResearchGym/Infrastruture/swarm/shared/container/rootfs
 
 %post
     set -e
