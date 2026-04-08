@@ -54,10 +54,12 @@
 - GPFS disallows device node creation even from compute node
 - Docker Hub unavailable from this network (503 Service Unavailable)
 - Bootstrap:yum approach: base OS works, but %post install triggers /dev/null issue
-- FINAL APPROACH: Bootstrap:yum (base OS only, NO %post) + runtime CUDA install
-  - Build succeeds with empty %post (no device creation)
-  - Job script installs CUDA at runtime on compute node (real root access)
-  - GPU nodes have /dev/shm/pylib with Python packages (cluster pre-installed)
+- Bootstrap:yum with empty %post: "invalid yum header, no mirrorurl specified" — yum can't resolve mirrors
+- Bootstrap:yum with vault URL: same error — Apptainer can't bootstrap yum from URL
+- Switch to: Bootstrap:debootstrap from Ubuntu 24.04 noble release
+  - archive.ubuntu.com accessible from build node (verified HTTP 200)
+  - Empty %post = no device creation = no fakeroot issues
+  - Runtime CUDA install via apt from NVIDIA Ubuntu 24.04 repo
 
 ## Stop Justification
 

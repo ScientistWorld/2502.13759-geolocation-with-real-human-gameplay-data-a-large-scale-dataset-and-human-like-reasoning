@@ -5,4 +5,4 @@ action: submit
 gpus: 1
 test: false
 milestone: method_runs
-notes: "Bootstrap:yum Rocky Linux 9 base OS only (no %post = no device creation failure). CUDA installed at job runtime on compute node. /dev/shm/pylib has Python packages (cluster pre-installed). GeoCLIP (999 images). LLaVA-1.5-7B. GeoCoT vs CoT on 100 images."
+notes: "Bootstrap:debootstrap Ubuntu 24.04 noble (no %post = no device creation failure). CUDA installed at job runtime on compute node via apt. /dev/shm/pylib has Python packages. GeoCLIP (999 images). LLaVA-1.5-7B. GeoCoT vs CoT on 100 images."
