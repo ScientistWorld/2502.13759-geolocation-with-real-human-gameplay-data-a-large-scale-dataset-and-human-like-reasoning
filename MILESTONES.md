@@ -56,10 +56,15 @@
 - Bootstrap:yum approach: base OS works, but %post install triggers /dev/null issue
 - Bootstrap:yum with empty %post: "invalid yum header, no mirrorurl specified" — yum can't resolve mirrors
 - Bootstrap:yum with vault URL: same error — Apptainer can't bootstrap yum from URL
-- Switch to: Bootstrap:debootstrap from Ubuntu 24.04 noble release
-  - archive.ubuntu.com accessible from build node (verified HTTP 200)
-  - Empty %post = no device creation = no fakeroot issues
-  - Runtime CUDA install via apt from NVIDIA Ubuntu 24.04 repo
+- debootstrap not installed on build node: "executable file not found in $PATH"
+- Build node workspace: 64MB FUSE filesystem at /home/tl0463/scratch/ (nodev, no space)
+- Compute node GPFS at /home/user/ — not accessible from build node
+- Build node's GPFS at /scratch/gpfs/... — not accessible from compute node
+- Docker Hub: 503 Service Unavailable (down, not just rate-limited)
+- GHCR.io, GCR.io, MCR.io: require authentication or lack needed images
+- **Bootstrap:yum rockylinux:9 (current attempt)**: yum resolves Rocky mirrors via osid
+  - Rocky Linux BaseOS/AppStream repos verified accessible from compute node
+  - Empty %post avoids device creation in fakeroot
 
 ## Stop Justification
 
