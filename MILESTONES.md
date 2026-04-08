@@ -62,9 +62,9 @@
 - Build node's GPFS at /scratch/gpfs/... — not accessible from compute node
 - Docker Hub: 503 Service Unavailable (down, not just rate-limited)
 - GHCR.io, GCR.io, MCR.io: require authentication or lack needed images
-- **Bootstrap:yum rockylinux:9 (current attempt)**: yum resolves Rocky mirrors via osid
-  - Rocky Linux BaseOS/AppStream repos verified accessible from compute node
-  - Empty %post avoids device creation in fakeroot
+- **Bootstrap:yum rockylinux:9**: "invalid yum header, no mirrorurl specified" — yum can't resolve Rocky mirrors
+- **Bootstrap:docker Red Hat UBI 8 (current attempt)**: registry.access.redhat.com verified HTTP 200
+  - Not rate-limited like Docker Hub. UBI 8 has Python 3.6+. Empty %post.
 
 ## Stop Justification
 
