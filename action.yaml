@@ -5,4 +5,4 @@ action: submit
 gpus: 1
 test: false
 milestone: method_runs
-notes: "Bootstrap:localimage /home/user/azurelinux.tar on GPFS. Azure Linux 3.0 layer from MCR (mcr.microsoft.com). Tar freshly downloaded to GPFS. Previous: /dev/shm/ (isolated namespace can't see host mounts), /tmp/ (isolated namespace), Bootstrap:docker RedHat (malformed), Bootstrap:yum (nodev mknod). Now trying GPFS /home/user/ path - workspace is on GPFS, build node should see it."
+notes: "Bootstrap:localimage /home/user/environment/azurelinux.tar with /dev/null etc as regular files. Azure Linux 3.0 from MCR. Key fix: added /dev/null,/dev/zero,/dev/full,/dev/random,/dev/urandom as REGULAR FILES (0 bytes) in Docker tar. Kernel resolves open('/dev/null') on regular file to real /dev/null. Previous: all paths (/dev/shm,/tmp,/home/user/) invisible to Apptainer build namespace. Workspace IS accessible - tar now in /home/user/environment/. Hoping Apptainer won't mknod when /dev/null already exists."
