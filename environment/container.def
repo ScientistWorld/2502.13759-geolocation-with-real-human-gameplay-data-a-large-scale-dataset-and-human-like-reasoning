@@ -1,11 +1,11 @@
 # Apptainer definition file for GeoCoT environment.
 #
-# Uses Ubuntu 24.04 from Docker Hub.
-# CUDA 12.5 is installed from NVIDIA's apt repository.
-# Python packages are pre-installed to /dev/shm/pylib via setup.sh.
+# Uses pre-extracted Ubuntu 24.04 rootfs from GPFS via localimage bootstrap.
+# No Docker Hub pull required — bypasses rate limits entirely.
+# CUDA 12.5 is installed from NVIDIA's apt repository in %post.
 
-Bootstrap: docker
-From: index.docker.io/library/ubuntu:24.04
+Bootstrap: localimage
+From: /home/user/shared/container/rootfs
 
 %post
     set -e

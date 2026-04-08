@@ -46,7 +46,11 @@
 - Tried Bootstrap:http, Bootstrap:sh — not supported by Apptainer 1.4.5
 - Bootstrap:docker with Red Hat UBI 9 from registry.access.redhat.com — ALSO rate-limited ("registry response malformed")
 - Bootstrap:yum fails: cannot create device nodes in build directory ("operation not permitted")
-- Retry: docker://index.docker.io/library/ubuntu:24.04 (fully qualified) — rate limit may have reset after several hours
+- Retry: docker://index.docker.io/library/ubuntu:24.04 (fully qualified) — STILL rate-limited
+- Switch to: Bootstrap:localimage with pre-extracted Ubuntu 24.04 rootfs at /home/user/shared/container/rootfs
+  - GPFS-mounted on both build and compute nodes at /home/user — no path mismatch
+  - No Docker Hub pull needed — bypasses rate limits entirely
+  - %post installs Python + CUDA 12.5 on top of the rootfs
 
 ## Stop Justification
 
