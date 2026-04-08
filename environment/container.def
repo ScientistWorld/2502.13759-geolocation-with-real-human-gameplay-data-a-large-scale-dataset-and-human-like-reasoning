@@ -5,7 +5,7 @@
 # Python packages are pre-installed to /dev/shm/pylib via setup.sh.
 
 Bootstrap: docker
-From: ubuntu:24.04
+From: index.docker.io/library/ubuntu:24.04
 
 %post
     set -e
