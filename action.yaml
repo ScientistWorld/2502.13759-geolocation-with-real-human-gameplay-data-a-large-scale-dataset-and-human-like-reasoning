@@ -5,4 +5,4 @@ action: submit
 gpus: 1
 test: false
 milestone: method_runs
-notes: "Bootstrap:localimage with pre-downloaded Red Hat UBI 8.10 tar on GPFS at /tmp/claude-code-tmp/ubi8-ubi.tar. GPFS path is same on build and compute nodes. Previous approaches failed: Bootstrap:docker (registry malformed), Bootstrap:localimage /home/user/ (build node no access), Bootstrap:yum (mknod /dev/null op not permitted). Empty %post. CUDA at runtime. /dev/shm/pylib has Python. LLaVA-1.5-7B."
+notes: "Bootstrap:localimage via symlink: /tmp/ubi8-ubi.tar -> /home/user/shared/container/images/ubi8-ubi.tar. /tmp is FUSE tmpfs (64MB, accessible during build). /home/user is GPFS. Symlink bridges tmpfs -> GPFS. Previous: direct /tmp/claude-code-tmp/ failed (build context has separate /tmp tmpfs). /home/user/ failed (build node can't see /home/user). Empty %post."
