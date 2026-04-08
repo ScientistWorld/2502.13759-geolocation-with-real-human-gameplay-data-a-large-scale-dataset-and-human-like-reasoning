@@ -1,11 +1,11 @@
 # Apptainer definition file for GeoCoT environment.
 #
-# BUILDTIME: Uses pre-downloaded Red Hat UBI 8.10 tar file from shared GPFS.
-#   Image blobs were manually downloaded from registry.access.redhat.com
-#   to /home/user/shared/container/images/ubi8-ubi.tar.
-#   Bootstrap:localimage completely bypasses registry fetching.
+# BUILDTIME: Rocky Linux 9.6 via Bootstrap:yum from dl.rockylinux.org.
+#   dl.rockylinux.org verified HTTP 200 from build node.
+#   dl.rockylinux.org has 9.6 with BaseOS + AppStream repos.
 #   Empty %post = no device creation = no nodev/fakeroot issues.
 # RUNTIME: Job script installs Python + CUDA on compute node.
 
-Bootstrap: localimage
-From: /home/user/shared/container/images/ubi8-ubi.tar
+Bootstrap: yum
+OSVersion: 9.6
+MirrorURL: https://dl.rockylinux.org/vault/rocky/9.6
