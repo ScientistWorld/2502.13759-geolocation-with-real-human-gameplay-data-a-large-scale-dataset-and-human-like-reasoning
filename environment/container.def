@@ -1,12 +1,11 @@
 # Apptainer definition file for GeoCoT environment.
 #
-# BUILDTIME: Red Hat UBI 8 from registry.access.redhat.com.
-#   registry.access.redhat.com verified HTTP 200 — not rate-limited.
-#   Using specific tag :8.10 (avoids tag manifest resolution).
+# BUILDTIME: Uses pre-downloaded Red Hat UBI 8.10 tar file from shared GPFS.
+#   Image blobs were manually downloaded from registry.access.redhat.com
+#   to /home/user/shared/container/images/ubi8-ubi.tar.
+#   Bootstrap:localimage completely bypasses registry fetching.
 #   Empty %post = no device creation = no nodev/fakeroot issues.
-# FALLBACK: If registry fetch fails, pre-downloaded image tar is available
-#   at /home/user/shared/container/images/ubi8-ubi.tar (Bootstrap: localimage).
 # RUNTIME: Job script installs Python + CUDA on compute node.
 
-Bootstrap: docker
-From: registry.access.redhat.com/ubi8/ubi:8.10
+Bootstrap: localimage
+From: /home/user/shared/container/images/ubi8-ubi.tar

@@ -5,4 +5,4 @@ action: submit
 gpus: 1
 test: false
 milestone: method_runs
-notes: "Bootstrap:docker Red Hat UBI 8.10 from registry.access.redhat.com (specific tag, not latest). Red Hat registry is HTTP 200 accessible from this env — no Docker Hub rate limits. Previous :latest attempt got 'malformed registry response', retrying with :8.10. Empty %post. CUDA at runtime. /dev/shm/pylib has Python. GeoCLIP 999 images. LLaVA-1.5-7B."
+notes: "Bootstrap:localimage with pre-downloaded Red Hat UBI 8.10 tar on GPFS. Image was manually downloaded via curl from registry.access.redhat.com — blobs at /home/user/shared/container/images/ (ubi8-ubi.tar). Bootstrap:localimage bypasses ALL registry fetching. Previous Bootstrap:docker attempts all failed with registry errors. Empty %post. CUDA at runtime. /dev/shm/pylib has Python. LLaVA-1.5-7B. GeoCLIP 999 images."
