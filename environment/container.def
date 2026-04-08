@@ -10,4 +10,4 @@
 #   - Mounts GPFS data and models from /home/user/
 
 Bootstrap: yum
-From: rockylinux:9
+From: http://dl.rockylinux.org/vault/rocky/9.5/BaseOS/x86_64/os/
