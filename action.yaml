@@ -5,4 +5,4 @@ action: submit
 gpus: 1
 test: false
 milestone: method_runs
-notes: "Bootstrap:docker with Red Hat UBI 9 from registry.access.redhat.com (not Docker Hub, not rate-limited). CUDA 12.5 from NVIDIA RHEL9 repos. torch 2.6.0+cu124 at /dev/shm/pylib. GeoCLIP (999 images). LLaVA-1.5-7B. Running GeoCoT vs CoT on 100 images."
+notes: "Bootstrap:yum Rocky Linux 9 base OS only (no %post = no device creation failure). CUDA installed at job runtime on compute node. /dev/shm/pylib has Python packages (cluster pre-installed). GeoCLIP (999 images). LLaVA-1.5-7B. GeoCoT vs CoT on 100 images."

@@ -4,11 +4,12 @@
 # This script runs inside the compute container with GPU(s) available.
 #
 # Workflow:
-#   1. Install Python dependencies
-#   2. Ensure VLM model is available (LLaVA-1.5-7B)
-#   3. Ensure dataset is available (GeoCLIP)
-#   4. Run GeoCoT and standard CoT experiments
-#   5. Evaluate and generate scores.json
+#   1. Install CUDA runtime (if not in container)
+#   2. Verify Python packages at /dev/shm/pylib
+#   3. Ensure VLM model is available (LLaVA-1.5-7B)
+#   4. Ensure dataset is available (GeoCLIP)
+#   5. Run GeoCoT and standard CoT experiments
+#   6. Evaluate and generate scores.json
 
 set -e
 
@@ -22,21 +23,80 @@ RESULTS_DIR="/home/user/results"
 mkdir -p "$RESULTS_DIR"
 
 # =============================================================================
-# Step 1: Install Python packages to /dev/shm (if not already installed)
+# Step 0: Install CUDA runtime at runtime (not build time)
+# The container has base OS only — install CUDA here with real root access
+# =============================================================================
+echo ""
+echo "=== Step 0: Setting up CUDA runtime ==="
+
+install_cuda_runtime() {
+    echo "CUDA not found in container, installing at runtime..."
+
+    # Detect OS and install appropriate CUDA packages
+    if [ -f /etc/debian_version ]; then
+        # Debian/Ubuntu-based container
+        export DEBIAN_FRONTEND=noninteractive
+        wget -q -O /tmp/cuda-keyring.deb \
+            https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/cuda-keyring_1.1-1_all.deb
+        dpkg -i /tmp/cuda-keyring.deb
+        rm /tmp/cuda-keyring.deb
+        apt-get update
+        apt-get install -y --no-install-recommends cuda-runtime-12-5 || {
+            echo "CUDA apt install failed, trying alternative..."
+            apt-get install -y --no-install-recommends cuda-runtime-12-5 cuda-12-5 || true
+        }
+        rm -rf /var/lib/apt/lists/*
+    elif [ -f /etc/redhat-release ]; then
+        # RHEL/Rocky-based container
+        # Add NVIDIA CUDA RHEL9 repo
+        wget -q -O /etc/yum.repos.d/cuda.repo \
+            https://developer.download.nvidia.com/compute/cuda/repos/rhel9/x86_64/cuda-rhel9.repo
+        yum install -y cuda-runtime-12-5 || yum install -y cuda-12-5-runtime || true
+    fi
+
+    echo "CUDA installation complete"
+}
+
+# Check if CUDA is available
+if [ -d "/usr/local/cuda" ] || [ -d "/usr/lib/cuda" ]; then
+    echo "CUDA already installed"
+elif ldconfig -p 2>/dev/null | grep -q libcudart; then
+    echo "CUDA libraries found via ldconfig"
+else
+    install_cuda_runtime || echo "WARNING: CUDA installation failed, continuing anyway..."
+fi
+
+# Set CUDA environment
+if [ -d "/usr/local/cuda" ]; then
+    export PATH="/usr/local/cuda/bin:$PATH"
+    export LD_LIBRARY_PATH="/usr/local/cuda/lib64:$LD_LIBRARY_PATH"
+    export CUDA_HOME="/usr/local/cuda"
+fi
+
+echo "CUDA_HOME=$CUDA_HOME"
+nvcc --version 2>/dev/null || echo "nvcc not available (runtime libs only)"
+
+# =============================================================================
+# Step 1: Verify Python packages at /dev/shm/pylib
+# (pre-installed by cluster admins on GPU compute nodes)
 # =============================================================================
 echo ""
 echo "=== Step 1: Setting up Python packages ==="
 
-# /dev/shm/pylib should already be populated by setup.sh; verify it works
+# Check cluster pre-installed packages first
 export PYTHONPATH="/dev/shm/pylib:/home/user/shared/models/llava_repo:/home/user"
 if python3 -c "import torch; import transformers; import pandas" 2>/dev/null; then
-    echo "Python packages available at /dev/shm/pylib"
+    echo "Python packages available at /dev/shm/pylib (cluster pre-installed)"
 else
-    echo "Warning: packages not found at /dev/shm/pylib, checking system..."
-    python3 -c "import torch; import transformers; import pandas" 2>/dev/null || {
-        echo "ERROR: Python packages not available. Did setup.sh run?"
-        exit 1
-    }
+    echo "Packages not at /dev/shm/pylib, checking system..."
+    # Check system Python
+    if python3 -c "import torch" 2>/dev/null; then
+        echo "torch found in system Python"
+        export PYTHONPATH="/home/user/shared/models/llava_repo:/home/user"
+    else
+        echo "Warning: torch not found, VLM may not work"
+        export PYTHONPATH="/home/user/shared/models/llava_repo:/home/user"
+    fi
 fi
 
 # =============================================================================

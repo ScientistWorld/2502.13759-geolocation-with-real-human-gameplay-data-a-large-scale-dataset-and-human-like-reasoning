@@ -47,11 +47,17 @@
 - Bootstrap:docker with Red Hat UBI 9 from registry.access.redhat.com — ALSO rate-limited ("registry response malformed")
 - Bootstrap:yum fails: cannot create device nodes in build directory ("operation not permitted")
 - Retry: docker://index.docker.io/library/ubuntu:24.04 (fully qualified) — STILL rate-limited
-- Switch to: Bootstrap:localimage with pre-extracted Ubuntu 24.04 rootfs
-  - Build node accesses GPFS at `/scratch/gpfs/ZHUANGL/tl0463/ResearchGym/Infrastruture/swarm/` (not `/home/user/`)
-  - Compute node accesses same GPFS at `/home/user/` — same filesystem, different mount points
-  - `From: /scratch/gpfs/ZHUANGL/tl0463/ResearchGym/Infrastruture/swarm/shared/container/rootfs`
-  - No Docker Hub pull needed — bypasses rate limits entirely
+- localimage bootstrap: build node can't resolve `/home/user/` path — GPFS mount point differs
+- Build node `/scratch/gpfs/...` path also doesn't exist — path discovery approach failed
+- `/dev/null` creation in %post fails: fakeroot can't mknod on nodev filesystem
+  (build node temp dir has `nodev` mount option)
+- GPFS disallows device node creation even from compute node
+- Docker Hub unavailable from this network (503 Service Unavailable)
+- Bootstrap:yum approach: base OS works, but %post install triggers /dev/null issue
+- FINAL APPROACH: Bootstrap:yum (base OS only, NO %post) + runtime CUDA install
+  - Build succeeds with empty %post (no device creation)
+  - Job script installs CUDA at runtime on compute node (real root access)
+  - GPU nodes have /dev/shm/pylib with Python packages (cluster pre-installed)
 
 ## Stop Justification
 

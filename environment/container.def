@@ -1,33 +1,13 @@
 # Apptainer definition file for GeoCoT environment.
 #
-# Bootstrap:yum with Rocky Linux 9 — no Docker Hub needed.
-# Base OS + Python installed via %post (minimal packages, no device creation).
-# CUDA runtime handled at job runtime from pre-downloaded packages.
+# BUILDTIME: Rocky Linux 9 base OS only (Bootstrap:yum).
+#   No %post section = no device creation = no fakeroot issues.
+# RUNTIME: Job script installs Python + CUDA + packages on compute node.
 #
-# Strategy:
-#   1. %post: install only small packages that don't create device nodes
-#   2. Job script: download/install CUDA .deb packages at runtime
-#   3. Job script: install Python packages from /dev/shm/pylib
+# The job script (scripts/run.sh) handles all runtime installation:
+#   - Installs CUDA from NVIDIA's RHEL9 repo (dpkg -i at runtime)
+#   - Uses /dev/shm/pylib for Python packages
+#   - Mounts GPFS data and models from /home/user/
 
 Bootstrap: yum
 From: rockylinux:9
-
-%post
-    set -e
-
-    # Minimal package install — python3 and tools only
-    # Using --setopt=tsflags=nodocs to skip doc installation
-    yum install -y --setopt=tsflags=nodocs \
-        python3 python3-pip python3-devel wget curl \
-        2>&1 | tail -5
-
-    # Set environment variables
-    echo 'export HOME=/root' >> /etc/environment
-    echo 'export PYTHONUNBUFFERED=1' >> /etc/environment
-
-%environment
-    export HOME=/root
-    export PYTHONUNBUFFERED=1
-    export TRANSFORMERS_CACHE=/home/user/shared/hf_cache
-    export HF_HOME=/home/user/shared/hf_cache
-    export PYTHONPATH=/dev/shm/pylib
