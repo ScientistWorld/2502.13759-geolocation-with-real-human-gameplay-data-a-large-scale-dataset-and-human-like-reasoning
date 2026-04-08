@@ -39,12 +39,13 @@
 - Updated container.def to install uv and set PYTHONPATH
 - GPU job submitted: GeoCoT vs CoT on 100 GeoCLIP images, evaluate, generate scores.json
 
-### [2026-04-07] - method_runs (submitted, Docker Hub rate-limit workaround)
+### [2026-04-07-08] - method_runs (submitted, Docker Hub rate-limit workaround)
 - Docker Hub rate-limiting: all images (ubuntu, alpine, etc.) returning 429 TOOMANYREQUESTS
 - Downloaded Ubuntu 24.04 minimal rootfs from cloud-images.ubuntu.com CDN to /home/user/shared/container/rootfs_build/
 - Tried localimage with relative path: build node path issue (GPFS not accessible).
 - Tried Bootstrap:http, Bootstrap:sh — not supported by Apptainer 1.4.5
-- Bootstrap:docker with Red Hat UBI 9 from registry.access.redhat.com — this registry is NOT Docker Hub and returned HTTP 200. Using NVIDIA's RHEL9 CUDA repos for CUDA 12.5.
+- Bootstrap:docker with Red Hat UBI 9 from registry.access.redhat.com — ALSO rate-limited ("registry response malformed")
+- Bootstrap:yum with Rocky Linux 9 repos — bypasses Docker Hub, downloads directly from Rocky Linux mirrors
 
 ## Stop Justification
 
