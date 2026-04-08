@@ -1,8 +1,8 @@
 # IMPORTANT: Once you set action to 'submit' or 'done', STOP immediately.
 # Do NOT sleep, poll, or wait for jobs. The system reads this file
 # only after your turn ends. Sleeping blocks the entire pipeline.
-action: pending
+action: submit
 gpus: 1
 test: false
-milestone: none
-notes: ""
+milestone: method_runs
+notes: "Bootstrap:docker with Red Hat UBI 9 from registry.access.redhat.com (not Docker Hub, not rate-limited). CUDA 12.5 from NVIDIA RHEL9 repos. torch 2.6.0+cu124 at /dev/shm/pylib. GeoCLIP (999 images). LLaVA-1.5-7B. Running GeoCoT vs CoT on 100 images."
