@@ -5,4 +5,4 @@ action: submit
 gpus: 1
 test: false
 milestone: method_runs
-notes: "Bootstrap:yum with Rocky Linux 9.6 from dl.rockylinux.org (HTTP 200 verified). Previous attempts: Bootstrap:docker (registry malformed), Bootstrap:localimage (GPFS path not accessible on build node). Now trying dl.rockylinux.org vault CDN. Empty %post. CUDA at runtime. /dev/shm/pylib has Python. LLaVA-1.5-7B. GeoCLIP 999 images."
+notes: "Bootstrap:localimage with pre-downloaded Red Hat UBI 8.10 tar on GPFS at /tmp/claude-code-tmp/ubi8-ubi.tar. GPFS path is same on build and compute nodes. Previous approaches failed: Bootstrap:docker (registry malformed), Bootstrap:localimage /home/user/ (build node no access), Bootstrap:yum (mknod /dev/null op not permitted). Empty %post. CUDA at runtime. /dev/shm/pylib has Python. LLaVA-1.5-7B."

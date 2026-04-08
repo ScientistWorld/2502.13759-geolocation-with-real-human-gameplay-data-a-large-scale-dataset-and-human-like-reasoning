@@ -1,11 +1,10 @@
 # Apptainer definition file for GeoCoT environment.
 #
-# BUILDTIME: Rocky Linux 9.6 via Bootstrap:yum from dl.rockylinux.org.
-#   dl.rockylinux.org verified HTTP 200 from build node.
-#   dl.rockylinux.org has 9.6 with BaseOS + AppStream repos.
+# BUILDTIME: Uses pre-downloaded Red Hat UBI 8.10 tar on GPFS at
+#   /tmp/claude-code-tmp/ubi8-ubi.tar (same on build and compute nodes).
+#   Bootstrap:localimage bypasses ALL registry fetching.
 #   Empty %post = no device creation = no nodev/fakeroot issues.
 # RUNTIME: Job script installs Python + CUDA on compute node.
 
-Bootstrap: yum
-OSVersion: 9.6
-MirrorURL: https://dl.rockylinux.org/vault/rocky/9.6
+Bootstrap: localimage
+From: /tmp/claude-code-tmp/ubi8-ubi.tar
