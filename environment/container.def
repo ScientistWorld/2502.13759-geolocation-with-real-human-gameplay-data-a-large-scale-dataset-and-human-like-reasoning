@@ -1,18 +1,19 @@
 # Apptainer definition file for GeoCoT environment.
 #
-# Uses Red Hat UBI 9 from registry.access.redhat.com (NOT Docker Hub).
-# Red Hat's registry is accessible without rate limits.
+# Uses Bootstrap:yum to build from Rocky Linux 9 repos directly (no Docker).
+# Downloads packages from public Rocky Linux mirrors.
 # CUDA 12.5 is installed from NVIDIA's RHEL9 repository.
 # Python packages are pre-installed to /dev/shm/pylib via setup.sh.
 
-Bootstrap: docker
-From: registry.access.redhat.com/ubi9:latest
+Bootstrap: yum
+OSVersion: 9
+MirrorURL: https://download.rockylinux.org/pub/rocky/%{OSVERSION}/BaseOS/x86_64/os/
 
 %post
     set -e
     cd /
 
-    # Install Python 3 and development tools (included in UBI)
+    # Install Python 3 and development tools
     dnf install -y --setopt=install_weak_deps=False \
         python3 python3-pip python3-devel wget curl \
         && dnf clean all
