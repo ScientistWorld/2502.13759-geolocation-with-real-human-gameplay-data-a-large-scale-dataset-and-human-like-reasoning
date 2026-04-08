@@ -5,4 +5,4 @@ action: submit
 gpus: 1
 test: false
 milestone: method_runs
-notes: "Bootstrap:docker Azure Linux 3.0 from MCR (mcr.microsoft.com). MCR is HTTP 200, no rate limits. Layer verified: 0 device nodes, 2296 entries. Previous approaches: Bootstrap:docker RedHat (registry malformed), Bootstrap:localimage (path not accessible), Bootstrap:yum (nodev mknod). Empty %post."
+notes: "Bootstrap:localimage /dev/shm/azurelinux-with-dev.tar. /dev/shm is 126GB tmpfs (supports mknod). Pre-created device nodes in tar. Previous Bootstrap:localimage used /tmp/ which was not accessible from build context. /dev/shm is top-level tmpfs, should be visible to build. Azure Linux layer (no devices) + 7 device nodes pre-created."
