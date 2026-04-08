@@ -1,34 +1,8 @@
-# End-of-turn action file.
-# Edit this file before your turn ends to signal what the system should do next.
-#
-# Submit a GPU job:
-#   action: submit
-#   gpus: 1
-#   test: false
-#   milestone: method_runs
-#   notes: "First training run to verify the pipeline works end-to-end."
-#
-# Submit a quick test job (short time limit, for validation):
-#   action: submit
-#   gpus: 1
-#   test: true
-#   milestone: method_runs
-#   notes: "Quick smoke test to verify GPU training works."
-#
-# Submit a CPU-only job (gpus: 0, saves GPU budget):
-#   action: submit
-#   gpus: 0
-#   test: false
-#   milestone: method_runs
-#   notes: "Data preprocessing on CPU."
-#
-# Signal that you are done:
-#   action: done
-#   milestone: core_claim
-#   notes: "Reproduced the core claim. Environment packaged."
-
-action: submit
+# IMPORTANT: Once you set action to 'submit' or 'done', STOP immediately.
+# Do NOT sleep, poll, or wait for jobs. The system reads this file
+# only after your turn ends. Sleeping blocks the entire pipeline.
+action: pending
 gpus: 1
 test: false
-milestone: method_runs
-notes: "GeoCoT reproduction: Bootstrap:docker using Red Hat UBI 9 from registry.access.redhat.com (NOT Docker Hub). CUDA 12.5 from NVIDIA RHEL9 repos. torch 2.6.0+cu124 at /dev/shm/pylib. GeoCLIP (999 images) at /home/user/data/geoclip/. LLaVA-1.5-7B at /dev/shm/llava-v1.5-7b-config/. CLIP at /home/user/shared/models/clip-vit-large-patch14-336/. LLaVAClient uses llava repo with offline CLIP patching. Running GeoCoT vs CoT on 100 images."
+milestone: none
+notes: ""
