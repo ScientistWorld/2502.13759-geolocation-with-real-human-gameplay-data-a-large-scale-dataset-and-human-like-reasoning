@@ -45,7 +45,8 @@
 - Tried localimage with relative path: build node path issue (GPFS not accessible).
 - Tried Bootstrap:http, Bootstrap:sh — not supported by Apptainer 1.4.5
 - Bootstrap:docker with Red Hat UBI 9 from registry.access.redhat.com — ALSO rate-limited ("registry response malformed")
-- Bootstrap:yum with Rocky Linux 9 repos — bypasses Docker Hub, downloads directly from Rocky Linux mirrors
+- Bootstrap:yum fails: cannot create device nodes in build directory ("operation not permitted")
+- Retry: docker://index.docker.io/library/ubuntu:24.04 (fully qualified) — rate limit may have reset after several hours
 
 ## Stop Justification
 
