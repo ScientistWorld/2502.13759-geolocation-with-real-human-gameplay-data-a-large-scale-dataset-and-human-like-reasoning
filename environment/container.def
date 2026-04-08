@@ -1,13 +1,9 @@
 # Apptainer definition file for GeoCoT environment.
 #
-# BUILDTIME: Rocky Linux 9 via Bootstrap:yum.
+# BUILDTIME: Red Hat UBI 8 from registry.access.redhat.com (accessible).
+#   Red Hat registry is verified HTTP 200 — no Docker Hub rate limits.
 #   Empty %post = no device creation = no nodev/fakeroot issues.
 # RUNTIME: Job script installs Python + CUDA on compute node.
-#
-# Build environment constraints:
-#   - Build node root filesystem is 64MB FUSE (nodev, no space)
-#   - Build node GPFS is at /scratch/gpfs/... (different from compute node /home/user/)
-#   - Build node has yum but yum repos require network access that may be restricted
 
-Bootstrap: yum
-From: rockylinux:9
+Bootstrap: docker
+From: registry.access.redhat.com/ubi8/ubi
