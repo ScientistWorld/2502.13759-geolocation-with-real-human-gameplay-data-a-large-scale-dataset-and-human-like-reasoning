@@ -1,11 +1,10 @@
 # Apptainer definition file for GeoCoT environment.
 #
-# BUILDTIME: Bootstrap:docker from Azure Linux 3.0.20260401 on MCR (mcr.microsoft.com).
-#   Using dated tag 3.0.20260401-amd64 because tag "3.0" returns JWS manifest
-#   which Apptainer docker conveyor cannot parse (invalid char after top-level value).
-#   The dated tag returns clean v2 JSON manifest.
-#   MCR is HTTP 200 accessible with no Docker Hub rate limits.
+# BUILDTIME: Bootstrap:docker from Rocky Linux 9 on Docker Hub.
+#   Using rockylinux:9 instead of Azure Linux from MCR because MCR returns
+#   JWS manifests that Apptainer's docker conveyor cannot parse.
+#   Rocky Linux 9 has Python 3.11 in AppStream repos.
 # RUNTIME: Job script installs Python + CUDA on compute node.
 
 Bootstrap: docker
-From: mcr.microsoft.com/azurelinux/base/core:3.0.20260401-amd64
+From: rockylinux:9
