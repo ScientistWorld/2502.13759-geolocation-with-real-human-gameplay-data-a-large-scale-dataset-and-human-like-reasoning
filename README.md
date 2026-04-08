@@ -312,6 +312,10 @@ Target performance (paper's reported results on GeoComp test set with 500 images
 
 </details>
 
+### Iteration 2: glm-5.1
+- **Milestone**: `method_runs` | **Status**: done
+- **GPU**: 0.0h
+
 
 ---
 
