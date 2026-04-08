@@ -1,6 +1,6 @@
 # Apptainer definition file for GeoCoT environment.
 #
-# BUILDTIME: Ubuntu 24.04 base OS only (Bootstrap:debootstrap).
+# BUILDTIME: Rocky Linux 9 base OS only (Bootstrap:yum).
 #   No %post section = no device creation = no fakeroot issues.
 # RUNTIME: Job script installs Python + CUDA + packages on compute node.
 #
@@ -9,6 +9,6 @@
 #   - Uses /dev/shm/pylib for Python packages
 #   - Mounts GPFS data and models from /home/user/
 
-Bootstrap: debootstrap
-From: noble
-MirrorURL: http://archive.ubuntu.com/ubuntu/
+Bootstrap: yum
+From: rockylinux:9
+MirrorURL: https://download.rockylinux.org/pub/rocky/9/BaseOS/x86_64/os
