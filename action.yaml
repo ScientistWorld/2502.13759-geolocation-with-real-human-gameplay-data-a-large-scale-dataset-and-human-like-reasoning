@@ -5,4 +5,4 @@ action: submit
 gpus: 1
 test: false
 milestone: method_runs
-notes: "Bootstrap:docker mcr.microsoft.com/azurelinux/base/core:3.0. MCR uses standard Docker V2 API (HTTP 200 verified). Previous: localimage paths all failed (build namespace can't see /home/user/). MCR docker conveyor fetches from registry directly - no local path needed. Azure Linux 3.0 has Python 3.11. Will wait for result."
+notes: "Retry Bootstrap:docker MCR Azure Linux 3.0. Scheduler said registry error is transient_external. MCR works with curl (HTTP 200), Apptainer docker conveyor may be hitting proxy/network issue. Previous failure: 'invalid character s after top-level value' - likely Apptainer got v1 JWS manifest instead of v2 JSON. Retry may succeed if transient."
