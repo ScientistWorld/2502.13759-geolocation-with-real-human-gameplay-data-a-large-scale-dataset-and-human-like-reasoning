@@ -1,8 +1,13 @@
 # Apptainer definition file for GeoCoT environment.
 #
-# Uses pre-built rootfs tarball from shared container directory.
-# This avoids network access issues entirely.
-# Python packages are installed at runtime via /dev/shm/pylib.
+# BUILDTIME: Bootstrap:docker from Red Hat UBI 8 on Docker Hub.
+#   Uses pre-downloaded UBI 8 tar from /tmp/claude-code-tmp/
+#   as local cache for Docker Hub image.
+# RUNTIME: Job script installs Python + packages on compute node.
 
-Bootstrap: localimage
-From: /home/user/shared/container/rootfs.tar.gz
+Bootstrap: docker
+From: registry.access.redhat.com/ubi8/ubi:latest
+
+%post
+    set -e
+    echo "=== Bootstrap complete ==="
