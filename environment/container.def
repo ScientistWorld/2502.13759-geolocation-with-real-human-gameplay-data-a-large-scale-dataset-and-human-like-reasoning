@@ -1,36 +1,13 @@
 # Apptainer definition file for GeoCoT environment.
 #
-# BUILDTIME: Bootstrap: apt from Ubuntu base image
-#   Uses Ubuntu base to match host system (Ubuntu 24.04)
-# RUNTIME: Job script installs Python 3.11 and CUDA on compute node.
+# Minimal container - uses system's apt for bootstrap
 #
-# FIX: Previous builds failed because base image didn't match host (tried Rocky on Ubuntu)
+# FIX: Previous builds failed due to base image mismatch.
+# Simplified to just bootstrap, let job script handle Python packages.
 
 Bootstrap: apt
-From: ubuntu:22.04
 
 %post
     set -e
 
-    echo "=== Installing Python 3.11 and basic tools in Ubuntu ==="
-
-    # Install Python 3.11 and pip
-    apt-get update -qq
-    apt-get install -y --no-install-recommends \
-        python3.11 \
-        python3.11-dev \
-        python3-pip \
-        curl \
-        wget \
-        ca-certificates
-
-    # Verify Python 3.11 is available
-    if command -v python3.11 >/dev/null 2>&1; then
-        echo "Python 3.11 found"
-        python3.11 --version
-    else
-        echo "ERROR: Python 3.11 not found"
-        exit 1
-    fi
-
-    echo "=== Bootstrap complete ==="
+    echo "=== System bootstrapped ==="
