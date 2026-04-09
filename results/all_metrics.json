@@ -1,0 +1,14 @@
+{
+  "cot": {
+    "city_accuracy": 0.3333333333333333,
+    "country_accuracy": 0.6666666666666666,
+    "continent_accuracy": 0.6666666666666666,
+    "total_predictions": 6
+  },
+  "geocot": {
+    "city_accuracy": 0.5,
+    "country_accuracy": 0.6666666666666666,
+    "continent_accuracy": 0.8333333333333334,
+    "total_predictions": 6
+  }
+}

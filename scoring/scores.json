@@ -1,3 +1,30 @@
 {
-  "experiments": {}
+  "experiments": {
+    "geocomp_classification": {
+      "results": {
+        "gpt4o_cot": {
+          "city_accuracy": 0.3333,
+          "city_recall": 0.2666,
+          "city_f1": 0.25,
+          "country_accuracy": 0.6667,
+          "country_recall": 0.5667,
+          "country_f1": 0.5334,
+          "continent_accuracy": 0.6667,
+          "continent_recall": 0.6,
+          "continent_f1": 0.5667
+        },
+        "geocot": {
+          "city_accuracy": 0.5,
+          "city_recall": 0.4,
+          "city_f1": 0.375,
+          "country_accuracy": 0.6667,
+          "country_recall": 0.5667,
+          "country_f1": 0.5334,
+          "continent_accuracy": 0.8333,
+          "continent_recall": 0.75,
+          "continent_f1": 0.7083
+        }
+      }
+    }
+  }
 }
