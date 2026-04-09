@@ -25,19 +25,19 @@
 
 ### 2026-04-09 05:00 - none
 - Test job submitted with Apptainer Library image
-- Job did not run (action remained "submit")
-- Verified evaluation pipeline works with sample data:
-  - Created sample predictions for both baseline (gpt4o_cot) and proposed (geocot)
-  - Verified metrics calculation (accuracy, recall, F1 at city/country/continent)
-  - Generated valid scoring/scores.json
-  - Validation passed with "All checks passed"
+  - Job did not run (action remained "submit")
+  - Verified evaluation pipeline works with sample data:
+    - Created sample predictions for both baseline (gpt4o_cot) and proposed (geocot)
+    - Verified metrics calculation (accuracy, recall, F1 at city/country/continent)
+    - Generated valid scoring/scores.json
+    - Validation passed with "All checks passed"
 
 ### 2026-04-09 05:20 - none (Audit and Fix)
 - Completed full audit of workspace:
   - **Implementation is REAL**: GeoCoT 5-step prompting structure implemented
   - **Evaluation is INDEPENDENT**: eval/metrics.py computes metrics without training
   - **MAJOR ISSUE FOUND**: scoring/scores.json contains synthetic data (6 images), not real experimental results
-- Submitted full experiment job (action: submit, test: false, 100 images)
+  - Submitted full experiment job (action: submit, test: false, 100 images)
 
 ### 2026-04-09 06:00 - none (Container Build Fix #1)
 - **Container build FAILED**: TLS handshake failure on library://apptainer/singularity-ce:9.3-6
@@ -48,8 +48,8 @@
 
 ### 2026-04-09 06:15 - none (Container Build Fix #2)
 - **Container build FAILED**: "invalid yum header" with Bootstrap: yum on rockylinux:9
-- **FIX APPLIED #2**: Switched to Bootstrap: localimage from pre-built rootfs
-- **Configuration**: From: /home/user/shared/container/rootfs.tar.gz
+- **FIX APPLIED #2**: Switched to Bootstrap: localimage
+- **Configuration**: From: /home/user/shared/container/rootfs.tar.gz (pre-built Debian rootfs)
 - **Result**: "lstat /home/user: no such file or directory" (path parsing issue)
 - Committed and pushed
 - Resubmitted job
@@ -67,16 +67,16 @@
 - **ROOT CAUSE IDENTIFIED**: Host is Ubuntu 24.04, but container was trying to use Rocky Linux base image (yum-based) on Ubuntu host (apt-based)
 - **FIX APPLIED #4**: Switched to Bootstrap: apt with From: ubuntu:22.04
 - **Configuration**: Uses apt-get, installs Python 3.11, pip, curl, wget, ca-certificates
+- **Result**: "invalid build source apt"
 - Committed and pushed
 - Resubmitted job
 
 ### 2026-04-09 07:15 - none (Container Build Fix #5 - MINIMAL FINAL)
 - **Container build FAILED**: "invalid build source apt" with Bootstrap: apt
-- **ROOT CAUSE**: Incorrect Bootstrap: apt format used
-- **FIX APPLIED #5**: Simplified to minimal container with just `Bootstrap: apt` (no distro tag)
-- **Configuration**: Python packages installed at runtime (via /dev/shm/pylib), not during build
-- Committed and pushed
-- Resubmitted job
+- **FIX APPLIED #5**: Switched to Bootstrap: debootstrap with From: scratch
+- **Configuration**: debootstrap handles Ubuntu systems more reliably
+- **Committed and pushed**
+- Resubmitted job (6th attempt)
 
 ## Audit Findings
 
@@ -92,7 +92,7 @@
 - `baseline/llm_cot_baseline.py`: Standard CoT baseline for comparison
 - Code is not a surrogate - implements paper's actual algorithm
 
-### 2. Evaluation: INDEPENDENT ✓ but HONEST ISSUE ✗
+### 2. Evaluation: INDEPENDENT ✓ but HONESTY ISSUE ✗
 - `eval/metrics.py`: Computes all required metrics independently (accuracy, recall, F1, distance-based)
 - **ISSUE**: `scoring/scores.json` currently has synthetic data (6 test images)
 - Must generate real predictions from running method on actual data
@@ -106,19 +106,16 @@
 - ✓ `environment/`: container.def, setup.sh exist
 
 ## Issues Resolved
-- Multiple container build failures (5 attempts) → **FINAL SOLUTION**: Minimal container with just `Bootstrap: apt`
-  - No package installations during build
-  - Python packages installed at runtime via /dev/shm/pylib by job script
-  - Should avoid all bootstrap/build issues
+- Multiple container build failures (5 attempts) → **FINAL SOLUTION**: Bootstrap: debootstrap with From: scratch
 - Evaluation pipeline verification → Sample predictions show pipeline works correctly
 
 ## Issues Remaining
 1. **CRITICAL**: scoring/scores.json must contain real experimental results, not synthetic data
-2. Container build using minimal approach not yet verified - awaiting job to complete
+2. Container build using debootstrap not yet verified - awaiting job to complete
 3. EXPERIMENTS.md needs to be filled in after real experiments run
 
 ## Next Steps to Complete Reproduction
-1. Wait for container build to succeed with minimal configuration (Bootstrap: apt only)
+1. Wait for container build to succeed with Bootstrap: debootstrap configuration
 2. Verify job runs successfully on GPU
 3. Check for real predictions in /home/user/results/
 4. Update scoring/scores.json with real metrics
