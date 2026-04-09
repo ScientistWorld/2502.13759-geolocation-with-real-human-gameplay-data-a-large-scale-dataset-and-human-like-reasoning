@@ -5,4 +5,4 @@ action: submit
 gpus: 1
 test: true
 milestone: none
-notes: "Run GeoCoT vs baseline on GeoCLIP dataset (10 images) - Bootstrap: localimage"
+notes: "Try Bootstrap: docker with Red Hat UBI 8 registry"
