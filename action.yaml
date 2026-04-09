@@ -1,8 +1,8 @@
 # IMPORTANT: Once you set action to 'submit' or 'done', STOP immediately.
 # Do NOT sleep, poll, or wait for jobs. The system reads this file
 # only after your turn ends. Sleeping blocks the entire pipeline.
-action: submit
+action: pending
 gpus: 1
-test: true
+test: false
 milestone: none
-notes: "Run GeoCoT vs baseline on GeoCLIP dataset (10 images) - Alpine + MCR approach (proven in iteration 1)"
+notes: ""
