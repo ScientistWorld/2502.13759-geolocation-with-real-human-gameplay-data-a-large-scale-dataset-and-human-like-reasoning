@@ -1,13 +1,8 @@
 # Apptainer definition file for GeoCoT environment.
 #
-# Minimal container - uses system's apt for bootstrap
+# Minimal container - uses debootstrap
+#   debootstrap should work better with Ubuntu systems than apt bootstrap.
 #
-# FIX: Previous builds failed due to base image mismatch.
-# Simplified to just bootstrap, let job script handle Python packages.
 
-Bootstrap: apt
-
-%post
-    set -e
-
-    echo "=== System bootstrapped ==="
+Bootstrap: debootstrap
+From: scratch
