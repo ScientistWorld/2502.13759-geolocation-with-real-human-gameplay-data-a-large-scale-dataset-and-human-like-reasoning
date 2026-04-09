@@ -1,13 +1,40 @@
 # Apptainer definition file for GeoCoT environment.
 #
-# BUILDTIME: Bootstrap:docker from Red Hat UBI 8 on Docker Hub.
-#   Uses pre-downloaded UBI 8 tar from /tmp/claude-code-tmp/
-#   as local cache for Docker Hub image.
+# BUILDTIME: Bootstrap:docker with Alpine + MCR blob download.
+#   MCR returns JWS for manifest requests which Apptainer docker conveyor cannot parse.
+#   This approach uses Bootstrap:docker with tiny Alpine (no rate limits) to get a
+#   shell environment, then downloads the Azure Linux rootfs layer directly via curl
+#   in %post, sidestepping the docker conveyor entirely.
 # RUNTIME: Job script installs Python + packages on compute node.
 
 Bootstrap: docker
-From: registry.access.redhat.com/ubi8/ubi:latest
+From: alpine:3
 
 %post
     set -e
+    echo "=== Installing curl in Alpine ==="
+    apk add --no-cache curl tar
+
+    echo "=== Downloading Azure Linux rootfs from MCR ==="
+    LAYER_BLOB="sha256:5546a28a785aeec63c8bd58a7dafb93b463e13f23d4fd7582a86d73722a6fb33"
+    curl -sL -o /tmp/azurelinux-layer.tar \
+        "https://mcr.microsoft.com/v2/azurelinux/base/core/blobs/${LAYER_BLOB}" \
+        --connect-timeout 60 --max-time 600 || {
+        echo "FAILED to download Azure Linux layer"
+        cat /tmp/azurelinux-layer.tar 2>/dev/null | head -5
+        exit 1
+    }
+
+    echo "=== Extracting Azure Linux rootfs ==="
+    mkdir -p /tmp/azlinux
+    tar -xf /tmp/azurelinux-layer.tar -C /tmp/azlinux || {
+        echo "FAILED to extract layer tar"
+        exit 1
+    }
+    rm /tmp/azurelinux-layer.tar
+
+    echo "=== Layering Azure Linux over Alpine base ==="
+    cp -a /tmp/azlinux/* / || true
+    rm -rf /tmp/azlinux
+
     echo "=== Bootstrap complete ==="
