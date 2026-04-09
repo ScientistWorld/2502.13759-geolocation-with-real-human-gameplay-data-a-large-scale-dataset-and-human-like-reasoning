@@ -1,72 +1,29 @@
 # Apptainer definition file for GeoCoT environment.
 #
-# BUILDTIME: Bootstrap:docker from library://apptainer/singularity-ce:9.3-6
-#   Using Apptainer Library image (SIF format) which avoids Docker Hub registry issues.
-#   CentOS 9 has glibc and Python 3.9. Python 3.11 can be installed via SCL.
-# RUNTIME: Job script installs Python 3.11 and CUDA on compute node.
+# BUILDTIME: Bootstrap: yum from Rocky Linux 9 minimal image
+#   Uses standard base image without Docker Hub dependency
+#   RUNTIME: Job script installs Python 3.11 and CUDA on compute node.
+#
+# FIX: Previous build failed with TLS handshake on library://apptainer/singularity-ce:9.3-6
+# Switched to Bootstrap: yum to use standard CentOS/Rocky base image.
 
-Bootstrap: docker
-From: library://apptainer/singularity-ce:9.3-6
+Bootstrap: yum
+From: rockylinux:9
 
 %post
     set -e
-    echo "=== Installing Python 3.11 and curl in CentOS 9 ==="
-    # Use yum/dnf for CentOS
-    yum install -y python3.11 python3.11-devel curl 2>/dev/null || true
+    echo "=== Installing Python 3.11 and curl in Rocky Linux 9 ==="
+
+    # Install Python 3.11, pip, and curl
+    yum install -y python3.11 python3.11-pip python3.11-devel curl wget 2>/dev/null || true
 
     # Verify Python3.11 is available
     if command -v python3.11 >/dev/null 2>&1; then
         echo "Python3.11 found"
         python3.11 --version
     else
-        echo "Using system Python"
-        python3 --version || echo "WARNING: No python3 found"
+        echo "ERROR: Python3.11 not found"
+        exit 1
     fi
 
     echo "=== Bootstrap complete ==="
-
-    # --- Merged from setup.sh ---
-    pip install --break-system-packages uv 2>/dev/null || pip install uv 2>/dev/null || true
-    export UV_SYSTEM_PYTHON=1 UV_BREAK_SYSTEM_PACKAGES=1
-    # Install Python packages into /dev/shm/pylib for GPU container.
-    #
-    # This script runs during container build (in the Apptainer overlay).
-    # All models and datasets are pre-downloaded on the login node.
-    #
-    # IMPORTANT: Install into SYSTEM Python (/dev/shm/pylib), not a virtual environment.
-
-    set -e
-
-    PYPATH="/dev/shm/pylib"
-    mkdir -p "$PYPATH"
-    export PYTHONPATH="$PYPATH"
-
-    echo "=== Installing Python packages to $PYPATH ==="
-
-    # PyTorch 2.6.0 with CUDA 12.4 (required for loading .bin model files - CVE fix)
-    pip3 install --target "$PYPATH" torch==2.6.0 torchvision --index-url https://download.pytorch.org/whl/cu124 2>&1 | tail -5 || \
-    pip3 install --target "$PYPATH" torch torchvision --index-url https://download.pytorch.org/whl/cu124 2>&1 | tail -5 || true
-
-    # All other packages
-    pip3 install --target "$PYPATH" \
-        transformers>=4.40.0 \
-        accelerate \
-        sentencepiece \
-        protobuf \
-        tiktoken \
-        pillow \
-        opencv-python-headless \
-        scipy \
-        scikit-learn \
-        tqdm \
-        jiwer \
-        rapidfuzz \
-        einops \
-        huggingface_hub \
-        pandas \
-        2>&1 | tail -5 || true
-
-    echo "Python packages installed to $PYPATH"
-    echo "Packages: $(ls $PYPATH | wc -l) items"
-
-    echo "=== Setup Complete ==="
