@@ -1,24 +1,23 @@
 # Apptainer definition file for GeoCoT environment.
 #
-# BUILDTIME: Bootstrap:docker from Rocky Linux 9 on Docker Hub.
-#   Rocky Linux 9 is a RHEL-compatible distro with glibc and Python 3.11 in AppStream.
-#   Using Docker Hub directly to avoid MCR JWS manifest issues.
-#   Rocky Linux is small (~180MB) and should not hit rate limiting for a single pull.
-# RUNTIME: Job script installs Python + CUDA on compute node.
+# BUILDTIME: Bootstrap:docker from library://apptainer/singularity-ce:9.3-6
+#   Using Apptainer Library image (SIF format) which avoids Docker Hub registry issues.
+#   CentOS 9 has glibc and Python 3.9. Python 3.11 can be installed via SCL.
+# RUNTIME: Job script installs Python 3.11 and CUDA on compute node.
 
 Bootstrap: docker
-From: rockylinux:9
+From: library://apptainer/singularity-ce:9.3-6
 
 %post
     set -e
-    echo "=== Installing Python 3.11 and curl in Rocky Linux ==="
-    # Use dnf (Dandified YUM) which Rocky Linux uses
-    dnf install -y --setopt install_weak_deps=False python3.11 curl 2>/dev/null || true
+    echo "=== Installing Python 3.11 and curl in CentOS 9 ==="
+    # Use yum/dnf for CentOS
+    yum install -y python3.11 python3.11-devel curl 2>/dev/null || true
 
-    # Verify Python 3.11 is available
+    # Verify Python3.11 is available
     if command -v python3.11 >/dev/null 2>&1; then
-        echo "Python 3.11 found"
-        python3.11 --version || python3 --version
+        echo "Python3.11 found"
+        python3.11 --version
     else
         echo "Using system Python"
         python3 --version || echo "WARNING: No python3 found"
@@ -29,27 +28,27 @@ From: rockylinux:9
     # --- Merged from setup.sh ---
     pip install --break-system-packages uv 2>/dev/null || pip install uv 2>/dev/null || true
     export UV_SYSTEM_PYTHON=1 UV_BREAK_SYSTEM_PACKAGES=1
-    # Install Python packages into /dev/shm/pylib for the GPU container.
+    # Install Python packages into /dev/shm/pylib for GPU container.
     #
     # This script runs during container build (in the Apptainer overlay).
     # All models and datasets are pre-downloaded on the login node.
     #
     # IMPORTANT: Install into SYSTEM Python (/dev/shm/pylib), not a virtual environment.
-    
+
     set -e
-    
+
     PYPATH="/dev/shm/pylib"
     mkdir -p "$PYPATH"
     export PYTHONPATH="$PYPATH"
-    
+
     echo "=== Installing Python packages to $PYPATH ==="
-    
+
     # PyTorch 2.6.0 with CUDA 12.4 (required for loading .bin model files - CVE fix)
-    uv pip install --target "$PYPATH" torch==2.6.0 torchvision --index-url https://download.pytorch.org/whl/cu124 2>&1 | tail -5 || \
-    uv pip install --target "$PYPATH" torch torchvision --index-url https://download.pytorch.org/whl/cu124 2>&1 | tail -5 || true
-    
+    pip3 install --target "$PYPATH" torch==2.6.0 torchvision --index-url https://download.pytorch.org/whl/cu124 2>&1 | tail -5 || \
+    pip3 install --target "$PYPATH" torch torchvision --index-url https://download.pytorch.org/whl/cu124 2>&1 | tail -5 || true
+
     # All other packages
-    uv pip install --target "$PYPATH" \
+    pip3 install --target "$PYPATH" \
         transformers>=4.40.0 \
         accelerate \
         sentencepiece \
@@ -66,9 +65,8 @@ From: rockylinux:9
         huggingface_hub \
         pandas \
         2>&1 | tail -5 || true
-    
+
     echo "Python packages installed to $PYPATH"
     echo "Packages: $(ls $PYPATH | wc -l) items"
-    
-    echo "=== Setup Complete ==="
 
+    echo "=== Setup Complete ==="
