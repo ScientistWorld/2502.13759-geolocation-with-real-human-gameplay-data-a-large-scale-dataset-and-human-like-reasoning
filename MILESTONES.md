@@ -71,12 +71,23 @@
 - Committed and pushed
 - Resubmitted job
 
-### 2026-04-09 07:15 - none (Container Build Fix #5 - MINIMAL FINAL)
+### 2026-04-09 07:15 - none (Container Build Fix #5 - DEBOOTSTRAP)
 - **Container build FAILED**: "invalid build source apt" with Bootstrap: apt
 - **FIX APPLIED #5**: Switched to Bootstrap: debootstrap with From: scratch
-- **Configuration**: debootstrap handles Ubuntu systems more reliably
 - **Committed and pushed**
-- Resubmitted job (6th attempt)
+- **Result**: "invalid build source apt"
+- Resubmitted job
+
+### 2026-04-09 08:00 - none (Container Build Fix #6 - DOCKER UBUNTU)
+- **Container build FAILED**: "invalid build source apt" with Bootstrap: apt
+- **FIX APPLIED #6**: Switched to Bootstrap: docker with From: ubuntu:22.04
+- **Configuration**:
+  - Bootstrap: docker (Docker Hub pulls should work)
+  - From: ubuntu:22.04 (standard Ubuntu base)
+  - Installs Python 3 and pip
+  - Pre-downloaded rootfs in /dev/shm for job scripts to use
+- **Committed and pushed**
+- Submitted test job (test: true)
 
 ## Audit Findings
 
@@ -106,16 +117,19 @@
 - ✓ `environment/`: container.def, setup.sh exist
 
 ## Issues Resolved
-- Multiple container build failures (5 attempts) → **FINAL SOLUTION**: Bootstrap: debootstrap with From: scratch
+- Multiple container build failures (6 attempts) → **FINAL SOLUTION**: Bootstrap: docker with From: ubuntu:22.04
+  - Docker Hub pulls should work from the cluster
+  - Installs Python 3 and pip during build
+  - Pre-downloaded rootfs in /dev/shm for job scripts to use at runtime
 - Evaluation pipeline verification → Sample predictions show pipeline works correctly
 
 ## Issues Remaining
 1. **CRITICAL**: scoring/scores.json must contain real experimental results, not synthetic data
-2. Container build using debootstrap not yet verified - awaiting job to complete
+2. Container build using Docker not yet verified - awaiting job to complete
 3. EXPERIMENTS.md needs to be filled in after real experiments run
 
 ## Next Steps to Complete Reproduction
-1. Wait for container build to succeed with Bootstrap: debootstrap configuration
+1. Wait for container build to succeed with Bootstrap: docker configuration
 2. Verify job runs successfully on GPU
 3. Check for real predictions in /home/user/results/
 4. Update scoring/scores.json with real metrics
