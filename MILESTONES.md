@@ -4,13 +4,17 @@
 
 ## Progress Log
 
-### 2026-04-09 09:00 - none (Container Build Fix #8 - Red Hat UBI)
-- Previous 7 attempts all failed:
-  - library://, Bootstrap: yum, Bootstrap: apt, Bootstrap: debootstrap, Bootstrap: localimage
-  - Root cause: /home/user GPFS not accessible during build; /dev/shm cleared on reboot
-- **New approach**: Bootstrap: docker with registry.access.redhat.com/ubi8/ubi:latest
-- Pre-downloaded UBI 8 tarballs available at /tmp/claude-code-tmp/
-- Submitted test job
+### 2026-04-09 09:30 - none (9th Container Build Attempt)
+- Previous 8 attempts failed due to:
+  - /home/user GPFS not accessible during build
+  - /dev/shm cleared on reboot
+  - Docker Hub / RedHat / MCR registry issues
+  - Apptainer bootstrap method not recognized (apt, yum, debootstrap)
+- **RE-discovered**: Alpine + MCR approach worked in iteration 1 and reached method_runs
+- **9th attempt**: Bootstrap: docker Alpine 3 + curl download Azure Linux layer from MCR
+  - This bypasses the docker conveyor JWS issue
+  - Alpine is tiny (~5MB) from Docker Hub
+  - Azure Linux layer downloaded directly via curl
 
 ## Audit Findings
 
@@ -28,15 +32,12 @@
 ### 3. Deliverables: MOSTLY COMPLETE ✓
 - All briefing, scoring, scripts, environment files in place
 
-## Issues Resolved
-- Container build: 8th attempt with Red Hat UBI registry
-
 ## Issues Remaining
 1. **CRITICAL**: Container build not yet verified
 2. **CRITICAL**: scoring/scores.json has synthetic data
 
 ## Next Steps
-1. Verify container build succeeds
+1. Verify container build succeeds (Alpine + MCR approach)
 2. Run GeoCoT + baseline on GPU (10 images)
 3. Update scores.json with real results
 4. Push to method_runs milestone
