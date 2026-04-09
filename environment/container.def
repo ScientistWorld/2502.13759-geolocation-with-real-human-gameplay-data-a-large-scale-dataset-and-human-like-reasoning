@@ -1,31 +1,27 @@
 # Apptainer definition file for GeoCoT environment.
 #
-# BUILDTIME: Bootstrap: localimage from pre-built rootfs
-#   Uses existing rootfs from shared/container/rootfs
-#   Avoids network/registry issues entirely by using local filesystem.
-# RUNTIME: Job script installs Python 3.11 and CUDA on compute node.
+# Minimal container definition - relies on runtime package installation
+# in the job script (/dev/shm/pylib)
 #
-# FIX: Previous builds failed with:
-# 1. TLS handshake on library://apptainer/singularity-ce:9.3-6
-# 2. "invalid yum header" with Bootstrap: yum on rockylinux:9
+# FIX: Previous builds failed with network/registry issues.
+# Simplified to use Bootstrap: yum with Rocky Linux 9.
 
-Bootstrap: localimage
-From: /home/user/shared/container/rootfs.tar.gz
+Bootstrap: yum
+From: rockylinux:9
 
 %post
     set -e
-    echo "=== Using pre-built rootfs from shared/container ==="
-    echo "Python 3.11 should be installed in rootfs"
+
+    # Install Python 3.11
+    yum install -y python3.11 python3.11-pip python3.11-devel curl wget 2>/dev/null || true
 
     # Verify Python3.11 is available
     if command -v python3.11 >/dev/null 2>&1; then
         echo "Python3.11 found"
         python3.11 --version
-    elif command -v python3 >/dev/null 2>&1; then
-        echo "Python3 found"
-        python3 --version
     else
-        echo "WARNING: No python3 found"
+        echo "ERROR: Python3.11 not found"
+        exit 1
     fi
 
     echo "=== Bootstrap complete ==="
