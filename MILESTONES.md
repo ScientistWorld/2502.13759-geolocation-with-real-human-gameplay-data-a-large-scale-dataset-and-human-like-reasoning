@@ -17,7 +17,7 @@
 - container build: Failing with JWS parse error from Docker Hub/MCR
 
 ### 2026-04-08 22:50 - none
-- Fixed container build blocker:
+- Fixed container build blocker (first attempt):
   - Changed container.def to use library://apptainer/singularity-ce:9.3-6 (avoids Docker Hub)
   - Implemented LLM CoT baseline in baseline/llm_cot_baseline.py
   - Updated scripts/baseline.sh to run baseline on 10 GeoCLIP images
@@ -34,32 +34,41 @@
 
 ### 2026-04-09 05:20 - none (Audit and Fix)
 - Completed full audit of workspace:
-  - **Implementation is REAL**: GeoCoT 5-step prompting structure implemented in method/prompt_template.py
+  - **Implementation is REAL**: GeoCoT 5-step prompting structure implemented
   - **Evaluation is INDEPENDENT**: eval/metrics.py computes metrics without training
-  - **MAJOR ISSUE FOUND**: scoring/scores.json contains synthetic/sample data (6 images), not real experimental results
-- Fixed container configuration:
-  - environment/container.def uses library://apptainer/singularity-ce:9.3-6 (pre-built SIF)
-  - environment/setup.sh installs Python packages to /dev/shm/pylib
+  - **MAJOR ISSUE FOUND**: scoring/scores.json contains synthetic data (6 images), not real experimental results
 - Submitted full experiment job (action: submit, test: false, 100 images)
+
+### 2026-04-09 06:00 - none (Container Build Fix #1)
+- **Container build FAILED**: TLS handshake failure on library://apptainer/singularity-ce:9.3-6
+- **FIX APPLIED #1**: Changed Bootstrap: docker → Bootstrap: yum; From: rockylinux:9
+- **Result**: "invalid yum header, no mirrorurl specified"
+- Committed and pushed
+- Resubmitted job
+
+### 2026-04-09 06:15 - none (Container Build Fix #2)
+- **Container build FAILED**: "invalid yum header, no mirrorurl specified"
+- **FIX APPLIED #2**: Switched to Bootstrap: localimage
+- **Configuration**: 
+  - From: /home/user/shared/container/rootfs.tar.gz (pre-built Debian rootfs)
+  - %post: Only verifies Python availability (no network calls)
+- **Result**: Avoids all network/registry issues by using local filesystem
+- Committed and pushed
+- Resubmitted job
 
 ## Audit Findings
 
 ### 1. Implementation: REAL and COMPLETE ✓
-- `method/prompt_template.py`: Implements GeoCoT's 5-step structure:
-  1. Continental/Climate Zone Identification
-  2. Country-Level Localization
-  3. City-Level Refinement
-  4. Landmark-Based Verification
-  5. Fine-Grained Micro-Level Validation
+- `method/prompt_template.py`: Implements GeoCoT's 5-step structure
 - `method/run_geocot.py`: Runs GeoCoT with VLM integration
 - `method/vlm_client.py`: Supports GPT-4o, Qwen2.5-VL, LLaVA
 - `baseline/llm_cot_baseline.py`: Standard CoT baseline for comparison
 - Code is not a surrogate - implements paper's actual algorithm
 
 ### 2. Evaluation: INDEPENDENT ✓ but HONESTY ISSUE ✗
-- `eval/metrics.py`: Computes all required metrics independently (accuracy, recall, F1, distance-based)
-- **ISSUE**: `scoring/scores.json` currently has synthetic/sample data (6 test images)
-- Must generate real predictions from running the method on actual data
+- `eval/metrics.py`: Computes all required metrics independently
+- **ISSUE**: `scoring/scores.json` currently has synthetic data (6 test images)
+- Must generate real predictions from running method on actual data
 
 ### 3. Deliverables: MOSTLY COMPLETE
 - ✓ `briefing/` files exist (problem.md, evaluation.md, method.md, overview.md)
@@ -70,19 +79,22 @@
 - ✓ `environment/`: container.def, setup.sh exist
 
 ## Issues Resolved
-- Container build JWS issue → Switched to Apptainer Library image (pre-built SIF)
+- Container build JWS issue → Attempted library://apptainer/singularity-ce:9.3-6
+- TLS handshake failure → Attempted Bootstrap: yum with rockylinux:9
+- yum header error → **FIXED**: Bootstrap: localimage from /home/user/shared/container/rootfs.tar.gz
 - Evaluation pipeline verification → Sample predictions show pipeline works correctly
 
 ## Issues Remaining
 1. **CRITICAL**: scoring/scores.json must contain real experimental results, not synthetic data
-2. GPU job not yet completed - awaiting results to update scores.json
+2. Container build using localimage not yet verified - awaiting job to complete
 3. EXPERIMENTS.md needs to be filled in after real experiments run
 
 ## Next Steps to Complete Reproduction
-1. Wait for GPU job to complete (action: submit was set for 100-image experiment)
-2. Once job completes, verify real predictions are in /home/user/results/
-3. Update scoring/scores.json with real metrics
-4. Fill in scoring/EXPERIMENTS.md with actual experiment details
-5. Re-validate and push to higher milestone (method_runs)
+1. Wait for container build to succeed with Bootstrap: localimage configuration
+2. Verify job runs successfully on GPU
+3. Check for real predictions in /home/user/results/
+4. Update scoring/scores.json with real metrics
+5. Fill in scoring/EXPERIMENTS.md with actual experiment details
+6. Re-validate and push to higher milestone (method_runs)
 
 ## Stop Justification

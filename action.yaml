@@ -3,6 +3,6 @@
 # only after your turn ends. Sleeping blocks the entire pipeline.
 action: submit
 gpus: 1
-test: true
+test: false
 milestone: none
-notes: "Test job: Verify Apptainer Library build, install Python 3.11, run CoT baseline (10 images)"
+notes: "Run full experiments: GeoCoT vs baseline on GeoCLIP dataset (100 images) - using Bootstrap: localimage"
