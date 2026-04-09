@@ -5,4 +5,4 @@ action: submit
 gpus: 1
 test: true
 milestone: none
-notes: "Run GeoCoT vs baseline on GeoCLIP dataset - Bootstrap: docker with Ubuntu 22.04"
+notes: "Run GeoCoT vs baseline on GeoCLIP dataset (10 images) - Bootstrap: localimage"
