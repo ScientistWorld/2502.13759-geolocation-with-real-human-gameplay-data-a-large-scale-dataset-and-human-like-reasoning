@@ -5,4 +5,4 @@ action: submit
 gpus: 1
 test: false
 milestone: none
-notes: "Run full experiments: GeoCoT vs baseline on GeoCLIP dataset (100 images) - minimal container"
+notes: "Run full experiments: GeoCoT vs baseline on GeoCLIP dataset (100 images) - Bootstrap: apt with Ubuntu"
