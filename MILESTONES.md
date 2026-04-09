@@ -47,12 +47,20 @@
 - Resubmitted job
 
 ### 2026-04-09 06:15 - none (Container Build Fix #2)
-- **Container build FAILED**: "invalid yum header, no mirrorurl specified"
+- **Container build FAILED**: "invalid yum header" with Bootstrap: yum on rockylinux:9
 - **FIX APPLIED #2**: Switched to Bootstrap: localimage
+- **Configuration**: From: /home/user/shared/container/rootfs.tar.gz
+- **Result**: "lstat /home/user: no such file or directory" (path parsing issue)
+- Committed and pushed
+- Resubmitted job
+
+### 2026-04-09 06:30 - none (Container Build Fix #3 - MINIMAL)
+- **Container build FAILED**: Path parsing issue with localimage
+- **FIX APPLIED #3**: Simplified to minimal Bootstrap: yum with rockylinux:9
 - **Configuration**: 
-  - From: /home/user/shared/container/rootfs.tar.gz (pre-built Debian rootfs)
-  - %post: Only verifies Python availability (no network calls)
-- **Result**: Avoids all network/registry issues by using local filesystem
+  - Only installs Python 3.11 during build
+  - Python packages (torch, transformers, etc.) installed at runtime via /dev/shm/pylib
+  - Avoids local file path issues and network fetch problems
 - Committed and pushed
 - Resubmitted job
 
@@ -65,7 +73,7 @@
 - `baseline/llm_cot_baseline.py`: Standard CoT baseline for comparison
 - Code is not a surrogate - implements paper's actual algorithm
 
-### 2. Evaluation: INDEPENDENT ✓ but HONESTY ISSUE ✗
+### 2. Evaluation: INDEPENDENT ✓ but HONEST ISSUE ✗
 - `eval/metrics.py`: Computes all required metrics independently
 - **ISSUE**: `scoring/scores.json` currently has synthetic data (6 test images)
 - Must generate real predictions from running method on actual data
@@ -79,18 +87,17 @@
 - ✓ `environment/`: container.def, setup.sh exist
 
 ## Issues Resolved
-- Container build JWS issue → Attempted library://apptainer/singularity-ce:9.3-6
-- TLS handshake failure → Attempted Bootstrap: yum with rockylinux:9
-- yum header error → **FIXED**: Bootstrap: localimage from /home/user/shared/container/rootfs.tar.gz
+- Container build JWS issue → Attempted multiple solutions
+- Multiple bootstrap failures → Final solution: minimal container with runtime package installation
 - Evaluation pipeline verification → Sample predictions show pipeline works correctly
 
 ## Issues Remaining
 1. **CRITICAL**: scoring/scores.json must contain real experimental results, not synthetic data
-2. Container build using localimage not yet verified - awaiting job to complete
+2. Container build simplified but not yet verified - awaiting job to complete
 3. EXPERIMENTS.md needs to be filled in after real experiments run
 
 ## Next Steps to Complete Reproduction
-1. Wait for container build to succeed with Bootstrap: localimage configuration
+1. Wait for container build to succeed with minimal configuration
 2. Verify job runs successfully on GPU
 3. Check for real predictions in /home/user/results/
 4. Update scoring/scores.json with real metrics
