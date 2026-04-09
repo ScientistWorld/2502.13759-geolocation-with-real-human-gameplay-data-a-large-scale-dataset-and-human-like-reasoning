@@ -1,8 +1,8 @@
 #!/bin/bash
-# Run baseline method (standard Chain-of-Thought) for comparison.
+# Baseline script — runs CoT baseline for geolocation
 #
-# Baseline: standard CoT prompting (no GeoCoT structure)
-# vs GeoCoT: structured 5-step geographical reasoning prompt
+# This script runs the baseline method (standard chain-of-thought without
+# GeoCoT-structured geographical reasoning) on the geolocation dataset.
 
 set -e
 
@@ -11,69 +11,70 @@ cd /home/user
 RESULTS_DIR="/home/user/results"
 mkdir -p "$RESULTS_DIR"
 
-echo "=== Running Standard CoT Baseline ==="
+# Use the same VLM type as method.sh (LLaVA-1.5-7B)
+VLM_TYPE="llava"
+MAX_IMAGES=10
 
-# Determine which VLM to use
-if [ -d "/home/user/shared/models/Qwen2.5-VL-7B-Instruct" ]; then
-    VLM_TYPE="qwen_vl"
-    MODEL_NAME="Qwen2.5-VL"
-elif [ -d "/home/user/shared/models/llava-hf/llava-1.5-7b-hf" ]; then
-    VLM_TYPE="llava"
-    MODEL_NAME="LLaVA"
-else
-    VLM_TYPE="none"
-    MODEL_NAME="none"
-fi
+echo "=========================================="
+echo "Baseline: Standard CoT on GeoCLIP dataset"
+echo "=========================================="
 
-echo "Using VLM: $MODEL_NAME"
+DATASET="/home/user/data/geoclip/geoclip.csv"
+OUTPUT_PATH="$RESULTS_DIR/cot_baseline_predictions.json"
 
-# Find dataset
-if [ -f "/home/user/data/im2gps3k/im2gps3k.csv" ]; then
-    DATASET="/home/user/data/im2gps3k/im2gps3k.csv"
-elif [ -f "/home/user/data/sample_geolocation.csv" ]; then
-    DATASET="/home/user/data/sample_geolocation.csv"
-else
-    DATASET="/home/user/data/sample_geolocation.csv"
-fi
+echo "Dataset: $DATASET"
+echo "VLM Type: $VLM_TYPE"
+echo "Max Images: $MAX_IMAGES"
+echo "Output: $OUTPUT_PATH"
 
-# Run standard CoT
-OUTPUT="$RESULTS_DIR/cot_predictions.json"
-if [ "$VLM_TYPE" != "none" ]; then
-    echo "Running standard CoT with $MODEL_NAME..."
-    python3 -m method.run_geocot \
-        --dataset "$DATASET" \
-        --output "$OUTPUT" \
-        --vlm "$VLM_TYPE" \
-        --max-images 50 \
-        --method cot
-else
-    echo "Creating sample CoT predictions..."
-    python3 -c "
+python3 << 'EOF'
+import sys
+sys.path.insert(0, '/home/user')
+from baseline.llm_cot_baseline import run_baseline
+
+results = run_baseline(
+    dataset_path="/home/user/data/geoclip/geoclip.csv",
+    output_path="/home/user/results/cot_baseline_predictions.json",
+    vlm_type="llava",
+    max_images=10,
+)
+
+print(f"\nGenerated {len(results)} predictions")
+print(f"Saved to /home/user/results/cot_baseline_predictions.json")
+EOF
+
+# Generate scores
+echo ""
+echo "=== Evaluating baseline results ==="
+
+python3 << 'EOF'
+import sys
+sys.path.insert(0, '/home/user')
 import json
-import pandas as pd
+import os
+from eval.metrics import evaluate_predictions, compute_all_metrics
 
-df = pd.read_csv('$DATASET')
-results = []
-for _, row in df.iterrows():
-    results.append({
-        'image_path': row.get('image_path', ''),
-        'ground_truth_city': row.get('city', None),
-        'ground_truth_country': row.get('country', None),
-        'ground_truth_continent': row.get('continent', None),
-        'ground_truth_lat': row.get('lat', None),
-        'ground_truth_lon': row.get('lon', None),
-        'predicted_city': 'SampleCity',
-        'predicted_country': 'SampleCountry',
-        'predicted_continent': 'SampleContinent',
-        'model_response': 'Standard CoT reasoning: [sample]'
-    })
-with open('$OUTPUT', 'w') as f:
-    json.dump(results, f, indent=2)
-print(f'Created {len(results)} sample predictions')
-"
-fi
+pred_path = "/home/user/results/cot_baseline_predictions.json"
+if os.path.exists(pred_path):
+    with open(pred_path, "r") as f:
+        predictions = json.load(f)
 
-echo "CoT baseline predictions saved to: $OUTPUT"
+    metrics = compute_all_metrics(predictions)
+    print("\nBaseline Metrics:")
+    for key in ["city_accuracy", "country_accuracy", "continent_accuracy"]:
+        if key in metrics:
+            print(f"  {key}: {metrics[key]:.4f}")
 
-# Evaluate
-bash scripts/evaluate.sh
+    # Save as separate file for evaluate.sh to pick up
+    scores_path = "/home/user/results/cot_baseline_metrics.json"
+    with open(scores_path, "w") as f:
+        json.dump(metrics, f, indent=2)
+    print(f"\nMetrics saved to {scores_path}")
+else
+    echo "No predictions found - baseline may have failed"
+EOF
+
+echo ""
+echo "=========================================="
+echo "Baseline Complete - $OUTPUT_PATH generated"
+echo "=========================================="
