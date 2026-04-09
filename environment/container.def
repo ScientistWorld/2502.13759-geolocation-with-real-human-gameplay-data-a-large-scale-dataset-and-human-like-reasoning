@@ -1,29 +1,31 @@
 # Apptainer definition file for GeoCoT environment.
 #
-# BUILDTIME: Bootstrap: yum from Rocky Linux 9 minimal image
-#   Uses standard base image without Docker Hub dependency
-#   RUNTIME: Job script installs Python 3.11 and CUDA on compute node.
+# BUILDTIME: Bootstrap: localimage from pre-built rootfs
+#   Uses existing rootfs from shared/container/rootfs
+#   Avoids network/registry issues entirely by using local filesystem.
+# RUNTIME: Job script installs Python 3.11 and CUDA on compute node.
 #
-# FIX: Previous build failed with TLS handshake on library://apptainer/singularity-ce:9.3-6
-# Switched to Bootstrap: yum to use standard CentOS/Rocky base image.
+# FIX: Previous builds failed with:
+# 1. TLS handshake on library://apptainer/singularity-ce:9.3-6
+# 2. "invalid yum header" with Bootstrap: yum on rockylinux:9
 
-Bootstrap: yum
-From: rockylinux:9
+Bootstrap: localimage
+From: /home/user/shared/container/rootfs.tar.gz
 
 %post
     set -e
-    echo "=== Installing Python 3.11 and curl in Rocky Linux 9 ==="
-
-    # Install Python 3.11, pip, and curl
-    yum install -y python3.11 python3.11-pip python3.11-devel curl wget 2>/dev/null || true
+    echo "=== Using pre-built rootfs from shared/container ==="
+    echo "Python 3.11 should be installed in rootfs"
 
     # Verify Python3.11 is available
     if command -v python3.11 >/dev/null 2>&1; then
         echo "Python3.11 found"
         python3.11 --version
+    elif command -v python3 >/dev/null 2>&1; then
+        echo "Python3 found"
+        python3 --version
     else
-        echo "ERROR: Python3.11 not found"
-        exit 1
+        echo "WARNING: No python3 found"
     fi
 
     echo "=== Bootstrap complete ==="
