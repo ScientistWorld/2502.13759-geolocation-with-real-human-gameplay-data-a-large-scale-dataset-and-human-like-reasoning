@@ -1,26 +1,35 @@
 # Apptainer definition file for GeoCoT environment.
 #
-# Minimal container definition - relies on runtime package installation
-# in the job script (/dev/shm/pylib)
+# BUILDTIME: Bootstrap: apt from Ubuntu base image
+#   Uses Ubuntu base to match host system (Ubuntu 24.04)
+# RUNTIME: Job script installs Python 3.11 and CUDA on compute node.
 #
-# FIX: Previous builds failed with network/registry issues.
-# Simplified to use Bootstrap: yum with Rocky Linux 9.
+# FIX: Previous builds failed because base image didn't match host (tried Rocky on Ubuntu)
 
-Bootstrap: yum
-From: rockylinux:9
+Bootstrap: apt
+From: ubuntu:22.04
 
 %post
     set -e
 
-    # Install Python 3.11
-    yum install -y python3.11 python3.11-pip python3.11-devel curl wget 2>/dev/null || true
+    echo "=== Installing Python 3.11 and basic tools in Ubuntu ==="
 
-    # Verify Python3.11 is available
+    # Install Python 3.11 and pip
+    apt-get update -qq
+    apt-get install -y --no-install-recommends \
+        python3.11 \
+        python3.11-dev \
+        python3-pip \
+        curl \
+        wget \
+        ca-certificates
+
+    # Verify Python 3.11 is available
     if command -v python3.11 >/dev/null 2>&1; then
-        echo "Python3.11 found"
+        echo "Python 3.11 found"
         python3.11 --version
     else
-        echo "ERROR: Python3.11 not found"
+        echo "ERROR: Python 3.11 not found"
         exit 1
     fi
 
