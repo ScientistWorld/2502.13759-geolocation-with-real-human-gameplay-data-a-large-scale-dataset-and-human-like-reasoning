@@ -4,5 +4,5 @@
 action: submit
 gpus: 1
 test: false
-milestone: method_runs
-notes: "GeoCoT vs CoT with Qwen2.5-VL-7B-Instruct on 80 balanced GeoCLIP images (4 countries). Fixed CUDA_VISIBLE_DEVICES bug from previous run. Key fix: removed CUDA_VISIBLE_DEVICES=\"\" which was blocking GPU. 20 images per country, full pipeline with checkpointing."
+milestone: core_claim
+notes: "Fix setup.sh: install qwen-vl-utils --no-deps to prevent it from overwriting CUDA-enabled torchvision. Previous build failed with 'operator torchvision::nms does not exist' - torchvision from PyPI conflicted with CUDA torch. Now torch+torchvision stay together from CUDA index, qwen-vl-utils installed without deps."
