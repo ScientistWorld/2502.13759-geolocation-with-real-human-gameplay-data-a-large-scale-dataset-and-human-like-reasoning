@@ -61,7 +61,6 @@ for name, filepath in sorted(pred_files.items()):
             metrics = compute_all_metrics(valid_gt)
             all_results[name] = metrics
             for key in ['city_accuracy', 'country_accuracy', 'continent_accuracy',
-                        'country_recall', 'country_f1',
                         'street_1km', 'city_25km', 'country_750km']:
                 if key in metrics:
                     print(f"  {key}: {metrics[key]:.4f}")
@@ -70,102 +69,54 @@ for name, filepath in sorted(pred_files.items()):
         import traceback
         traceback.print_exc()
 
-# Build scores.json
+# Load reference to get the experiment structure
+with open('/home/user/scoring/reference.json') as f:
+    reference = json.load(f)
+
+# Build scores.json from reference, filling in reproduction results
 scores = {"experiments": {}}
 
-if not all_results:
-    print("No valid results to evaluate.")
-    sys.exit(0)
+for exp_name, exp_data in reference.get("experiments", {}).items():
+    exp_copy = {
+        "description": exp_data.get("description", ""),
+        "weight": exp_data.get("weight", 0.5),
+        "primary_metric": exp_data.get("primary_metric", ""),
+        "metrics": exp_data.get("metrics", {}),
+        "results": {}
+    }
 
-# Classification experiment
-scores["experiments"]["geocomp_classification"] = {
-    "description": "GeoCoT vs CoT on GeoCLIP dataset (4 countries: Kenya, Ecuador, Chile, Madagascar) with Qwen2.5-VL-7B-Instruct. Balanced sample.",
-    "weight": 0.5,
-    "primary_metric": "country_accuracy",
-    "metrics": {
-        "country_accuracy": {"higher_is_better": True, "coefficient": 1.0},
-        "continent_accuracy": {"higher_is_better": True, "coefficient": 0.8},
-        "city_accuracy": {"higher_is_better": True, "coefficient": 1.2}
-    },
-    "results": {}
-}
+    ref_results = exp_data.get("results", {})
+    ref_metrics = list(exp_data.get("metrics", {}).keys())
 
-# Paper reference values
-scores["experiments"]["geocomp_classification"]["results"]["gpt4o_cot_paper"] = {
-    "type": "baseline",
-    "city_accuracy": 0.094,
-    "country_accuracy": 0.623,
-    "continent_accuracy": 0.819
-}
-scores["experiments"]["geocomp_classification"]["results"]["geocot_paper"] = {
-    "type": "proposed",
-    "city_accuracy": 0.118,
-    "country_accuracy": 0.640,
-    "continent_accuracy": 0.862
-}
+    # Copy reference results (paper values) — preserve placeholders for unrun methods
+    for method_name, method_data in ref_results.items():
+        entry = {}
+        for key, val in method_data.items():
+            if key == "type":
+                continue  # Don't include type in scores.json
+            entry[key] = val
+        exp_copy["results"][method_name] = entry
 
-# Add reproduction results
-for method_name, metrics in all_results.items():
-    if not isinstance(metrics, dict):
-        continue
+    # Overwrite with reproduction results where available
+    for pred_name, metrics in all_results.items():
+        # Map prediction file name to method name
+        if pred_name == "geocot":
+            method_name = "qwen_geocot"
+        elif pred_name == "cot":
+            method_name = "qwen_cot"
+        else:
+            method_name = pred_name
 
-    label = method_name
-    if 'geocot' in method_name:
-        method_type = 'proposed'
-    else:
-        method_type = 'baseline'
+        if method_name not in ref_results:
+            continue  # Only add methods that exist in reference
 
-    entry = {'type': method_type}
-    for key in ['country_accuracy', 'continent_accuracy', 'city_accuracy',
-                'country_recall', 'country_f1', 'continent_recall', 'continent_f1',
-                'city_recall', 'city_f1']:
-        if key in metrics:
-            entry[key] = round(metrics[key], 4)
+        entry = exp_copy["results"][method_name]  # Start with placeholder
+        for key in ref_metrics:
+            if key in metrics:
+                entry[key] = round(metrics[key], 4)
+        exp_copy["results"][method_name] = entry
 
-    scores["experiments"]["geocomp_classification"]["results"][label] = entry
-
-# Distance experiment
-scores["experiments"]["geocomp_distance"] = {
-    "description": "Distance-based accuracy on GeoCLIP (Qwen2.5-VL)",
-    "weight": 0.5,
-    "primary_metric": "city_25km",
-    "metrics": {
-        "street_1km": {"higher_is_better": True, "coefficient": 1.0},
-        "city_25km": {"higher_is_better": True, "coefficient": 1.0},
-        "country_750km": {"higher_is_better": True, "coefficient": 0.8}
-    },
-    "results": {}
-}
-
-scores["experiments"]["geocomp_distance"]["results"]["gpt4o_cot_paper"] = {
-    "type": "baseline",
-    "street_1km": 0.047,
-    "city_25km": 0.151,
-    "country_750km": 0.701
-}
-scores["experiments"]["geocomp_distance"]["results"]["geocot_paper"] = {
-    "type": "proposed",
-    "street_1km": 0.073,
-    "city_25km": 0.157,
-    "country_750km": 0.711
-}
-
-for method_name, metrics in all_results.items():
-    if not isinstance(metrics, dict):
-        continue
-
-    label = method_name
-    if 'geocot' in method_name:
-        method_type = 'proposed'
-    else:
-        method_type = 'baseline'
-
-    entry = {'type': method_type}
-    for key in ['street_1km', 'city_25km', 'country_750km']:
-        if key in metrics:
-            entry[key] = round(metrics[key], 4)
-
-    scores["experiments"]["geocomp_distance"]["results"][label] = entry
+    scores["experiments"][exp_name] = exp_copy
 
 scores_path = '/home/user/scoring/scores.json'
 with open(scores_path, 'w') as f:
