@@ -1,75 +1,20 @@
 # Apptainer definition file for GeoCoT environment.
 #
-# Uses Azure Linux 3.0 from MCR (Microsoft Container Registry).
-# MCR has no rate limiting unlike Docker Hub.
-# All Python packages are installed at build time.
+# Uses Ubuntu 22.04 as base image. Python packages installed via setup.sh.
+# CUDA runtime is provided by the host (compute nodes have GPUs).
 #
-# IMPORTANT: Build requires internet access (MCR + PyPI).
+# IMPORTANT: Build requires internet access (Docker Hub + PyPI).
 # Runtime on compute nodes requires NO internet.
 
 Bootstrap: docker
-From: mcr.microsoft.com/azurelinux/base/core:3.0
+From: ubuntu:22.04
 
 %post
     set -e
-    echo "=== Azure Linux 3.0 container starting ==="
+    echo "=== Ubuntu 22.04 container starting ==="
 
-    # Install Python and basic tools using tdnf (Azure Linux package manager)
-    tdnf install -y python3 python3-pip curl 2>/dev/null || {
-        echo "tdnf install failed, trying alternatives..."
-        # Azure Linux might already have python3
-        which python3 || echo "Python3 not found"
-        which pip3 || echo "pip3 not found"
-    }
+    export DEBIAN_FRONTEND=noninteractive
+    apt-get update
+    apt-get install -y python3 python3-pip curl wget git
 
-    echo "Python version: $(python3 --version 2>&1)"
-    echo "pip version: $(pip3 --version 2>&1)"
-
-    echo "=== Installing uv package manager ==="
-    curl -LsSf https://astral.sh/uv/install.sh | sh 2>/dev/null || {
-        pip3 install --break-system-packages uv 2>/dev/null || {
-            echo "Warning: uv installation failed"
-        }
-    }
-    export PATH="$HOME/.local/bin:$PATH"
-
-    echo "=== Installing Python packages ==="
-
-    # Use uv for fast installation to system Python
-    export UV_SYSTEM_PYTHON=1
-    export UV_BREAK_SYSTEM_PACKAGES=1
-
-    # Install PyTorch with CUDA support
-    echo "Installing PyTorch..."
-    uv pip install torch torchvision --index-url https://download.pytorch.org/whl/cu124 2>&1 | tail -5 || \
-    uv pip install torch torchvision 2>&1 | tail -5
-
-    # Install all other packages
-    echo "Installing remaining packages..."
-    uv pip install \
-        "transformers>=4.40.0" \
-        accelerate \
-        sentencepiece \
-        protobuf \
-        tiktoken \
-        pillow \
-        opencv-python-headless \
-        scipy \
-        scikit-learn \
-        tqdm \
-        jiwer \
-        rapidfuzz \
-        einops \
-        huggingface_hub \
-        pandas \
-        numpy \
-        qwen-vl-utils \
-        2>&1 | tail -10
-
-    echo "=== Verifying installations ==="
-    python3 -c "import torch; print(f'PyTorch {torch.__version__}, CUDA: {torch.cuda.is_available()}')" 2>/dev/null || echo "PyTorch not available"
-    python3 -c "import transformers; print(f'transformers {transformers.__version__}')" 2>/dev/null || echo "transformers not available"
-    python3 -c "import pandas; print(f'pandas {pandas.__version__}')" 2>/dev/null || echo "pandas not available"
-    python3 -c "import qwen_vl_utils; print('qwen_vl_utils available')" 2>/dev/null || echo "qwen_vl_utils not available"
-
-    echo "=== Container setup complete ==="
+    echo "=== Container bootstrap complete ==="
