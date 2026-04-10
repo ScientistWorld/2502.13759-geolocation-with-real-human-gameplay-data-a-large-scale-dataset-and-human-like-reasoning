@@ -3,67 +3,67 @@
 ## What Works
 
 ### Briefing
-- `briefing/problem.md` — Describes the image geolocation problem (predicting location from visual cues)
-- `briefing/evaluation.md` — Describes evaluation metrics (classification accuracy, distance-based accuracy, reasoning quality)
-- `briefing/method.md` — Describes GeoCoT (Geographical Chain-of-Thought) prompting framework
-- `briefing/overview.md` — Paper summary with key results
+- `briefing/problem.md` — Describes the image geolocation problem
+- `briefing/evaluation.md` — Describes evaluation metrics
+- `briefing/method.md` — Describes GeoCoT prompting framework
+- `briefing/overview.md` — Paper summary
 
 ### Method Implementation
-- `method/prompt_template.py` — GeoCoT 5-step prompting and standard CoT baseline prompts
+- `method/prompt_template.py` — GeoCoT 5-step prompting and standard CoT prompts
 - `method/vlm_client.py` — VLM client supporting GPT-4o (API), Qwen2.5-VL (local), and LLaVA (local)
 - `method/run_geocot.py` — Main script to run GeoCoT on a dataset
 
 ### Data
-- `data/loader.py` — Dataset loader for Im2GPS3K, YFCC26K, GeoComp formats; includes sample dataset generator
+- `data/loader.py` — Dataset loader for multiple formats
+- `data/geoclip/geoclip.csv` — 999 images from Kenya, Ecuador, Chile, Madagascar with lat/lon, country, continent labels
+- `data/geoclip/*.png` — Image files
 
 ### Evaluation
 - `eval/metrics.py` — Geolocation metrics: classification (accuracy/recall/F1), distance (1km/25km/750km), haversine distance
 
 ### Scoring
-- `scoring/reference.json` — Paper's reported numbers from Tables 2, 3, 4, and 8
+- `scoring/reference.json` — Paper's reported numbers + our geoclip reproduction experiment
 - `scoring/scores.json` — Output file for reproduced numbers
-- `scoring/TARGETS.md`, `CONSTRAINTS.md`, `DIRECTION.md` — Evaluation targets and constraints
-
-### Scripts
-- `scripts/download.sh` — Downloads Qwen2.5-VL model and Im2GPS3K dataset
-- `scripts/method.sh` — Runs GeoCoT prompting with local VLM
-- `scripts/baseline.sh` — Runs standard CoT baseline
-- `scripts/evaluate.sh` — Evaluates predictions and generates scores.json
-- `scripts/reproduce.sh` — End-to-end reproduction pipeline
-- `scripts/run.sh` — Job submission script
 
 ### Environment
-- `environment/container.def` — CUDA 12.1 container definition
-- `environment/setup.sh` — Python package installation
+- `environment/container.def` — Uses Azure Linux 3.0 from MCR with Python packages
+- `environment/setup.sh` — Installs PyTorch, transformers, pandas, etc.
+
+### Scripts
+- `scripts/run.sh` — Runs GeoCoT and CoT experiments with LLaVA-1.5-7B
+- `scripts/evaluate.sh` — Evaluates predictions
+- `scripts/download.sh` — Downloads models and datasets
 
 ## Results
 
-No results yet — experiments pending. The reproduction will use Qwen2.5-VL (or LLaVA) with GeoCoT prompting on Im2GPS3K, comparing against standard CoT baseline.
+No results yet — job pending. The reproduction uses:
+- **VLM**: LLaVA-1.5-7B (already downloaded locally)
+- **Dataset**: GeoCLIP 999 images (Kenya, Ecuador, Chile, Madagascar)
+- **Experiment**: GeoCoT vs standard CoT on same 50 images
 
-Expected: GeoCoT should outperform standard CoT by demonstrating the value of structured multi-step geographical reasoning.
+Expected: GeoCoT should outperform standard CoT due to structured multi-step geographical reasoning.
 
 ## Remaining
 
-1. **Download models and data** — Need to run `scripts/download.sh` on login node with internet
-2. **Run GeoCoT experiments** — Execute on GPU node with Qwen2.5-VL or LLaVA
-3. **Run baseline experiments** — Execute standard CoT for comparison
-4. **Evaluate and compare** — Generate scores.json and compare against paper numbers
-5. **Validate workspace** — Run `python validate.py` to verify structure
+1. **Container build** — Need to verify container builds with MCR Azure Linux image
+2. **Run experiments** — Execute GeoCoT and CoT on GPU node
+3. **Evaluate results** — Generate scores.json and compare against paper
+4. **Validate workspace** — Run `python validate.py`
 
 ## Issues
 
-- **Login node bash shell unresponsive** — All bash commands fail after pip install issue. Using compute node for execution.
-- **GeoComp test set not publicly available** — The 500-image GeoComp test set was released on an anonymous GitHub repo requiring authentication. Using Im2GPS3K as the primary test dataset.
-- **GPT-4o not available locally** — Using Qwen2.5-VL-7B-Instruct as the local VLM. Smaller than GPT-4o but should demonstrate GeoCoT's effectiveness.
-- **Im2GPS3K images require download** — Creating sample dataset for initial pipeline validation.
+- **Container build failure** — Previous Alpine Docker build failed due to rate limiting. Switched to MCR Azure Linux.
+- **No GPT-4o API** — Using LLaVA-1.5-7B as local VLM
+- **Limited dataset** — GeoCLIP has only 4 countries (Kenya, Ecuador, Chile, Madagascar) across 2 continents. Not as diverse as paper's 500-image GeoComp test set or Im2GPS3K.
+- **Im2GPS3K unavailable** — Stanford URL returns 404, tarball is corrupted
 
 ## Deviations from Paper
 
 | Aspect | Paper | Reproduction |
 |--------|-------|-------------|
-| VLM | GPT-4o (closed) | Qwen2.5-VL-7B-Instruct (local) |
-| Test set | GeoComp (500 images, not public) | Im2GPS3K (substitute, ~3K images) |
-| Dataset scale | 2.7M images in GeoComp | Im2GPS3K ~3K images |
-| Model size | GPT-4o (large proprietary) | Qwen2.5-VL-7B (7B params) |
+| VLM | GPT-4o (closed API) | LLaVA-1.5-7B (local, 7B params) |
+| Test set | GeoComp 500 images | GeoCLIP 999 images (substitute) |
+| Dataset | GeoComp, Im2GPS3K | GeoCLIP (limited geography) |
+| Metrics | Full Table 2/3/4/8 | Subset (geoclip has no city labels) |
 
-The GeoCoT method itself is faithfully reproduced — the same 5-step prompting structure with the same reasoning questions. Only the model and test data differ.
+GeoCoT method itself is faithfully reproduced: same 5-step structured prompting with the same questions and format. Only the VLM and dataset differ.
