@@ -98,6 +98,7 @@ class QwenVLClient(VLMClient):
         if model_path is None:
             # Check common locations
             for candidate in [
+                "/home/user/checkpoints/Qwen2.5-VL-7B-Instruct",
                 "/home/user/shared/models/Qwen2.5-VL-7B-Instruct",
                 "/home/user/Qwen/Qwen2.5-VL-7B-Instruct",
                 os.path.join(os.path.dirname(__file__), "..", "Qwen2.5-VL-7B-Instruct"),
