@@ -1,8 +1,8 @@
 # IMPORTANT: Once you set action to 'submit' or 'done', STOP immediately.
 # Do NOT sleep, poll, or wait for jobs. The system reads this file
 # only after your turn ends. Sleeping blocks the entire pipeline.
-action: submit
+action: pending
 gpus: 1
 test: false
 milestone: none
-notes: "Using MCR Azure Linux (Docker Hub rate-limited). Container: Ubuntu-style base, Python packages via setup.sh. Job: run GeoCoT and CoT with LLaVA-1.5-7B on 50 GeoCLIP images."
+notes: ""
