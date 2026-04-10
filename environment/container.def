@@ -7,7 +7,7 @@
 # IMPORTANT: The azurelinux_image.tar must exist in the environment directory.
 
 Bootstrap: docker-archive
-From: environment/azurelinux_image.tar
+From: /home/user/environment/azurelinux_image.tar
 
 %post
     set -e
