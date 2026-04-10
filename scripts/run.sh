@@ -4,12 +4,7 @@
 # This script runs inside the compute container with GPU(s) available.
 # All models and data are pre-downloaded.
 #
-# Steps:
-# 1. Enrich geoclip.csv with city names (reverse geocoding)
-# 2. Create balanced sample (20 images per country = 80 total)
-# 3. Run GeoCoT inference
-# 4. Run CoT inference
-# 5. Evaluate and generate scores.json
+# Key: Load model ONCE, process all images, save checkpoints frequently.
 
 set -e
 
@@ -23,7 +18,7 @@ RESULTS_DIR="/home/user/results"
 mkdir -p "$RESULTS_DIR"
 
 # =============================================================================
-# Environment - DO NOT set CUDA_VISIBLE_DEVICES (Ray manages GPU allocation)
+# Environment - Ray manages GPU allocation, do NOT set CUDA_VISIBLE_DEVICES
 # =============================================================================
 echo ""
 echo "=== Step 0: Environment Setup ==="
@@ -32,26 +27,13 @@ export PYTHONPATH="/home/user/pylib:/home/user:${PYTHONPATH:-}"
 export HF_HOME="/home/user/shared/models/hf"
 export TRANSFORMERS_CACHE="/home/user/shared/models/hf"
 export HF_HUB_OFFLINE="1"
-# NOTE: Do NOT set CUDA_VISIBLE_DEVICES - Ray handles GPU allocation
 
-echo "Python: $(python3 --version)"
 python3 -c "
-import sys
-sys.path.insert(0, '/home/user/pylib')
+import sys; sys.path.insert(0, '/home/user/pylib')
 import torch
-print(f'PyTorch: {torch.__version__}')
-print(f'CUDA available: {torch.cuda.is_available()}')
+print(f'PyTorch: {torch.__version__}, CUDA: {torch.cuda.is_available()}')
 if torch.cuda.is_available():
-    print(f'GPU: {torch.cuda.get_device_name(0)}')
-    print(f'GPU count: {torch.cuda.device_count()}')
-"
-
-python3 -c "
-import sys
-sys.path.insert(0, '/home/user/pylib')
-import transformers; print(f'transformers: {transformers.__version__}')
-import qwen_vl_utils; print('qwen_vl_utils: OK')
-from PIL import Image; print('PIL: OK')
+    print(f'GPU: {torch.cuda.get_device_name(0)}, Count: {torch.cuda.device_count()}')
 "
 
 # =============================================================================
@@ -60,70 +42,45 @@ from PIL import Image; print('PIL: OK')
 echo ""
 echo "=== Step 1: Verifying Model and Data ==="
 
-MODEL_DIR=""
+MODEL_PATH=""
 for dir in "/home/user/checkpoints/Qwen2.5-VL-7B-Instruct" "/home/user/shared/models/Qwen2.5-VL-7B-Instruct"; do
     if [ -d "$dir" ] && [ -f "$dir/model.safetensors.index.json" ]; then
-        MODEL_DIR="$dir"
+        MODEL_PATH="$dir"
         break
     fi
 done
 
-if [ -z "$MODEL_DIR" ]; then
+if [ -z "$MODEL_PATH" ]; then
     echo "ERROR: Qwen2.5-VL-7B-Instruct not found!"
+    ls /home/user/checkpoints/
+    ls /home/user/shared/models/Qwen2.5-VL-7B-Instruct/ 2>/dev/null || echo "Not in shared either"
     exit 1
 fi
-echo "Found Qwen2.5-VL at: $MODEL_DIR"
+echo "Found Qwen2.5-VL at: $MODEL_PATH"
 
 CSV_PATH="/home/user/data/geoclip/geoclip.csv"
 if [ ! -f "$CSV_PATH" ]; then
     echo "ERROR: GeoCLIP CSV not found at $CSV_PATH"
     exit 1
 fi
-echo "Found GeoCLIP CSV: $CSV_PATH"
+echo "Found GeoCLIP CSV: $CSV_PATH ($(wc -l < "$CSV_PATH") lines)"
 
 # =============================================================================
-# Step 2: Enrich dataset with city names
-# =============================================================================
-echo ""
-echo "=== Step 2: Enriching Dataset with City Names ==="
-
-python3 -c "
-import sys
-sys.path.insert(0, '/home/user/pylib')
-sys.path.insert(0, '/home/user/data')
-import pandas as pd
-
-df = pd.read_csv('$CSV_PATH')
-print(f'Total rows: {len(df)}')
-
-# Check if already enriched
-if 'city' in df.columns and df['city'].notna().sum() > 0:
-    print(f'Already enriched: {df[\"city\"].notna().sum()} rows have city names')
-    print(df['city'].value_counts().head(10).to_dict())
-else:
-    from reverse_geocode import enrich_geoclip_csv
-    enrich_geoclip_csv('$CSV_PATH')
-    df = pd.read_csv('$CSV_PATH')
-    print(f'After enrichment: {df[\"city\"].value_counts().head(10).to_dict()}')
-"
-
-# =============================================================================
-# Step 3: Create balanced sample (20 per country = 80 total)
+# Step 2: Create balanced sample (20 images per country = 80 total)
 # =============================================================================
 echo ""
-echo "=== Step 3: Creating Balanced Sample ==="
+echo "=== Step 2: Creating Balanced Sample ==="
 
-python3 -c "
+python3 << 'PYEOF'
 import sys
 sys.path.insert(0, '/home/user/pylib')
 import pandas as pd
 import os
 
-df = pd.read_csv('$CSV_PATH')
-print(f'Total images: {len(df)}')
-print(f'Countries: {df[\"country\"].value_counts().to_dict()}')
+df = pd.read_csv('/home/user/data/geoclip/geoclip.csv')
+print(f"Total images: {len(df)}")
+print(f"Countries: {df['country'].value_counts().to_dict()}")
 
-# Balanced sample: 20 images per country, spatially distributed
 SAMPLES_PER_COUNTRY = 20
 samples = []
 for country in df['country'].unique():
@@ -134,433 +91,265 @@ for country in df['country'].unique():
         step = max(1, n // SAMPLES_PER_COUNTRY)
         subset = subset.iloc[::step].head(SAMPLES_PER_COUNTRY)
     samples.append(subset)
-    print(f'  {country}: sampled {len(subset)} from {n} total')
+    print(f"  {country}: sampled {len(subset)} from {n} total")
 
 sample_df = pd.concat(samples, ignore_index=True)
-print(f'Sample size: {len(sample_df)}')
-print(f'Sample countries: {sample_df[\"country\"].value_counts().to_dict()}')
+print(f"Sample size: {len(sample_df)}")
+print(f"Sample countries: {sample_df['country'].value_counts().to_dict()}")
 
 # Verify images exist
-missing = sum(1 for _, row in sample_df.iterrows() if not os.path.exists(row['image_path']))
-print(f'Missing images: {missing}')
+missing = 0
+for _, row in sample_df.iterrows():
+    if not os.path.exists(row['image_path']):
+        missing += 1
+print(f"Missing images: {missing}")
 
 # Save sample CSV
 sample_csv = '/home/user/data/geoclip/sample_balanced.csv'
 sample_df.to_csv(sample_csv, index=False)
-print(f'Saved to {sample_csv}')
-"
+print(f"Saved to {sample_csv}")
+PYEOF
 
 # =============================================================================
-# Step 4: Load model ONCE and test
+# Step 3: Load model ONCE and run full pipeline
 # =============================================================================
 echo ""
-echo "=== Step 4: Loading Qwen2.5-VL Model ==="
+echo "=== Step 3: Loading Qwen2.5-VL Model ==="
 
 python3 << 'PYEOF'
 import sys
 sys.path.insert(0, '/home/user/pylib')
 sys.path.insert(0, '/home/user')
-import os
+sys.path.insert(0, '/home/user/method')
 
+import os
 os.environ['HF_HOME'] = '/home/user/shared/models/hf'
 os.environ['TRANSFORMERS_CACHE'] = '/home/user/shared/models/hf'
 os.environ['HF_HUB_OFFLINE'] = '1'
 
+import json
 import torch
-print(f"CUDA available: {torch.cuda.is_available()}")
-print(f"CUDA device count: {torch.cuda.device_count()}")
-if torch.cuda.is_available():
-    for i in range(torch.cuda.device_count()):
-        print(f"  GPU {i}: {torch.cuda.get_device_name(i)}")
+import pandas as pd
+from transformers import Qwen2VLForConditionalGeneration, AutoProcessor
+from qwen_vl_utils import process_vision_info
+import re
 
-# Find model
-model_path = None
+print("Loading Qwen2.5-VL model...")
+
+MODEL_PATH = ""
 for d in ['/home/user/checkpoints/Qwen2.5-VL-7B-Instruct',
            '/home/user/shared/models/Qwen2.5-VL-7B-Instruct']:
     if os.path.isdir(d) and os.path.exists(os.path.join(d, 'model.safetensors.index.json')):
-        model_path = d
+        MODEL_PATH = d
         break
 
-if not model_path:
-    print("ERROR: Model not found!")
-    sys.exit(1)
-
-print(f"Loading Qwen2.5-VL from {model_path}...")
-
-from transformers import Qwen2VLForConditionalGeneration, AutoProcessor
-from qwen_vl_utils import process_vision_info
-
-processor = AutoProcessor.from_pretrained(model_path)
+processor = AutoProcessor.from_pretrained(MODEL_PATH)
 model = Qwen2VLForConditionalGeneration.from_pretrained(
-    model_path,
+    MODEL_PATH,
     torch_dtype=torch.bfloat16,
     device_map="auto",
 )
+print("Model loaded successfully!")
+print(f"Device map: {model.hf_device_map}")
 
-print(f"Model loaded! Device map: {model.hf_device_map}")
+# Import prompts
+from prompt_template import GEO_COT_USER_PROMPT, COT_PROMPT
 
-# Test on one image
-test_csv = '/home/user/data/geoclip/sample_balanced.csv'
-import pandas as pd
-df_test = pd.read_csv(test_csv)
-test_row = df_test.iloc[0]
-test_img = test_row['image_path']
-print(f"Test image: {test_img}")
+# Parse location prediction
+def parse_location_prediction(text):
+    result = {"city": None, "country": None, "continent": None, "raw_prediction": text}
+    patterns = [
+        r"Location:\s*(.+?),\s*(.+?),\s*(.+?)(?:\n|$)",
+        r"location:\s*(.+?),\s*(.+?),\s*(.+?)(?:\n|$)",
+        r"Predicted\s*Location:\s*(.+?),\s*(.+?),\s*(.+?)(?:\n|$)",
+    ]
+    for pattern in patterns:
+        match = re.search(pattern, text, re.IGNORECASE)
+        if match:
+            result["city"] = match.group(1).strip()
+            result["country"] = match.group(2).strip()
+            result["continent"] = match.group(3).strip()
+            return result
+    return result
 
-from PIL import Image
-image = Image.open(test_img).convert('RGB')
-print(f"Image size: {image.size}")
+# Load dataset
+df = pd.read_csv('/home/user/data/geoclip/sample_balanced.csv')
+print(f"\nDataset: {len(df)} images")
+print(f"Countries: {df['country'].value_counts().to_dict()}")
 
-messages = [
-    {
-        "role": "user",
-        "content": [
-            {"type": "image", "image": test_img},
-            {"type": "text", "text": "What country is this image from? Answer with just the country name."}
-        ]
+# Run GeoCoT
+def run_inference(df, prompt, method_name, output_path, max_new_tokens=256):
+    print(f"\n--- {method_name} ---")
+    if os.path.exists(output_path):
+        with open(output_path) as f:
+            existing = json.load(f)
+        valid = [x for x in existing if x.get('predicted_country') is not None]
+        if len(valid) >= len(df):
+            print(f"  Already complete: {len(valid)} predictions, skipping")
+            return
+
+    results = []
+    for idx, row in df.iterrows():
+        img_path = row['image_path']
+        if not os.path.exists(img_path):
+            continue
+
+        try:
+            messages = [{"role": "user", "content": [
+                {"type": "image", "image": img_path},
+                {"type": "text", "text": prompt}
+            ]}]
+            text = processor.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+            image_inputs, _ = process_vision_info(messages)
+            inputs = processor(text=[text], images=image_inputs, videos=None, padding=True, return_tensors="pt")
+            inputs = {k: v.to(model.device) for k, v in inputs.items()}
+
+            generated_ids = model.generate(**inputs, max_new_tokens=max_new_tokens, do_sample=False)
+            generated_ids_trimmed = [out_ids[len(in_ids):] for in_ids, out_ids in zip(inputs["input_ids"], generated_ids)]
+            response = processor.batch_decode(generated_ids_trimmed, skip_special_tokens=True, clean_up_tokenization_spaces=False)[0]
+
+            prediction = parse_location_prediction(response)
+            results.append({
+                "image_path": img_path,
+                "ground_truth_city": row.get('city'),
+                "ground_truth_country": row.get('country'),
+                "ground_truth_continent": row.get('continent'),
+                "ground_truth_lat": row.get('lat'),
+                "ground_truth_lon": row.get('lon'),
+                "predicted_city": prediction.get('city'),
+                "predicted_country": prediction.get('country'),
+                "predicted_continent": prediction.get('continent'),
+                "model_response": response,
+            })
+        except Exception as e:
+            print(f"  Error on {img_path}: {e}")
+            results.append({
+                "image_path": img_path,
+                "ground_truth_city": row.get('city'),
+                "ground_truth_country": row.get('country'),
+                "ground_truth_continent": row.get('continent'),
+                "ground_truth_lat": row.get('lat'),
+                "ground_truth_lon": row.get('lon'),
+                "predicted_city": None,
+                "predicted_country": None,
+                "predicted_continent": None,
+                "model_response": None,
+                "error": str(e),
+            })
+
+        if (len(results)) % 20 == 0:
+            print(f"  Processed {len(results)}/{len(df)}")
+            with open(output_path, 'w') as f:
+                json.dump(results, f)
+
+    with open(output_path, 'w') as f:
+        json.dump(results, f)
+    valid = [r for r in results if r.get('predicted_country') is not None]
+    print(f"  {method_name} complete: {len(valid)}/{len(results)} valid predictions")
+
+# Run both methods
+run_inference(df, GEO_COT_USER_PROMPT, "GeoCoT",
+              "/home/user/results/geocot_predictions.json")
+
+run_inference(df, COT_PROMPT, "CoT",
+              "/home/user/results/cot_predictions.json")
+
+print("\n=== All inference complete ===")
+PYEOF
+
+# =============================================================================
+# Step 4: Evaluate and generate scores.json
+# =============================================================================
+echo ""
+echo "=== Step 4: Evaluating Results ==="
+
+python3 << 'PYEOF'
+import sys
+sys.path.insert(0, '/home/user/pylib')
+sys.path.insert(0, '/home/user')
+
+import json
+import os
+from eval.metrics import compute_all_metrics
+
+results_dir = '/home/user/results'
+
+pred_files = {}
+for f in os.listdir(results_dir):
+    if f.endswith('_predictions.json'):
+        name = f.replace('_predictions.json', '')
+        pred_files[name] = os.path.join(results_dir, f)
+
+print(f"Found prediction files: {list(pred_files.keys())}")
+
+all_metrics = {}
+for name, filepath in sorted(pred_files.items()):
+    print(f"\nEvaluating: {name}")
+    with open(filepath) as f:
+        predictions = json.load(f)
+
+    valid_preds = [p for p in predictions if p.get('predicted_country') is not None]
+    valid_gt = [p for p in valid_preds if p.get('ground_truth_country') is not None]
+    print(f"  {len(valid_preds)}/{len(predictions)} valid, {len(valid_gt)} with ground truth")
+
+    if valid_gt:
+        metrics = compute_all_metrics(valid_gt)
+        all_metrics[name] = metrics
+        for key in ['city_accuracy', 'country_accuracy', 'continent_accuracy',
+                    'street_1km', 'city_25km', 'country_750km']:
+            if key in metrics:
+                print(f"  {key}: {metrics[key]:.4f}")
+
+# Load reference to get the experiment structure
+with open('/home/user/scoring/reference.json') as f:
+    reference = json.load(f)
+
+# Build scores.json
+scores = {"experiments": {}}
+for exp_name, exp_data in reference.get("experiments", {}).items():
+    exp_copy = {
+        "description": exp_data.get("description", ""),
+        "weight": exp_data.get("weight", 0.5),
+        "primary_metric": exp_data.get("primary_metric", ""),
+        "metrics": exp_data.get("metrics", {}),
+        "results": {}
     }
-]
-text = processor.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
-image_inputs, _ = process_vision_info(messages)
-inputs = processor(text=[text], images=image_inputs, videos=None, padding=True, return_tensors="pt")
-inputs = {k: v.to(model.device) for k, v in inputs.items()}
 
-generated_ids = model.generate(**inputs, max_new_tokens=64, do_sample=False)
-generated_ids_trimmed = [out_ids[len(in_ids):] for in_ids, out_ids in zip(inputs["input_ids"], generated_ids)]
-response = processor.batch_decode(generated_ids_trimmed, skip_special_tokens=True, clean_up_tokenization_spaces=False)[0]
-print(f"Model response: {response}")
-print("MODEL LOAD TEST PASSED!")
+    ref_results = exp_data.get("results", {})
+    ref_metrics = list(exp_data.get("metrics", {}).keys())
+
+    for method_name, method_data in ref_results.items():
+        entry = {}
+        for key, val in method_data.items():
+            if key == "type":
+                continue
+            entry[key] = val
+        exp_copy["results"][method_name] = entry
+
+    for pred_name, metrics in all_metrics.items():
+        if pred_name == "geocot":
+            method_name = "qwen_geocot"
+        elif pred_name == "cot":
+            method_name = "qwen_cot"
+        else:
+            method_name = pred_name
+
+        if method_name not in ref_results:
+            continue
+
+        entry = exp_copy["results"][method_name]
+        for key in ref_metrics:
+            if key in metrics:
+                entry[key] = round(metrics[key], 4)
+        exp_copy["results"][method_name] = entry
+
+    scores["experiments"][exp_name] = exp_copy
+
+scores_path = '/home/user/scoring/scores.json'
+with open(scores_path, 'w') as f:
+    json.dump(scores, f, indent=2)
+print(f"\nScores saved to {scores_path}")
 PYEOF
-
-if [ $? -ne 0 ]; then
-    echo "ERROR: Model loading failed!"
-    exit 1
-fi
-
-# =============================================================================
-# Step 5: Run GeoCoT inference
-# =============================================================================
-echo ""
-echo "=== Step 5: Running GeoCoT Inference ==="
-
-GEOCOT_OUTPUT="$RESULTS_DIR/geocot_predictions.json"
-SAMPLE_CSV="/home/user/data/geoclip/sample_balanced.csv"
-
-# Check if already complete
-if [ -f "$GEOCOT_OUTPUT" ]; then
-    EXISTING=$(python3 -c "
-import sys, json
-sys.path.insert(0, '/home/user/pylib')
-try:
-    with open('$GEOCOT_OUTPUT') as f:
-        data = json.load(f)
-    if isinstance(data, list):
-        valid = [x for x in data if x.get('predicted_country') is not None]
-        print(len(valid))
-    else:
-        print(0)
-except:
-    print(0)
-" 2>/dev/null)
-    echo "Existing GeoCoT predictions: $EXISTING"
-fi
-
-if [ ! -f "$GEOCOT_OUTPUT" ] || [ "$(python3 -c "
-import sys, json
-sys.path.insert(0, '/home/user/pylib')
-try:
-    with open('$GEOCOT_OUTPUT') as f:
-        data = json.load(f)
-    if isinstance(data, list):
-        valid = [x for x in data if x.get('predicted_country') is not None]
-        print(len(valid))
-    else:
-        print(0)
-except:
-    print(0)
-" 2>/dev/null)" -lt 10 ]; then
-    rm -f "$GEOCOT_OUTPUT"
-
-    python3 << PYEOF
-import sys
-sys.path.insert(0, '/home/user/pylib')
-sys.path.insert(0, '/home/user')
-import os
-os.environ['HF_HOME'] = '/home/user/shared/models/hf'
-os.environ['TRANSFORMERS_CACHE'] = '/home/user/shared/models/hf'
-os.environ['HF_HUB_OFFLINE'] = '1'
-
-import json
-import torch
-import pandas as pd
-from transformers import Qwen2VLForConditionalGeneration, AutoProcessor
-from qwen_vl_utils import process_vision_info
-
-# Load model
-model_path = None
-for d in ['/home/user/checkpoints/Qwen2.5-VL-7B-Instruct',
-           '/home/user/shared/models/Qwen2.5-VL-7B-Instruct']:
-    if os.path.isdir(d) and os.path.exists(os.path.join(d, 'model.safetensors.index.json')):
-        model_path = d
-        break
-
-processor = AutoProcessor.from_pretrained(model_path)
-model = Qwen2VLForConditionalGeneration.from_pretrained(
-    model_path,
-    torch_dtype=torch.bfloat16,
-    device_map="auto",
-)
-
-# Load GeoCoT prompt
-sys.path.insert(0, '/home/user/method')
-from prompt_template import GEO_COT_USER_PROMPT
-from run_geocot import parse_location_prediction
-
-# Load dataset
-df = pd.read_csv('$SAMPLE_CSV')
-print(f"GeoCoT: Processing {len(df)} images...")
-
-results = []
-for idx, row in df.iterrows():
-    img_path = row['image_path']
-    if not os.path.exists(img_path):
-        print(f"Warning: Missing image {img_path}")
-        continue
-
-    try:
-        messages = [
-            {
-                "role": "user",
-                "content": [
-                    {"type": "image", "image": img_path},
-                    {"type": "text", "text": GEO_COT_USER_PROMPT}
-                ]
-            }
-        ]
-        text = processor.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
-        image_inputs, _ = process_vision_info(messages)
-        inputs = processor(text=[text], images=image_inputs, videos=None, padding=True, return_tensors="pt")
-        inputs = {k: v.to(model.device) for k, v in inputs.items()}
-
-        generated_ids = model.generate(**inputs, max_new_tokens=256, do_sample=False)
-        generated_ids_trimmed = [out_ids[len(in_ids):] for in_ids, out_ids in zip(inputs["input_ids"], generated_ids)]
-        response = processor.batch_decode(generated_ids_trimmed, skip_special_tokens=True, clean_up_tokenization_spaces=False)[0]
-
-        prediction = parse_location_prediction(response)
-
-        result = {
-            "image_path": img_path,
-            "ground_truth_city": row.get('city', None),
-            "ground_truth_country": row.get('country', None),
-            "ground_truth_continent": row.get('continent', None),
-            "ground_truth_lat": row.get('lat', None),
-            "ground_truth_lon": row.get('lon', None),
-            "predicted_city": prediction.get('city'),
-            "predicted_country": prediction.get('country'),
-            "predicted_continent": prediction.get('continent'),
-            "raw_response": response,
-        }
-        results.append(result)
-
-        if (idx + 1) % 10 == 0:
-            print(f"  Processed {idx + 1}/{len(df)}")
-
-    except Exception as e:
-        print(f"Error on {img_path}: {e}")
-        results.append({
-            "image_path": img_path,
-            "ground_truth_city": row.get('city', None),
-            "ground_truth_country": row.get('country', None),
-            "ground_truth_continent": row.get('continent', None),
-            "ground_truth_lat": row.get('lat', None),
-            "ground_truth_lon": row.get('lon', None),
-            "predicted_city": None,
-            "predicted_country": None,
-            "predicted_continent": None,
-            "raw_response": None,
-            "error": str(e),
-        })
-
-    # Save checkpoint every 10 images
-    if len(results) % 10 == 0:
-        with open('$GEOCOT_OUTPUT', 'w') as f:
-            json.dump(results, f, indent=2)
-
-# Final save
-with open('$GEOCOT_OUTPUT', 'w') as f:
-    json.dump(results, f, indent=2)
-
-valid = [r for r in results if r.get('predicted_country') is not None]
-print(f"GeoCoT complete: {len(valid)}/{len(results)} valid predictions")
-PYEOF
-fi
-
-# =============================================================================
-# Step 6: Run CoT baseline inference
-# =============================================================================
-echo ""
-echo "=== Step 6: Running CoT Baseline Inference ==="
-
-COT_OUTPUT="$RESULTS_DIR/cot_predictions.json"
-
-# Check if already complete
-if [ -f "$COT_OUTPUT" ]; then
-    EXISTING=$(python3 -c "
-import sys, json
-sys.path.insert(0, '/home/user/pylib')
-try:
-    with open('$COT_OUTPUT') as f:
-        data = json.load(f)
-    if isinstance(data, list):
-        valid = [x for x in data if x.get('predicted_country') is not None]
-        print(len(valid))
-    else:
-        print(0)
-except:
-    print(0)
-" 2>/dev/null)
-    echo "Existing CoT predictions: $EXISTING"
-fi
-
-if [ ! -f "$COT_OUTPUT" ] || [ "$(python3 -c "
-import sys, json
-sys.path.insert(0, '/home/user/pylib')
-try:
-    with open('$COT_OUTPUT') as f:
-        data = json.load(f)
-    if isinstance(data, list):
-        valid = [x for x in data if x.get('predicted_country') is not None]
-        print(len(valid))
-    else:
-        print(0)
-except:
-    print(0)
-" 2>/dev/null)" -lt 10 ]; then
-    rm -f "$COT_OUTPUT"
-
-    python3 << PYEOF
-import sys
-sys.path.insert(0, '/home/user/pylib')
-sys.path.insert(0, '/home/user')
-import os
-os.environ['HF_HOME'] = '/home/user/shared/models/hf'
-os.environ['TRANSFORMERS_CACHE'] = '/home/user/shared/models/hf'
-os.environ['HF_HUB_OFFLINE'] = '1'
-
-import json
-import torch
-import pandas as pd
-from transformers import Qwen2VLForConditionalGeneration, AutoProcessor
-from qwen_vl_utils import process_vision_info
-
-# Load model
-model_path = None
-for d in ['/home/user/checkpoints/Qwen2.5-VL-7B-Instruct',
-           '/home/user/shared/models/Qwen2.5-VL-7B-Instruct']:
-    if os.path.isdir(d) and os.path.exists(os.path.join(d, 'model.safetensors.index.json')):
-        model_path = d
-        break
-
-processor = AutoProcessor.from_pretrained(model_path)
-model = Qwen2VLForConditionalGeneration.from_pretrained(
-    model_path,
-    torch_dtype=torch.bfloat16,
-    device_map="auto",
-)
-
-# Load CoT prompt
-sys.path.insert(0, '/home/user/method')
-from prompt_template import build_baseline_prompt
-from run_geocot import parse_location_prediction
-
-cot_prompt = build_baseline_prompt()
-
-# Load dataset
-df = pd.read_csv('$SAMPLE_CSV')
-print(f"CoT: Processing {len(df)} images...")
-
-results = []
-for idx, row in df.iterrows():
-    img_path = row['image_path']
-    if not os.path.exists(img_path):
-        continue
-
-    try:
-        messages = [
-            {
-                "role": "user",
-                "content": [
-                    {"type": "image", "image": img_path},
-                    {"type": "text", "text": cot_prompt}
-                ]
-            }
-        ]
-        text = processor.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
-        image_inputs, _ = process_vision_info(messages)
-        inputs = processor(text=[text], images=image_inputs, videos=None, padding=True, return_tensors="pt")
-        inputs = {k: v.to(model.device) for k, v in inputs.items()}
-
-        generated_ids = model.generate(**inputs, max_new_tokens=256, do_sample=False)
-        generated_ids_trimmed = [out_ids[len(in_ids):] for in_ids, out_ids in zip(inputs["input_ids"], generated_ids)]
-        response = processor.batch_decode(generated_ids_trimmed, skip_special_tokens=True, clean_up_tokenization_spaces=False)[0]
-
-        prediction = parse_location_prediction(response)
-
-        result = {
-            "image_path": img_path,
-            "ground_truth_city": row.get('city', None),
-            "ground_truth_country": row.get('country', None),
-            "ground_truth_continent": row.get('continent', None),
-            "ground_truth_lat": row.get('lat', None),
-            "ground_truth_lon": row.get('lon', None),
-            "predicted_city": prediction.get('city'),
-            "predicted_country": prediction.get('country'),
-            "predicted_continent": prediction.get('continent'),
-            "raw_response": response,
-        }
-        results.append(result)
-
-        if (idx + 1) % 10 == 0:
-            print(f"  Processed {idx + 1}/{len(df)}")
-
-    except Exception as e:
-        print(f"Error on {img_path}: {e}")
-        results.append({
-            "image_path": img_path,
-            "ground_truth_city": row.get('city', None),
-            "ground_truth_country": row.get('country', None),
-            "ground_truth_continent": row.get('continent', None),
-            "ground_truth_lat": row.get('lat', None),
-            "ground_truth_lon": row.get('lon', None),
-            "predicted_city": None,
-            "predicted_country": None,
-            "predicted_continent": None,
-            "raw_response": None,
-            "error": str(e),
-        })
-
-    # Save checkpoint every 10 images
-    if len(results) % 10 == 0:
-        with open('$COT_OUTPUT', 'w') as f:
-            json.dump(results, f, indent=2)
-
-# Final save
-with open('$COT_OUTPUT', 'w') as f:
-    json.dump(results, f, indent=2)
-
-valid = [r for r in results if r.get('predicted_country') is not None]
-print(f"CoT complete: {len(valid)}/{len(results)} valid predictions")
-PYEOF
-fi
-
-# =============================================================================
-# Step 7: Evaluate and generate scores.json
-# =============================================================================
-echo ""
-echo "=== Step 7: Evaluating and Generating scores.json ==="
-
-# Use evaluate.sh which produces properly formatted scores.json
-PREDICTIONS_DIR="$RESULTS_DIR" bash /home/user/scripts/evaluate.sh
 
 echo ""
 echo "=========================================="
