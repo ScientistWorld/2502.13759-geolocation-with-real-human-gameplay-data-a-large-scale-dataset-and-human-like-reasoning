@@ -28,12 +28,15 @@ which uv >/dev/null 2>&1 || {
 export UV_SYSTEM_PYTHON=1
 export UV_BREAK_SYSTEM_PACKAGES=1
 
-# Install PyTorch with CUDA support
-echo "Installing PyTorch..."
-uv pip install torch torchvision --index-url https://download.pytorch.org/whl/cu124 2>&1 | tail -5 || \
-uv pip install torch torchvision 2>&1 | tail -5
+# Install PyTorch + torchvision TOGETHER from CUDA index (prevents version mismatch)
+echo "Installing PyTorch with matching torchvision..."
+uv pip install torch torchvision --index-url https://download.pytorch.org/whl/cu124 2>&1 | tail -5
 
-# Install all other packages
+# Install qwen-vl-utils WITHOUT its torch/torchvision deps (we already have CUDA versions)
+echo "Installing qwen-vl-utils (without re-installing torch/torchvision)..."
+uv pip install qwen-vl-utils --no-deps 2>&1 | tail -3
+
+# Install all other packages (qwen-vl-utils deps: transformers, accelerate)
 echo "Installing remaining packages..."
 uv pip install \
     "transformers>=4.40.0" \
@@ -52,7 +55,6 @@ uv pip install \
     huggingface_hub \
     pandas \
     numpy \
-    qwen-vl-utils \
     2>&1 | tail -10
 
 # Verify installation
