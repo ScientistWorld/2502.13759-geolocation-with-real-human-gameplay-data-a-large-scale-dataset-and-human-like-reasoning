@@ -1,25 +1,30 @@
 #!/bin/bash
-# Install Python packages into /dev/shm/pylib for the GPU container.
+# Install Python packages into the container.
 #
 # This script runs during container build (in the Apptainer overlay).
 # All models and datasets are pre-downloaded on the login node.
 #
-# IMPORTANT: Install into SYSTEM Python (/dev/shm/pylib), not a virtual environment.
+# IMPORTANT: Install into SYSTEM Python, not a virtual environment.
 
 set -e
 
-PYPATH="/dev/shm/pylib"
-mkdir -p "$PYPATH"
-export PYTHONPATH="$PYPATH"
+echo "=== Installing Python packages ==="
 
-echo "=== Installing Python packages to $PYPATH ==="
+# Install uv if not present
+which uv || pip3 install uv
 
-# PyTorch 2.6.0 with CUDA 12.4 (required for loading .bin model files - CVE fix)
-pip3 install --target "$PYPATH" torch==2.6.0 torchvision --index-url https://download.pytorch.org/whl/cu124 2>&1 | tail -5 || \
-pip3 install --target "$PYPATH" torch torchvision --index-url https://download.pytorch.org/whl/cu124 2>&1 | tail -5 || true
+# Use uv for fast installation
+export UV_SYSTEM_PYTHON=1
+export UV_BREAK_SYSTEM_PACKAGES=1
 
-# All other packages
-pip3 install --target "$PYPATH" \
+# Install PyTorch with CUDA support
+echo "Installing PyTorch..."
+uv pip install torch torchvision --index-url https://download.pytorch.org/whl/cu124 2>&1 | tail -3 || \
+uv pip install torch torchvision 2>&1 | tail -3
+
+# Install all other packages
+echo "Installing remaining packages..."
+uv pip install \
     transformers>=4.40.0 \
     accelerate \
     sentencepiece \
@@ -35,9 +40,13 @@ pip3 install --target "$PYPATH" \
     einops \
     huggingface_hub \
     pandas \
-    2>&1 | tail -5 || true
+    numpy \
+    qwen-vl-utils \
+    2>&1 | tail -5
 
-echo "Python packages installed to $PYPATH"
-echo "Packages: $(ls $PYPATH | wc -l) items"
+# Verify installation
+python3 -c "import torch; print(f'PyTorch {torch.__version__}, CUDA: {torch.cuda.is_available()}')"
+python3 -c "import transformers; print(f'transformers {transformers.__version__}')"
+python3 -c "import pandas; print(f'pandas {pandas.__version__}')"
 
-echo "=== Setup Complete ==="
+echo "=== Python packages installed successfully ==="

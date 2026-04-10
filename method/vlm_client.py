@@ -12,8 +12,8 @@ import json
 from pathlib import Path
 from typing import Optional, List, Tuple
 
-import torch
-from PIL import Image
+# Lazy imports - torch and PIL are imported inside methods to ensure
+# PYTHONPATH is set correctly before importing
 
 
 def encode_image_base64(image_path: str) -> str:
@@ -78,13 +78,20 @@ class QwenVLClient(VLMClient):
     """Qwen2.5-VL via transformers (local)."""
 
     def __init__(self, model_path: Optional[str] = None, device: str = "cuda"):
+        # Add package paths before importing torch/transformers
+        import sys as _sys
+        for _pylib in ['/pylib', '/dev/shm/pylib']:
+            if os.path.isdir(_pylib) and _pylib not in _sys.path:
+                _sys.path.insert(0, _pylib)
+
         try:
+            import torch
             from transformers import Qwen2VLForConditionalGeneration, AutoProcessor
             from qwen_vl_utils import process_vision_info
-        except ImportError:
+        except ImportError as e:
             raise ImportError(
                 "qwen-vl-utils and transformers with Qwen2.5-VL support required. "
-                "Install: pip install qwen-vl-utils transformers"
+                f"Install: pip install qwen-vl-utils transformers. Error: {e}"
             )
 
         # Default to shared models directory
@@ -102,7 +109,8 @@ class QwenVLClient(VLMClient):
                 model_path = "Qwen/Qwen2.5-VL-7B-Instruct"  # fallback: try HF download
 
         self.model_path = model_path
-        self.device = device if torch.cuda.is_available() else "cpu"
+        import torch as _torch
+        self.device = device if _torch.cuda.is_available() else "cpu"
 
         print(f"Loading Qwen2.5-VL from {self.model_path}...")
         self.processor = AutoProcessor.from_pretrained(self.model_path)
@@ -113,6 +121,7 @@ class QwenVLClient(VLMClient):
 
     def predict(self, image_path: str, prompt: str) -> str:
         from qwen_vl_utils import process_vision_info
+        from PIL import Image
 
         image = Image.open(image_path).convert("RGB")
         messages = [
@@ -158,12 +167,17 @@ class LLaVAClient(VLMClient):
         import os as _os
 
         # Set HF cache before imports
-        _os.environ.setdefault("HF_HOME", "/home/user/shared/models/hf_cache")
-        _os.environ.setdefault("TRANSFORMERS_CACHE", "/home/user/shared/models/hf_cache")
+        _os.environ.setdefault("HF_HOME", "/home/user/shared/models/hf")
+        _os.environ.setdefault("TRANSFORMERS_CACHE", "/home/user/shared/models/hf")
         _os.environ.setdefault("HF_HUB_OFFLINE", "1")
 
-        # Add pylib and llava repo to path
-        _sys.path.insert(0, '/dev/shm/pylib')
+        # Add package paths (try multiple locations)
+        # 1. System Python (container with packages installed system-wide)
+        # 2. /pylib (alternate package location)
+        # 3. /dev/shm/pylib (pre-installed on some nodes)
+        for _pylib in ['/pylib', '/dev/shm/pylib']:
+            if os.path.isdir(_pylib) and _pylib not in _sys.path:
+                _sys.path.insert(0, _pylib)
         _sys.path.insert(0, '/home/user/shared/models/llava_repo')
 
         import torch
@@ -243,6 +257,7 @@ class LLaVAClient(VLMClient):
 
     def predict(self, image_path: str, prompt: str) -> str:
         import torch
+        from PIL import Image
         from llava.conversation import default_conversation
         from llava.constants import DEFAULT_IMAGE_TOKEN, DEFAULT_IM_START_TOKEN, DEFAULT_IM_END_TOKEN
 

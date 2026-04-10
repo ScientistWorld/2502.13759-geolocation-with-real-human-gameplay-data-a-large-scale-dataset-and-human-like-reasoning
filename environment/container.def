@@ -1,68 +1,39 @@
 # Apptainer definition file for GeoCoT environment.
 #
-# BUILDTIME: Bootstrap:docker with Alpine + MCR blob download.
-#   MCR returns JWS for manifest requests which Apptainer docker conveyor cannot parse.
-#   This approach uses Bootstrap:docker with tiny Alpine (no rate limits) to get a
-#   shell environment, then downloads the Azure Linux rootfs layer directly via curl
-#   in %post, sidestepping the docker conveyor entirely.
-# RUNTIME: Job script installs Python + packages on compute node.
+# Uses Azure Linux 3.0 from MCR (Microsoft Container Registry).
+# MCR has no rate limiting unlike Docker Hub.
+# All Python packages are installed at build time via setup.sh.
+#
+# IMPORTANT: Build requires internet access (MCR + PyPI).
+# Runtime on compute nodes requires NO internet.
 
 Bootstrap: docker
-From: alpine:3
+From: mcr.microsoft.com/azurelinux/base/core:3.0
 
 %post
     set -e
-    echo "=== Installing curl in Alpine ==="
-    apk add --no-cache curl tar
+    echo "=== Azure Linux 3.0 container starting ==="
 
-    echo "=== Downloading Azure Linux rootfs from MCR ==="
-    LAYER_BLOB="sha256:5546a28a785aeec63c8bd58a7dafb93b463e13f23d4fd7582a86d73722a6fb33"
-    curl -sL -o /tmp/azurelinux-layer.tar \
-        "https://mcr.microsoft.com/v2/azurelinux/base/core/blobs/${LAYER_BLOB}" \
-        --connect-timeout 60 --max-time 600 || {
-        echo "FAILED to download Azure Linux layer"
-        cat /tmp/azurelinux-layer.tar 2>/dev/null | head -5
-        exit 1
-    }
+    # Install Python and basic tools
+    tdnf install -y python3 python3-pip curl 2>/dev/null || true
 
-    echo "=== Extracting Azure Linux rootfs ==="
-    mkdir -p /tmp/azlinux
-    tar -xf /tmp/azurelinux-layer.tar -C /tmp/azlinux || {
-        echo "FAILED to extract layer tar"
-        exit 1
-    }
-    rm /tmp/azurelinux-layer.tar
+    echo "=== Installing Python packages ==="
 
-    echo "=== Layering Azure Linux over Alpine base ==="
-    cp -a /tmp/azlinux/* / || true
-    rm -rf /tmp/azlinux
+    # Install uv if not present
+    which uv || pip3 install --break-system-packages uv
 
-    echo "=== Bootstrap complete ==="
+    # Use uv for fast installation
+    export UV_SYSTEM_PYTHON=1
+    export UV_BREAK_SYSTEM_PACKAGES=1
 
-    # --- Merged from setup.sh ---
-    pip install --break-system-packages uv 2>/dev/null || pip install uv 2>/dev/null || true
-    export UV_SYSTEM_PYTHON=1 UV_BREAK_SYSTEM_PACKAGES=1
-    # Install Python packages into /dev/shm/pylib for the GPU container.
-    #
-    # This script runs during container build (in the Apptainer overlay).
-    # All models and datasets are pre-downloaded on the login node.
-    #
-    # IMPORTANT: Install into SYSTEM Python (/dev/shm/pylib), not a virtual environment.
-    
-    set -e
-    
-    PYPATH="/dev/shm/pylib"
-    mkdir -p "$PYPATH"
-    export PYTHONPATH="$PYPATH"
-    
-    echo "=== Installing Python packages to $PYPATH ==="
-    
-    # PyTorch 2.6.0 with CUDA 12.4 (required for loading .bin model files - CVE fix)
-    uv pip install --target "$PYPATH" torch==2.6.0 torchvision --index-url https://download.pytorch.org/whl/cu124 2>&1 | tail -5 || \
-    uv pip install --target "$PYPATH" torch torchvision --index-url https://download.pytorch.org/whl/cu124 2>&1 | tail -5 || true
-    
-    # All other packages
-    uv pip install --target "$PYPATH" \
+    # Install PyTorch with CUDA support
+    echo "Installing PyTorch..."
+    uv pip install torch torchvision --index-url https://download.pytorch.org/whl/cu124 2>&1 | tail -3 || \
+    uv pip install torch torchvision 2>&1 | tail -3
+
+    # Install all other packages
+    echo "Installing remaining packages..."
+    uv pip install \
         transformers>=4.40.0 \
         accelerate \
         sentencepiece \
@@ -78,10 +49,13 @@ From: alpine:3
         einops \
         huggingface_hub \
         pandas \
-        2>&1 | tail -5 || true
-    
-    echo "Python packages installed to $PYPATH"
-    echo "Packages: $(ls $PYPATH | wc -l) items"
-    
-    echo "=== Setup Complete ==="
+        numpy \
+        qwen-vl-utils \
+        2>&1 | tail -5
 
+    # Verify installation
+    python3 -c "import torch; print(f'PyTorch {torch.__version__}, CUDA: {torch.cuda.is_available()}')"
+    python3 -c "import transformers; print(f'transformers {transformers.__version__}')"
+    python3 -c "import pandas; print(f'pandas {pandas.__version__}')"
+
+    echo "=== Container setup complete ==="
