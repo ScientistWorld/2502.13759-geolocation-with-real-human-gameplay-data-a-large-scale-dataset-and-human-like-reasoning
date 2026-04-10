@@ -1,8 +1,8 @@
 # IMPORTANT: Once you set action to 'submit' or 'done', STOP immediately.
 # Do NOT sleep, poll, or wait for jobs. The system reads this file
 # only after your turn ends. Sleeping blocks the entire pipeline.
-action: pending
+action: submit
 gpus: 1
 test: false
-milestone: none
-notes: ""
+milestone: method_runs
+notes: "Switched to Ubuntu 22.04 from Docker Hub. Azure Linux fakeroot fails because getopt isn't in base image and install runs AFTER fakeroot init. Ubuntu has getopt by default so fakeroot works."
