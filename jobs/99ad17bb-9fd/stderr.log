@@ -1,0 +1,26 @@
+[hive] This stderr log is managed by Hive.
+[hive] job_id: 5daed413
+[hive] host: della-i21g1
+[hive] node_id: 553925a0bf8f87e27806ccaf4981d91165849016d1d678fa47c0cfec
+[hive] user: nexus/tl0463 (remote)
+[hive] resource: ailab-test
+[hive] gpus: 1
+[hive] cpus: 1
+[hive] workdir: /home/tl0463
+[hive] timeout_sec: 3600
+[hive] started_at: 2026-04-10 18:39:10 EDT
+[hive] command: apptainer exec --nv --containall --cleanenv --env HF_HOME=/home/user/shared/hf_cache --env TRANSFORMERS_CACHE=/home/user/shared/hf_cache --env HF_DATASETS_CACHE=/home/user/shared/hf_cache/datasets --env TORCH_HOME=/home/user/shared/hf_cache/torch --bind /home/tl0463/scratch/AgentWorkspaces/workspaces/2502.13759:/home/user --overlay /home/tl0463/scratch/AgentWorkspaces/workspaces/2502.13759/environment/overlay.img:ro --bind /home/tl0463/scratch/AgentWorkspaces/shared/datasets:/home/user/shared/datasets:ro --bind /home/tl0463/scratch/AgentWorkspaces/shared/models:/home/user/shared/models:ro --bind /home/tl0463/scratch/AgentWorkspaces/shared/hf_cache:/home/user/shared/hf_cache /home/tl0463/scratch/AgentWorkspaces/workspaces/2502.13759/environment/container.sif bash -c 'cd /home/user && bash /home/user/scripts/run.sh'
+Traceback (most recent call last):
+  File "<string>", line 3, in <module>
+  File "/home/user/pylib/torch/__init__.py", line 990, in <module>
+    raise ImportError(
+ImportError: Failed to load PyTorch C extensions:
+    It appears that PyTorch has loaded the `torch/_C` folder
+    of the PyTorch repository rather than the C extensions which
+    are expected in the `torch._C` namespace. This can occur when
+    using the `install` workflow. e.g.
+        $ python setup.py install && python -c "import torch"
+
+    This error can generally be solved using the `develop` workflow
+        $ python setup.py develop && python -c "import torch"  # This should succeed
+    or by running Python from a different directory.
