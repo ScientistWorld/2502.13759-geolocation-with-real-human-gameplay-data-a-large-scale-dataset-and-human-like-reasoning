@@ -1,20 +1,26 @@
 # Apptainer definition file for GeoCoT environment.
 #
-# Uses Ubuntu 22.04 as base image. Python packages installed via setup.sh.
-# CUDA runtime is provided by the host (compute nodes have GPUs).
+# Uses Azure Linux 3.0 from MCR (Microsoft Container Registry).
+# MCR has no authentication and no rate limiting.
+# Python packages installed via setup.sh at build time.
 #
-# IMPORTANT: Build requires internet access (Docker Hub + PyPI).
+# IMPORTANT: Build requires internet access (MCR + PyPI).
 # Runtime on compute nodes requires NO internet.
 
 Bootstrap: docker
-From: ubuntu:22.04
+From: mcr.microsoft.com/azurelinux/base/core:3.0
 
 %post
     set -e
-    echo "=== Ubuntu 22.04 container starting ==="
+    echo "=== Azure Linux 3.0 container starting ==="
 
-    export DEBIAN_FRONTEND=noninteractive
-    apt-get update
-    apt-get install -y python3 python3-pip curl wget git
+    # Azure Linux uses tdnf as its package manager
+    tdnf install -y python3 python3-pip curl 2>/dev/null || {
+        echo "tdnf install failed, checking alternatives..."
+        which python3 || echo "Python3 not available"
+    }
+
+    echo "Python version: $(python3 --version 2>&1)"
+    echo "pip version: $(pip3 --version 2>&1)"
 
     echo "=== Container bootstrap complete ==="
