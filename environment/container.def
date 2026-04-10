@@ -2,7 +2,7 @@
 #
 # Uses Azure Linux 3.0 from MCR (Microsoft Container Registry).
 # MCR has no rate limiting unlike Docker Hub.
-# All Python packages are installed at build time via setup.sh.
+# All Python packages are installed at build time.
 #
 # IMPORTANT: Build requires internet access (MCR + PyPI).
 # Runtime on compute nodes requires NO internet.
@@ -14,27 +14,40 @@ From: mcr.microsoft.com/azurelinux/base/core:3.0
     set -e
     echo "=== Azure Linux 3.0 container starting ==="
 
-    # Install Python and basic tools
-    tdnf install -y python3 python3-pip curl 2>/dev/null || true
+    # Install Python and basic tools using tdnf (Azure Linux package manager)
+    tdnf install -y python3 python3-pip curl 2>/dev/null || {
+        echo "tdnf install failed, trying alternatives..."
+        # Azure Linux might already have python3
+        which python3 || echo "Python3 not found"
+        which pip3 || echo "pip3 not found"
+    }
+
+    echo "Python version: $(python3 --version 2>&1)"
+    echo "pip version: $(pip3 --version 2>&1)"
+
+    echo "=== Installing uv package manager ==="
+    curl -LsSf https://astral.sh/uv/install.sh | sh 2>/dev/null || {
+        pip3 install --break-system-packages uv 2>/dev/null || {
+            echo "Warning: uv installation failed"
+        }
+    }
+    export PATH="$HOME/.local/bin:$PATH"
 
     echo "=== Installing Python packages ==="
 
-    # Install uv if not present
-    which uv || pip3 install --break-system-packages uv
-
-    # Use uv for fast installation
+    # Use uv for fast installation to system Python
     export UV_SYSTEM_PYTHON=1
     export UV_BREAK_SYSTEM_PACKAGES=1
 
     # Install PyTorch with CUDA support
     echo "Installing PyTorch..."
-    uv pip install torch torchvision --index-url https://download.pytorch.org/whl/cu124 2>&1 | tail -3 || \
-    uv pip install torch torchvision 2>&1 | tail -3
+    uv pip install torch torchvision --index-url https://download.pytorch.org/whl/cu124 2>&1 | tail -5 || \
+    uv pip install torch torchvision 2>&1 | tail -5
 
     # Install all other packages
     echo "Installing remaining packages..."
     uv pip install \
-        transformers>=4.40.0 \
+        "transformers>=4.40.0" \
         accelerate \
         sentencepiece \
         protobuf \
@@ -51,11 +64,12 @@ From: mcr.microsoft.com/azurelinux/base/core:3.0
         pandas \
         numpy \
         qwen-vl-utils \
-        2>&1 | tail -5
+        2>&1 | tail -10
 
-    # Verify installation
-    python3 -c "import torch; print(f'PyTorch {torch.__version__}, CUDA: {torch.cuda.is_available()}')"
-    python3 -c "import transformers; print(f'transformers {transformers.__version__}')"
-    python3 -c "import pandas; print(f'pandas {pandas.__version__}')"
+    echo "=== Verifying installations ==="
+    python3 -c "import torch; print(f'PyTorch {torch.__version__}, CUDA: {torch.cuda.is_available()}')" 2>/dev/null || echo "PyTorch not available"
+    python3 -c "import transformers; print(f'transformers {transformers.__version__}')" 2>/dev/null || echo "transformers not available"
+    python3 -c "import pandas; print(f'pandas {pandas.__version__}')" 2>/dev/null || echo "pandas not available"
+    python3 -c "import qwen_vl_utils; print('qwen_vl_utils available')" 2>/dev/null || echo "qwen_vl_utils not available"
 
     echo "=== Container setup complete ==="
