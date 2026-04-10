@@ -1,22 +1,21 @@
 # Apptainer definition file for GeoCoT environment.
 #
-# Uses Azure Linux 3.0 from MCR (Microsoft Container Registry).
-# MCR has no authentication and no rate limiting.
+# Uses a pre-built Docker archive of Azure Linux 3.0 (created from MCR layer).
+# The archive is stored locally in the workspace to avoid registry issues.
 # Python packages installed via setup.sh at build time.
 #
-# IMPORTANT: Build requires internet access (MCR + PyPI).
-# Runtime on compute nodes requires NO internet.
+# IMPORTANT: The azurelinux_image.tar must exist in the environment directory.
 
-Bootstrap: docker
-From: mcr.microsoft.com/azurelinux/base/core:3.0
+Bootstrap: docker-archive
+From: environment/azurelinux_image.tar
 
 %post
     set -e
-    echo "=== Azure Linux 3.0 container starting ==="
+    echo "=== Azure Linux container starting (from local archive) ==="
 
     # Azure Linux uses tdnf as its package manager
     tdnf install -y python3 python3-pip curl 2>/dev/null || {
-        echo "tdnf install failed, checking alternatives..."
+        echo "tdnf install failed"
         which python3 || echo "Python3 not available"
     }
 

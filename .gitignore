@@ -12,6 +12,8 @@ data/
 # Container artifacts (multi-GB)
 environment/container.sif
 environment/overlay.img
+environment/azurelinux_image.tar
+environment/azurelinux_oci/
 environment/.setup_wrapper.sh
 environment/.overlay.log
 
