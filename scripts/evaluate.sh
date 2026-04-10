@@ -27,7 +27,6 @@ import json
 import os
 import sys
 
-sys.path.insert(0, '/home/user/pylib')
 sys.path.insert(0, '/home/user')
 from eval.metrics import compute_all_metrics
 

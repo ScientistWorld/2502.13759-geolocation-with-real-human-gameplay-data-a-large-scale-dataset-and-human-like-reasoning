@@ -28,14 +28,13 @@ which uv >/dev/null 2>&1 || {
 export UV_SYSTEM_PYTHON=1
 export UV_BREAK_SYSTEM_PACKAGES=1
 
-# CRITICAL: Remove pre-installed non-CUDA torch/torchvision from site-packages.
-# The pylib dir contains torch 2.5.1+cu124 without CUDA kernels.
-# When qwen_vl_utils imports torchvision, it triggers the pylib version
-# which fails with "operator torchvision::nms does not exist".
-# We must remove it so our new CUDA-enabled torch is used instead.
-echo "Removing pre-installed non-CUDA torchvision to prevent conflicts..."
-rm -rf /root/.local/lib/python3.10/site-packages/torchvision 2>/dev/null || true
+# CRITICAL: Remove pre-installed torch from site-packages before installing CUDA torch.
+# The overlay mounts over system Python dirs. When pylib's torch gets in the
+# PYTHONPATH before the overlay's torch, it causes "Failed to load C extensions".
+# Remove site-packages/torch so the overlay's CUDA torch is loaded instead.
+echo "Removing pre-installed torch to prevent conflicts..."
 rm -rf /root/.local/lib/python3.10/site-packages/torch 2>/dev/null || true
+rm -rf /root/.local/lib/python3.10/site-packages/torchvision 2>/dev/null || true
 echo "Pre-installed torch removal complete."
 
 # Install qwen-vl-utils FIRST (before torch/torchvision) so it gets the correct deps

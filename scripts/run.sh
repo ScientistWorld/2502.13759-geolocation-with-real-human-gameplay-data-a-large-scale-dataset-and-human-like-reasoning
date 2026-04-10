@@ -23,13 +23,12 @@ mkdir -p "$RESULTS_DIR"
 echo ""
 echo "=== Step 0: Environment Setup ==="
 
-export PYTHONPATH="/home/user/pylib:/home/user:${PYTHONPATH:-}"
+export PYTHONPATH="/home/user:${PYTHONPATH:-}"
 export HF_HOME="/home/user/shared/models/hf"
 export TRANSFORMERS_CACHE="/home/user/shared/models/hf"
 export HF_HUB_OFFLINE="1"
 
 python3 -c "
-import sys; sys.path.insert(0, '/home/user/pylib')
 import torch
 print(f'PyTorch: {torch.__version__}, CUDA: {torch.cuda.is_available()}')
 if torch.cuda.is_available():
@@ -72,8 +71,6 @@ echo ""
 echo "=== Step 2: Creating Balanced Sample ==="
 
 python3 << 'PYEOF'
-import sys
-sys.path.insert(0, '/home/user/pylib')
 import pandas as pd
 import os
 
@@ -118,7 +115,6 @@ echo "=== Step 3: Loading Qwen2.5-VL Model ==="
 
 python3 << 'PYEOF'
 import sys
-sys.path.insert(0, '/home/user/pylib')
 sys.path.insert(0, '/home/user')
 sys.path.insert(0, '/home/user/method')
 
@@ -265,7 +261,6 @@ echo "=== Step 4: Evaluating Results ==="
 
 python3 << 'PYEOF'
 import sys
-sys.path.insert(0, '/home/user/pylib')
 sys.path.insert(0, '/home/user')
 
 import json
