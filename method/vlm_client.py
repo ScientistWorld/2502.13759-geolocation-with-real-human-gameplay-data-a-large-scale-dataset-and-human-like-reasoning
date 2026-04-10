@@ -102,6 +102,7 @@ class QwenVLClient(VLMClient):
                 "/home/user/shared/models/Qwen2.5-VL-7B-Instruct",
                 "/home/user/Qwen/Qwen2.5-VL-7B-Instruct",
                 os.path.join(os.path.dirname(__file__), "..", "Qwen2.5-VL-7B-Instruct"),
+                "/home/user/shared/models/Qwen/Qwen2.5-VL-7B-Instruct",
             ]:
                 if os.path.isdir(candidate):
                     model_path = candidate

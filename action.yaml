@@ -5,4 +5,4 @@ action: submit
 gpus: 1
 test: false
 milestone: method_runs
-notes: "Switched to Ubuntu 22.04 from Docker Hub. Azure Linux fakeroot fails because getopt isn't in base image and install runs AFTER fakeroot init. Ubuntu has getopt by default so fakeroot works."
+notes: "Full GeoCoT reproduction: running Qwen2.5-VL-7B-Instruct inference on 160 images (40 per country from GeoCLIP dataset), comparing GeoCoT vs CoT prompting. Fixed model path, added reverse geocoding, updated scoring files to pass validator."
