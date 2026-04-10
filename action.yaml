@@ -5,4 +5,4 @@ action: submit
 gpus: 1
 test: false
 milestone: core_claim
-notes: "Fix setup.sh: install qwen-vl-utils --no-deps to prevent it from overwriting CUDA-enabled torchvision. Previous build failed with 'operator torchvision::nms does not exist' - torchvision from PyPI conflicted with CUDA torch. Now torch+torchvision stay together from CUDA index, qwen-vl-utils installed without deps."
+notes: "Fix setup.sh: remove pre-installed non-CUDA torch from pylib before installing qwen-vl-utils. Previous build failed with 'operator torchvision::nms does not exist' because pylib's torch 2.5.1 interfered with CUDA torch 2.6.0. Now runs rm -rf on site-packages/torch and torchvision before pip install. Full 80-image GeoCoT vs CoT pipeline."

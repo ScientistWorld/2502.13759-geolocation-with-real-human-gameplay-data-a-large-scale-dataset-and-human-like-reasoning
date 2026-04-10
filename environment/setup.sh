@@ -28,15 +28,29 @@ which uv >/dev/null 2>&1 || {
 export UV_SYSTEM_PYTHON=1
 export UV_BREAK_SYSTEM_PACKAGES=1
 
+# CRITICAL: Remove pre-installed non-CUDA torch/torchvision from site-packages.
+# The pylib dir contains torch 2.5.1+cu124 without CUDA kernels.
+# When qwen_vl_utils imports torchvision, it triggers the pylib version
+# which fails with "operator torchvision::nms does not exist".
+# We must remove it so our new CUDA-enabled torch is used instead.
+echo "Removing pre-installed non-CUDA torchvision to prevent conflicts..."
+rm -rf /root/.local/lib/python3.10/site-packages/torchvision 2>/dev/null || true
+rm -rf /root/.local/lib/python3.10/site-packages/torch 2>/dev/null || true
+echo "Pre-installed torch removal complete."
+
+# Install qwen-vl-utils FIRST (before torch/torchvision) so it gets the correct deps
+echo "Installing qwen-vl-utils first..."
+uv pip install qwen-vl-utils 2>&1 | tail -5
+
 # Install PyTorch + torchvision TOGETHER from CUDA index (prevents version mismatch)
 echo "Installing PyTorch with matching torchvision..."
 uv pip install torch torchvision --index-url https://download.pytorch.org/whl/cu124 2>&1 | tail -5
 
-# Install qwen-vl-utils WITHOUT its torch/torchvision deps (we already have CUDA versions)
-echo "Installing qwen-vl-utils (without re-installing torch/torchvision)..."
-uv pip install qwen-vl-utils --no-deps 2>&1 | tail -3
+# Verify
+python3 -c "import torch; print(f'PyTorch {torch.__version__}'); print(f'CUDA: {torch.cuda.is_available()}')"
+python3 -c "import torchvision; print(f'torchvision {torchvision.__version__}')"
 
-# Install all other packages (qwen-vl-utils deps: transformers, accelerate)
+# Install remaining packages
 echo "Installing remaining packages..."
 uv pip install \
     "transformers>=4.40.0" \
@@ -57,10 +71,9 @@ uv pip install \
     numpy \
     2>&1 | tail -10
 
-# Verify installation
-python3 -c "import torch; print(f'PyTorch {torch.__version__}')" 2>/dev/null || echo "PyTorch not available (no CUDA in build env)"
+# Final verification
 python3 -c "import transformers; print(f'transformers {transformers.__version__}')"
 python3 -c "import pandas; print(f'pandas {pandas.__version__}')"
-python3 -c "import qwen_vl_utils; print('qwen_vl_utils OK')"
+python3 -c "from qwen_vl_utils import process_vision_info; print('qwen_vl_utils OK')"
 
 echo "=== Python packages installed successfully ==="
