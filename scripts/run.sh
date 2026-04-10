@@ -1,8 +1,15 @@
 #!/bin/bash
-# Run GeoCoT reproduction with Qwen2.5-VL-7B-Instruct.
+# GeoCoT Reproduction - Run GeoCoT vs CoT with Qwen2.5-VL-7B-Instruct
 #
 # This script runs inside the compute container with GPU(s) available.
 # All models and data are pre-downloaded.
+#
+# Steps:
+# 1. Enrich geoclip.csv with city names (reverse geocoding)
+# 2. Create balanced sample (20 images per country = 80 total)
+# 3. Run GeoCoT inference
+# 4. Run CoT inference
+# 5. Evaluate and generate scores.json
 
 set -e
 
@@ -16,16 +23,16 @@ RESULTS_DIR="/home/user/results"
 mkdir -p "$RESULTS_DIR"
 
 # =============================================================================
-# Step 0: Environment setup
+# Environment - DO NOT set CUDA_VISIBLE_DEVICES (Ray manages GPU allocation)
 # =============================================================================
 echo ""
 echo "=== Step 0: Environment Setup ==="
 
-export PYTHONPATH="/home/user/pylib:/home/user"
+export PYTHONPATH="/home/user/pylib:/home/user:${PYTHONPATH:-}"
 export HF_HOME="/home/user/shared/models/hf"
 export TRANSFORMERS_CACHE="/home/user/shared/models/hf"
 export HF_HUB_OFFLINE="1"
-export CUDA_VISIBLE_DEVICES=""
+# NOTE: Do NOT set CUDA_VISIBLE_DEVICES - Ray handles GPU allocation
 
 echo "Python: $(python3 --version)"
 python3 -c "
@@ -36,24 +43,23 @@ print(f'PyTorch: {torch.__version__}')
 print(f'CUDA available: {torch.cuda.is_available()}')
 if torch.cuda.is_available():
     print(f'GPU: {torch.cuda.get_device_name(0)}')
+    print(f'GPU count: {torch.cuda.device_count()}')
 "
 
-# Verify packages
 python3 -c "
 import sys
 sys.path.insert(0, '/home/user/pylib')
 import transformers; print(f'transformers: {transformers.__version__}')
 import qwen_vl_utils; print('qwen_vl_utils: OK')
-import PIL; print('PIL: OK')
+from PIL import Image; print('PIL: OK')
 "
 
 # =============================================================================
-# Step 1: Verify models and data
+# Step 1: Verify model and data
 # =============================================================================
 echo ""
-echo "=== Step 1: Verifying Models and Data ==="
+echo "=== Step 1: Verifying Model and Data ==="
 
-# Check Qwen model
 MODEL_DIR=""
 for dir in "/home/user/checkpoints/Qwen2.5-VL-7B-Instruct" "/home/user/shared/models/Qwen2.5-VL-7B-Instruct"; do
     if [ -d "$dir" ] && [ -f "$dir/model.safetensors.index.json" ]; then
@@ -64,30 +70,19 @@ done
 
 if [ -z "$MODEL_DIR" ]; then
     echo "ERROR: Qwen2.5-VL-7B-Instruct not found!"
-    echo "Checked:"
-    echo "  /home/user/checkpoints/Qwen2.5-VL-7B-Instruct"
-    echo "  /home/user/shared/models/Qwen2.5-VL-7B-Instruct"
     exit 1
 fi
 echo "Found Qwen2.5-VL at: $MODEL_DIR"
 
-# Check geoclip data
 CSV_PATH="/home/user/data/geoclip/geoclip.csv"
 if [ ! -f "$CSV_PATH" ]; then
     echo "ERROR: GeoCLIP CSV not found at $CSV_PATH"
     exit 1
 fi
-NUM_IMAGES=$(python3 -c "
-import sys, csv
-sys.path.insert(0, '/home/user/pylib')
-with open('$CSV_PATH') as f:
-    reader = csv.DictReader(f)
-    print(sum(1 for _ in reader))
-")
-echo "Found $NUM_IMAGES images in GeoCLIP dataset"
+echo "Found GeoCLIP CSV: $CSV_PATH"
 
 # =============================================================================
-# Step 2: Enrich dataset with city names (reverse geocoding)
+# Step 2: Enrich dataset with city names
 # =============================================================================
 echo ""
 echo "=== Step 2: Enriching Dataset with City Names ==="
@@ -95,42 +90,25 @@ echo "=== Step 2: Enriching Dataset with City Names ==="
 python3 -c "
 import sys
 sys.path.insert(0, '/home/user/pylib')
-sys.path.insert(0, '/home/user')
-import pandas as pd
-import os
 sys.path.insert(0, '/home/user/data')
-
-from reverse_geocode import reverse_geocode
+import pandas as pd
 
 df = pd.read_csv('$CSV_PATH')
 print(f'Total rows: {len(df)}')
 
 # Check if already enriched
-if 'city' in df.columns:
-    non_null = df['city'].notna() & (df['city'] != '')
-    if non_null.sum() > 0:
-        print(f'Already enriched with {non_null.sum()} city names')
-    else:
-        # Re-enrich
-        cities = []
-        for _, row in df.iterrows():
-            result = reverse_geocode(row['lat'], row['lon'], row.get('country', None))
-            cities.append(result['name'])
-        df['city'] = cities
-        df.to_csv('$CSV_PATH', index=False)
-        print(f'Enriched with city names: {df[\"city\"].value_counts().head(10).to_dict()}')
+if 'city' in df.columns and df['city'].notna().sum() > 0:
+    print(f'Already enriched: {df[\"city\"].notna().sum()} rows have city names')
+    print(df['city'].value_counts().head(10).to_dict())
 else:
-    cities = []
-    for _, row in df.iterrows():
-        result = reverse_geocode(row['lat'], row['lon'], row.get('country', None))
-        cities.append(result['name'])
-    df['city'] = cities
-    df.to_csv('$CSV_PATH', index=False)
-    print(f'Enriched with city names: {df[\"city\"].value_counts().head(10).to_dict()}')
+    from reverse_geocode import enrich_geoclip_csv
+    enrich_geoclip_csv('$CSV_PATH')
+    df = pd.read_csv('$CSV_PATH')
+    print(f'After enrichment: {df[\"city\"].value_counts().head(10).to_dict()}')
 "
 
 # =============================================================================
-# Step 3: Create balanced sample (40 images per country = 160 total)
+# Step 3: Create balanced sample (20 per country = 80 total)
 # =============================================================================
 echo ""
 echo "=== Step 3: Creating Balanced Sample ==="
@@ -145,44 +123,39 @@ df = pd.read_csv('$CSV_PATH')
 print(f'Total images: {len(df)}')
 print(f'Countries: {df[\"country\"].value_counts().to_dict()}')
 
-# Create balanced sample: 40 images per country (stratified by lat/lon buckets)
-SAMPLES_PER_COUNTRY = 40
+# Balanced sample: 20 images per country, spatially distributed
+SAMPLES_PER_COUNTRY = 20
 samples = []
 for country in df['country'].unique():
     subset = df[df['country'] == country].copy()
-    # Sort by lat to get spatial diversity
     subset = subset.sort_values('lat')
-    # Take evenly spaced samples
     n = len(subset)
     if n >= SAMPLES_PER_COUNTRY:
-        step = n // SAMPLES_PER_COUNTRY
+        step = max(1, n // SAMPLES_PER_COUNTRY)
         subset = subset.iloc[::step].head(SAMPLES_PER_COUNTRY)
     samples.append(subset)
+    print(f'  {country}: sampled {len(subset)} from {n} total')
 
 sample_df = pd.concat(samples, ignore_index=True)
 print(f'Sample size: {len(sample_df)}')
 print(f'Sample countries: {sample_df[\"country\"].value_counts().to_dict()}')
 
-# Verify all image files exist
-missing = 0
-for _, row in sample_df.iterrows():
-    if not os.path.exists(row['image_path']):
-        missing += 1
+# Verify images exist
+missing = sum(1 for _, row in sample_df.iterrows() if not os.path.exists(row['image_path']))
 print(f'Missing images: {missing}')
 
 # Save sample CSV
 sample_csv = '/home/user/data/geoclip/sample_balanced.csv'
 sample_df.to_csv(sample_csv, index=False)
-print(f'Saved balanced sample to {sample_csv}')
+print(f'Saved to {sample_csv}')
 "
 
 # =============================================================================
-# Step 4: Run VLM inference - Load and test model
+# Step 4: Load model ONCE and test
 # =============================================================================
 echo ""
 echo "=== Step 4: Loading Qwen2.5-VL Model ==="
 
-# First, test loading the model on a single image to verify it works
 python3 << 'PYEOF'
 import sys
 sys.path.insert(0, '/home/user/pylib')
@@ -192,6 +165,13 @@ import os
 os.environ['HF_HOME'] = '/home/user/shared/models/hf'
 os.environ['TRANSFORMERS_CACHE'] = '/home/user/shared/models/hf'
 os.environ['HF_HUB_OFFLINE'] = '1'
+
+import torch
+print(f"CUDA available: {torch.cuda.is_available()}")
+print(f"CUDA device count: {torch.cuda.device_count()}")
+if torch.cuda.is_available():
+    for i in range(torch.cuda.device_count()):
+        print(f"  GPU {i}: {torch.cuda.get_device_name(i)}")
 
 # Find model
 model_path = None
@@ -207,7 +187,6 @@ if not model_path:
 
 print(f"Loading Qwen2.5-VL from {model_path}...")
 
-import torch
 from transformers import Qwen2VLForConditionalGeneration, AutoProcessor
 from qwen_vl_utils import process_vision_info
 
@@ -219,7 +198,6 @@ model = Qwen2VLForConditionalGeneration.from_pretrained(
 )
 
 print(f"Model loaded! Device map: {model.hf_device_map}")
-print("Testing inference on one image...")
 
 # Test on one image
 test_csv = '/home/user/data/geoclip/sample_balanced.csv'
@@ -238,7 +216,7 @@ messages = [
         "role": "user",
         "content": [
             {"type": "image", "image": test_img},
-            {"type": "text", "text": "What country is this image from? Answer just the country name."}
+            {"type": "text", "text": "What country is this image from? Answer with just the country name."}
         ]
     }
 ]
@@ -254,22 +232,21 @@ print(f"Model response: {response}")
 print("MODEL LOAD TEST PASSED!")
 PYEOF
 
-MODEL_LOADED=$?
-if [ $MODEL_LOADED -ne 0 ]; then
+if [ $? -ne 0 ]; then
     echo "ERROR: Model loading failed!"
     exit 1
 fi
 
 # =============================================================================
-# Step 5: Run GeoCoT inference on full sample
+# Step 5: Run GeoCoT inference
 # =============================================================================
 echo ""
 echo "=== Step 5: Running GeoCoT Inference ==="
 
 GEOCOT_OUTPUT="$RESULTS_DIR/geocot_predictions.json"
-MAX_IMAGES=160
+SAMPLE_CSV="/home/user/data/geoclip/sample_balanced.csv"
 
-# Check if already done
+# Check if already complete
 if [ -f "$GEOCOT_OUTPUT" ]; then
     EXISTING=$(python3 -c "
 import sys, json
@@ -278,20 +255,32 @@ try:
     with open('$GEOCOT_OUTPUT') as f:
         data = json.load(f)
     if isinstance(data, list):
-        print(len(data))
+        valid = [x for x in data if x.get('predicted_country') is not None]
+        print(len(valid))
     else:
         print(0)
 except:
     print(0)
 " 2>/dev/null)
-    if [ "$EXISTING" -ge 100 ]; then
-        echo "GeoCoT predictions already exist ($EXISTING images), skipping."
-    else
-        rm -f "$GEOCOT_OUTPUT"
-    fi
+    echo "Existing GeoCoT predictions: $EXISTING"
 fi
 
-if [ ! -f "$GEOCOT_OUTPUT" ]; then
+if [ ! -f "$GEOCOT_OUTPUT" ] || [ "$(python3 -c "
+import sys, json
+sys.path.insert(0, '/home/user/pylib')
+try:
+    with open('$GEOCOT_OUTPUT') as f:
+        data = json.load(f)
+    if isinstance(data, list):
+        valid = [x for x in data if x.get('predicted_country') is not None]
+        print(len(valid))
+    else:
+        print(0)
+except:
+    print(0)
+" 2>/dev/null)" -lt 10 ]; then
+    rm -f "$GEOCOT_OUTPUT"
+
     python3 << PYEOF
 import sys
 sys.path.insert(0, '/home/user/pylib')
@@ -304,13 +293,8 @@ os.environ['HF_HUB_OFFLINE'] = '1'
 import json
 import torch
 import pandas as pd
-from pathlib import Path
-from tqdm import tqdm
-
 from transformers import Qwen2VLForConditionalGeneration, AutoProcessor
 from qwen_vl_utils import process_vision_info
-from method.prompt_template import GEO_COT_USER_PROMPT
-from method.run_geocot import parse_location_prediction
 
 # Load model
 model_path = None
@@ -320,21 +304,24 @@ for d in ['/home/user/checkpoints/Qwen2.5-VL-7B-Instruct',
         model_path = d
         break
 
-print(f"Loading model from {model_path}...")
 processor = AutoProcessor.from_pretrained(model_path)
 model = Qwen2VLForConditionalGeneration.from_pretrained(
     model_path,
     torch_dtype=torch.bfloat16,
     device_map="auto",
 )
-print("Model loaded.")
+
+# Load GeoCoT prompt
+sys.path.insert(0, '/home/user/method')
+from prompt_template import GEO_COT_USER_PROMPT
+from run_geocot import parse_location_prediction
 
 # Load dataset
-df = pd.read_csv('/home/user/data/geoclip/sample_balanced.csv')
-print(f"Processing {len(df)} images with GeoCoT...")
+df = pd.read_csv('$SAMPLE_CSV')
+print(f"GeoCoT: Processing {len(df)} images...")
 
 results = []
-for idx, row in tqdm(df.iterrows(), total=len(df), desc="GeoCoT"):
+for idx, row in df.iterrows():
     img_path = row['image_path']
     if not os.path.exists(img_path):
         print(f"Warning: Missing image {img_path}")
@@ -371,9 +358,13 @@ for idx, row in tqdm(df.iterrows(), total=len(df), desc="GeoCoT"):
             "predicted_city": prediction.get('city'),
             "predicted_country": prediction.get('country'),
             "predicted_continent": prediction.get('continent'),
-            "model_response": response,
+            "raw_response": response,
         }
         results.append(result)
+
+        if (idx + 1) % 10 == 0:
+            print(f"  Processed {idx + 1}/{len(df)}")
+
     except Exception as e:
         print(f"Error on {img_path}: {e}")
         results.append({
@@ -386,15 +377,14 @@ for idx, row in tqdm(df.iterrows(), total=len(df), desc="GeoCoT"):
             "predicted_city": None,
             "predicted_country": None,
             "predicted_continent": None,
-            "model_response": None,
+            "raw_response": None,
             "error": str(e),
         })
 
-    # Save every 20 images
-    if len(results) % 20 == 0:
+    # Save checkpoint every 10 images
+    if len(results) % 10 == 0:
         with open('$GEOCOT_OUTPUT', 'w') as f:
             json.dump(results, f, indent=2)
-        print(f"Saved {len(results)} results")
 
 # Final save
 with open('$GEOCOT_OUTPUT', 'w') as f:
@@ -413,6 +403,7 @@ echo "=== Step 6: Running CoT Baseline Inference ==="
 
 COT_OUTPUT="$RESULTS_DIR/cot_predictions.json"
 
+# Check if already complete
 if [ -f "$COT_OUTPUT" ]; then
     EXISTING=$(python3 -c "
 import sys, json
@@ -421,20 +412,32 @@ try:
     with open('$COT_OUTPUT') as f:
         data = json.load(f)
     if isinstance(data, list):
-        print(len(data))
+        valid = [x for x in data if x.get('predicted_country') is not None]
+        print(len(valid))
     else:
         print(0)
 except:
     print(0)
 " 2>/dev/null)
-    if [ "$EXISTING" -ge 100 ]; then
-        echo "CoT predictions already exist ($EXISTING images), skipping."
-    else
-        rm -f "$COT_OUTPUT"
-    fi
+    echo "Existing CoT predictions: $EXISTING"
 fi
 
-if [ ! -f "$COT_OUTPUT" ]; then
+if [ ! -f "$COT_OUTPUT" ] || [ "$(python3 -c "
+import sys, json
+sys.path.insert(0, '/home/user/pylib')
+try:
+    with open('$COT_OUTPUT') as f:
+        data = json.load(f)
+    if isinstance(data, list):
+        valid = [x for x in data if x.get('predicted_country') is not None]
+        print(len(valid))
+    else:
+        print(0)
+except:
+    print(0)
+" 2>/dev/null)" -lt 10 ]; then
+    rm -f "$COT_OUTPUT"
+
     python3 << PYEOF
 import sys
 sys.path.insert(0, '/home/user/pylib')
@@ -447,12 +450,8 @@ os.environ['HF_HUB_OFFLINE'] = '1'
 import json
 import torch
 import pandas as pd
-from tqdm import tqdm
-
 from transformers import Qwen2VLForConditionalGeneration, AutoProcessor
 from qwen_vl_utils import process_vision_info
-from method.prompt_template import build_baseline_prompt
-from method.run_geocot import parse_location_prediction
 
 # Load model
 model_path = None
@@ -462,22 +461,26 @@ for d in ['/home/user/checkpoints/Qwen2.5-VL-7B-Instruct',
         model_path = d
         break
 
-print(f"Loading model from {model_path}...")
 processor = AutoProcessor.from_pretrained(model_path)
 model = Qwen2VLForConditionalGeneration.from_pretrained(
     model_path,
     torch_dtype=torch.bfloat16,
     device_map="auto",
 )
-print("Model loaded.")
 
-# Load dataset
-df = pd.read_csv('/home/user/data/geoclip/sample_balanced.csv')
-print(f"Processing {len(df)} images with CoT...")
+# Load CoT prompt
+sys.path.insert(0, '/home/user/method')
+from prompt_template import build_baseline_prompt
+from run_geocot import parse_location_prediction
 
 cot_prompt = build_baseline_prompt()
+
+# Load dataset
+df = pd.read_csv('$SAMPLE_CSV')
+print(f"CoT: Processing {len(df)} images...")
+
 results = []
-for idx, row in tqdm(df.iterrows(), total=len(df), desc="CoT"):
+for idx, row in df.iterrows():
     img_path = row['image_path']
     if not os.path.exists(img_path):
         continue
@@ -513,9 +516,13 @@ for idx, row in tqdm(df.iterrows(), total=len(df), desc="CoT"):
             "predicted_city": prediction.get('city'),
             "predicted_country": prediction.get('country'),
             "predicted_continent": prediction.get('continent'),
-            "model_response": response,
+            "raw_response": response,
         }
         results.append(result)
+
+        if (idx + 1) % 10 == 0:
+            print(f"  Processed {idx + 1}/{len(df)}")
+
     except Exception as e:
         print(f"Error on {img_path}: {e}")
         results.append({
@@ -528,15 +535,16 @@ for idx, row in tqdm(df.iterrows(), total=len(df), desc="CoT"):
             "predicted_city": None,
             "predicted_country": None,
             "predicted_continent": None,
-            "model_response": None,
+            "raw_response": None,
             "error": str(e),
         })
 
-    if len(results) % 20 == 0:
+    # Save checkpoint every 10 images
+    if len(results) % 10 == 0:
         with open('$COT_OUTPUT', 'w') as f:
             json.dump(results, f, indent=2)
-        print(f"Saved {len(results)} results")
 
+# Final save
 with open('$COT_OUTPUT', 'w') as f:
     json.dump(results, f, indent=2)
 
@@ -551,15 +559,14 @@ fi
 echo ""
 echo "=== Step 7: Evaluating and Generating scores.json ==="
 
-python3 << PYEOF
+python3 << 'PYEOF'
 import sys
 sys.path.insert(0, '/home/user/pylib')
 sys.path.insert(0, '/home/user')
 import json
+import os
 
 from eval.metrics import compute_all_metrics
-
-scores = {"experiments": {}}
 
 pred_files = {
     "qwen_geocot": "$RESULTS_DIR/geocot_predictions.json",
@@ -591,10 +598,12 @@ for method_name, filepath in pred_files.items():
                 print(f"  {key}: {metrics[key]:.4f}")
 
 # Build scores.json matching reference structure
+scores = {"experiments": {}}
+
 if experiment_results:
     # Primary experiment: classification
     scores["experiments"]["geocomp_classification"] = {
-        "description": "GeoCoT vs CoT on GeoCLIP dataset (4 countries: Kenya, Ecuador, Chile, Madagascar) with Qwen2.5-VL-7B-Instruct. Balanced sample of 160 images.",
+        "description": "GeoCoT vs CoT on GeoCLIP dataset (4 countries: Kenya, Ecuador, Chile, Madagascar) with Qwen2.5-VL-7B-Instruct. Balanced sample.",
         "weight": 0.5,
         "primary_metric": "country_accuracy",
         "metrics": {
