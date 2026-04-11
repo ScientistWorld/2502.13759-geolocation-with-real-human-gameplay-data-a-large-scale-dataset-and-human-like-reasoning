@@ -33,6 +33,18 @@ export TRANSFORMERS_CACHE="/home/user/shared/models/hf"
 export HF_HUB_OFFLINE="1"
 
 python3 -c "
+import sys
+# CRITICAL: Remove /home/user/pylib from sys.path before importing torch.
+# The host's /home/user/pylib contains a source-tree PyTorch that causes
+# 'Failed to load C extensions' errors when it conflicts with the overlay's
+# CUDA-enabled torch. By removing it from sys.path, we ensure the CUDA torch
+# (installed via setup.sh in the overlay) is used instead.
+import os
+pylib_paths = [p for p in sys.path if '/home/user/pylib' in p]
+for p in pylib_paths:
+    sys.path.remove(p)
+print('Removed pylib paths from sys.path:', pylib_paths)
+
 import torch
 print(f'PyTorch: {torch.__version__}, CUDA: {torch.cuda.is_available()}')
 if torch.cuda.is_available():
@@ -119,6 +131,12 @@ echo "=== Step 3: Loading Qwen2.5-VL Model ==="
 
 python3 << 'PYEOF'
 import sys
+# CRITICAL: Remove /home/user/pylib from sys.path before any torch import.
+# This must happen FIRST, before any other imports.
+for p in list(sys.path):
+    if '/home/user/pylib' in p:
+        sys.path.remove(p)
+
 sys.path.insert(0, '/home/user/method')
 sys.path.insert(0, '/home/user/eval')
 
@@ -265,10 +283,13 @@ echo "=== Step 4: Evaluating Results ==="
 
 python3 << 'PYEOF'
 import sys
-sys.path.insert(0, '/home/user')
+for p in list(sys.path):
+    if '/home/user/pylib' in p:
+        sys.path.remove(p)
 
 import json
 import os
+sys.path.insert(0, '/home/user/eval')
 from eval.metrics import compute_all_metrics
 
 results_dir = '/home/user/results'
