@@ -5,4 +5,4 @@ action: submit
 gpus: 1
 test: false
 milestone: core_claim
-notes: "Fix: removed sys.path.insert('/home/user/pylib') from run.sh and evaluate.sh. Previous job failed with 'Failed to load PyTorch C extensions' because pylib's torch loaded before overlay's CUDA torch. Full 80-image GeoCoT vs CoT pipeline with Qwen2.5-VL-7B-Instruct."
+notes: "Reverted setup.sh to known-working version (qwen-vl-utils first). Previous simplified version timed out. This matches the version that previously completed successfully. Full 80-image GeoCoT vs CoT pipeline."
