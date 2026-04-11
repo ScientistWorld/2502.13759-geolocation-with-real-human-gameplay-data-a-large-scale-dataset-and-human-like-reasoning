@@ -1,8 +1,8 @@
 # IMPORTANT: Once you set action to 'submit' or 'done', STOP immediately.
 # Do NOT sleep, poll, or wait for jobs. The system reads this file
 # only after your turn ends. Sleeping blocks the entire pipeline.
-action: pending
+action: submit
 gpus: 1
 test: false
 milestone: method_runs
-notes: ""
+notes: "Radically simplified setup.sh: NO pip installs. All packages (torch 2.6.0+cu124, transformers 5.5.3, qwen_vl_utils, accelerate, protobuf) are pre-installed in /home/user/pylib. setup.sh now only sets LD_LIBRARY_PATH (pylib CUDA/NCCL libs) and PYTHONPATH, removes broken system torch, and verifies packages. run.sh handles runtime environment inline."

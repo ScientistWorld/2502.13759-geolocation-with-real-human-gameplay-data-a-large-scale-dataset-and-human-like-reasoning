@@ -431,6 +431,11 @@ Target performance (paper's reported results on GeoComp test set with 500 images
 
 </details>
 
+### Iteration 2: MiniMax-M2.7
+- **Milestone**: `method_runs` | **Status**: done
+- **Working time**: 2.5h | **GPU**: 0.0h
+- **Jobs**: 1 total (0 completed, 1 failed)
+
 
 ---
 
