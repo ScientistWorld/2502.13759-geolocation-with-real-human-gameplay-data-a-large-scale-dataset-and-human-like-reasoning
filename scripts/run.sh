@@ -32,6 +32,13 @@ export HF_HOME="/home/user/shared/models/hf"
 export TRANSFORMERS_CACHE="/home/user/shared/models/hf"
 export HF_HUB_OFFLINE="1"
 
+# FIX: The pylib/torch/_C is a directory of .pyi stub files, not a C extension module.
+# The real _C is the .so file. Rename _C dir to avoid Python treating it as a package.
+if [ -d "/home/user/pylib/torch/_C" ] && [ -f "/home/user/pylib/torch/_C/__init__.pyi" ]; then
+    echo "Warning: torch/_C directory conflict, renaming"
+    mv /home/user/pylib/torch/_C /home/user/pylib/torch/_C_stubs 2>/dev/null || true
+fi
+
 # Prepend pylib to sys.path BEFORE any Python code runs
 python3 -c "
 import sys
