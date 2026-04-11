@@ -21,6 +21,12 @@ mkdir -p "$RESULTS_DIR"
 echo ""
 echo "=== Environment Setup ==="
 
+# Critical: Use python3.12 (not python3) because:
+# - pylib contains PyTorch 2.6.0 compiled for Python 3.12 (.cpython-312 files)
+# - python3 may be Python 3.10 in the container, which would load system torch instead
+# - python3.12 matches the pylib Python version and finds the correct packages
+export PYTHON=/usr/bin/python3.12
+
 # Ray manages GPU allocation - do NOT set CUDA_VISIBLE_DEVICES.
 # pylib contains CUDA-enabled PyTorch. Prepend to paths first.
 export LD_LIBRARY_PATH="/home/user/pylib/torch/lib:${LD_LIBRARY_PATH:-}"
@@ -29,15 +35,8 @@ export HF_HOME="/home/user/shared/models/hf"
 export TRANSFORMERS_CACHE="/home/user/shared/models/hf"
 export HF_HUB_OFFLINE="1"
 
-# Fix: pylib/torch/_C directory contains stub .pyi files that conflict with
-# the real _C.so extension module. Rename it to avoid Python package confusion.
-if [ -d "/home/user/pylib/torch/_C" ] && [ -f "/home/user/pylib/torch/_C/__init__.pyi" ]; then
-    echo "Fixing torch/_C directory conflict..."
-    mv /home/user/pylib/torch/_C /home/user/pylib/torch/_C_stubs 2>/dev/null || true
-fi
-
-# Verify PyTorch can load
-python3 -c "
+# Verify PyTorch can load (with python3.12)
+$PYTHON -c "
 import sys
 sys.path.insert(0, '/home/user/pylib')
 import torch
@@ -95,7 +94,7 @@ echo "GeoCLIP CSV: $N_LINES lines"
 echo ""
 echo "=== Creating Balanced Sample (20 per country = 80 total) ==="
 
-python3 << 'PYEOF'
+${PYTHON} << 'PYEOF'
 import sys
 sys.path.insert(0, '/home/user/pylib')
 import pandas as pd
@@ -139,7 +138,7 @@ PYEOF
 echo ""
 echo "=== Loading Model and Running Inference ==="
 
-python3 << 'PYEOF'
+${PYTHON} << 'PYEOF'
 import sys
 sys.path.insert(0, '/home/user/pylib')
 sys.path.insert(0, '/home/user/method')
@@ -331,7 +330,7 @@ PYEOF
 echo ""
 echo "=== Evaluating Results ==="
 
-python3 << 'PYEOF'
+${PYTHON} << 'PYEOF'
 import sys
 sys.path.insert(0, '/home/user/pylib')
 import json
