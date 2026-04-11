@@ -23,7 +23,11 @@ mkdir -p "$RESULTS_DIR"
 echo ""
 echo "=== Step 0: Environment Setup ==="
 
-export PYTHONPATH="/home/user:${PYTHONPATH:-}"
+# CRITICAL: Do NOT add /home/user to PYTHONPATH. The host's /home/user/pylib
+# contains a source-tree torch that conflicts with the overlay's CUDA torch.
+# Instead, add only specific subdirs that contain our code.
+# Ray manages GPU allocation - do NOT set CUDA_VISIBLE_DEVICES.
+export PYTHONPATH="/home/user/method:/home/user/eval:${PYTHONPATH:-}"
 export HF_HOME="/home/user/shared/models/hf"
 export TRANSFORMERS_CACHE="/home/user/shared/models/hf"
 export HF_HUB_OFFLINE="1"
@@ -115,8 +119,8 @@ echo "=== Step 3: Loading Qwen2.5-VL Model ==="
 
 python3 << 'PYEOF'
 import sys
-sys.path.insert(0, '/home/user')
 sys.path.insert(0, '/home/user/method')
+sys.path.insert(0, '/home/user/eval')
 
 import os
 os.environ['HF_HOME'] = '/home/user/shared/models/hf'

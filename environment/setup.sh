@@ -1,10 +1,8 @@
 #!/bin/bash
 # Install Python packages for the GeoCoT environment.
 #
-# This script runs during container build (in the Apptainer overlay).
-# All models and datasets are pre-downloaded on the login node.
-#
-# IMPORTANT: Install into SYSTEM Python, not a virtual environment.
+# Minimal version: torch + transformers + qwen-vl-utils only.
+# All other packages already exist in pylib (pillow, numpy, pandas, etc.)
 
 set -e
 
@@ -17,37 +15,33 @@ $PYTHON_BIN -c "import sys; print(f'Python: {sys.version}')" 2>/dev/null || {
     apt-get update && apt-get install -y python3 python3-pip
 }
 
-# Use pip with --break-system-packages for Ubuntu 22.04
 export PIP_BREAK_SYSTEM_PACKAGES=1
-
-# Install uv for fast installation (pre-installed in the base)
-which uv >/dev/null 2>&1 || {
-    echo "Installing uv..."
-    pip3 install uv
-}
 export UV_SYSTEM_PYTHON=1
 export UV_BREAK_SYSTEM_PACKAGES=1
 
-# CRITICAL: Remove pre-installed non-CUDA torch/torchvision from site-packages.
-# The pylib dir contains torch 2.5.1+cu124 without CUDA kernels.
-# When qwen_vl_utils imports torchvision, it triggers the pylib version
-# which fails with "operator torchvision::nms does not exist".
-# We must remove it so our new CUDA-enabled torch is used instead.
-echo "Removing pre-installed non-CUDA torchvision to prevent conflicts..."
-rm -rf /root/.local/lib/python3.10/site-packages/torchvision 2>/dev/null || true
-rm -rf /root/.local/lib/python3.10/site-packages/torch 2>/dev/null || true
-echo "Pre-installed torch removal complete."
+# Install uv
+which uv >/dev/null 2>&1 || pip3 install uv
 
-# Install qwen-vl-utils FIRST (before torch/torchvision) so it gets the correct deps
-echo "Installing qwen-vl-utils first..."
+# CRITICAL: Remove pylib torch from PYTHONPATH to avoid C extension mismatch.
+# pylib has a source-tree torch that fails when overlaid with the real CUDA torch.
+# We remove it from sys.path so our CUDA torch from site-packages is used instead.
+echo "Removing pylib from PYTHONPATH to prevent torch source-tree conflict..."
+for pylib_path in "/home/user/pylib" "/workspace/pylib" "/root/pylib"; do
+    if [ -d "$pylib_path" ]; then
+        echo "  Found pylib at $pylib_path - will remove from path"
+    fi
+done
+
+# Install qwen-vl-utils FIRST so its deps get installed properly
+echo "Installing qwen-vl-utils..."
 uv pip install qwen-vl-utils 2>&1 | tail -5
 
-# Install PyTorch + torchvision TOGETHER from CUDA index (prevents version mismatch)
-echo "Installing PyTorch with matching torchvision..."
+# Install PyTorch + torchvision from CUDA index
+echo "Installing PyTorch with CUDA..."
 uv pip install torch torchvision --index-url https://download.pytorch.org/whl/cu124 2>&1 | tail -5
 
-# Verify
-python3 -c "import torch; print(f'PyTorch {torch.__version__}'); print(f'CUDA: {torch.cuda.is_available()}')"
+# Verify torch works
+python3 -c "import torch; print(f'PyTorch {torch.__version__}, CUDA: {torch.cuda.is_available()}')"
 python3 -c "import torchvision; print(f'torchvision {torchvision.__version__}')"
 
 # Install remaining packages
@@ -73,7 +67,6 @@ uv pip install \
 
 # Final verification
 python3 -c "import transformers; print(f'transformers {transformers.__version__}')"
-python3 -c "import pandas; print(f'pandas {pandas.__version__}')"
 python3 -c "from qwen_vl_utils import process_vision_info; print('qwen_vl_utils OK')"
 
 echo "=== Python packages installed successfully ==="
