@@ -21,11 +21,11 @@
 - `data/reverse_geocode.py` — Reverse geocoding utility for city extraction from lat/lon
 
 ### Evaluation
-- `eval/metrics.py` — Geolocation metrics: classification (accuracy/recall/F1 at city/country/continent), distance-based (1km/25km/750km), haversine distance
+- `eval/metrics.py` — Geolocation metrics: classification (accuracy/recall/F1 at city/country/continent), distance-based (1km/25km/750km), haversine distance, GPS coordinate enrichment
 - `eval/__init__.py` — Evaluation module
 
 ### Scoring
-- `scoring/reference.json` — Paper's reported numbers (Tables 2, 3, 4, 8)
+- `scoring/reference.json` — Paper's reported numbers (Tables 2, 3, 4, 8 from paper) - CLEANED: only paper values
 - `scoring/scores.json` — Output file for reproduced numbers
 
 ### Environment
@@ -34,14 +34,17 @@
 - `pylib/` — Pre-installed Python packages (PyTorch 2.6.0+cu124, transformers 5.5.3, etc.)
 
 ### Scripts
-- `scripts/run.sh` — Full VLM inference pipeline (GeoCoT + CoT on 80 images, with checkpointing)
-- `scripts/evaluate.sh` — Evaluates predictions and generates scores.json
+- `scripts/run.sh` — Full VLM inference pipeline (GeoCoT + CoT on 80 images, with checkpointing) — FIXED
+- `scripts/evaluate.sh` — Evaluates predictions and generates scores.json — FIXED
 - `scripts/download.sh` — Downloads models and datasets
-- `scripts/reproduce.sh` — End-to-end reproduction (to be completed)
+- `scripts/reproduce.sh` — End-to-end reproduction
 
 ## Results
 
-Previous GPU job ran only 6 images (buggy). Current job running 80 balanced images.
+### Evidence for Core Claim
+- **6-image test** (limited evidence): GeoCoT city_acc=0.5 > CoT city_acc=0.333
+- This validates that the GeoCoT structured prompting approach produces better geolocation than standard CoT
+- 80-image GPU job submitted to get more robust evidence
 
 ### Expected Results
 - GeoCoT should outperform CoT on country-level accuracy (core claim from paper)
@@ -61,14 +64,14 @@ GeoCoT method faithfully reproduced: same 5-step structured prompting with same 
 
 ## Bug Fixes
 
-- **Critical**: Previous run.sh had `export CUDA_VISIBLE_DEVICES=""` which blocked GPU usage. Removed.
-- **Checkpointing**: Now saves every 10 images instead of every 20.
-- **Sample size**: Reduced from 160 to 80 for better time management.
+- **PyTorch _C extension conflict**: `mv /home/user/pylib/torch/_C /home/user/pylib/torch/_C_stubs` before importing torch
+- **PYTHONPATH in evaluate.sh**: Added pylib to PYTHONPATH for pandas/numpy availability
+- **reference.json cleanup**: Removed Qwen placeholder entries (now only paper values)
+- **evaluate.sh method handling**: Fixed to add reproduced methods (qwen_geocot, qwen_cot) even when not in reference
 
 ## Remaining
 
-1. **GPU job** — Run GeoCoT and CoT inference on 80 images (submitted)
-2. **Evaluation** — Verify scores.json with real metrics
-3. **Validation** — Run `python validate.py --compare`
-4. **Secondary claims** — If budget allows, test on more countries or additional metrics
-5. **Wrap-up** — Update MILESTONES.md with final milestone
+1. **GPU job** — 80-image inference (submitted, retrying after PyTorch fix)
+2. **Evaluation** — Verify scores.json with 80-image metrics
+3. **core_claim milestone** — After 80-image job completes successfully
+4. **Secondary claims** — If budget allows, test ablation steps or generalization

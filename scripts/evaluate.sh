@@ -17,6 +17,9 @@ cd /home/user
 
 mkdir -p scoring results
 
+# Ensure pylib packages (pandas, numpy) are available
+export PYTHONPATH="/home/user/pylib:${PYTHONPATH:-}"
+
 RESULTS_DIR="${1:-/home/user/results}"
 
 echo "=== GeoCoT Evaluation ==="
@@ -75,6 +78,19 @@ with open('/home/user/scoring/reference.json') as f:
 # Build scores.json from reference, filling in reproduction results
 scores = {"experiments": {}}
 
+# Define the mapping from prediction file names to method names
+METHOD_MAPPING = {
+    "geocot": "qwen_geocot",
+    "cot": "qwen_cot",
+}
+
+# Define which experiments each prediction type belongs to
+# (since prediction files don't know which experiment they belong to)
+PRED_TO_EXPERIMENTS = {
+    "geocot": ["geocomp_classification", "geocomp_distance"],
+    "cot": ["geocomp_classification", "geocomp_distance"],
+}
+
 for exp_name, exp_data in reference.get("experiments", {}).items():
     exp_copy = {
         "description": exp_data.get("description", ""),
@@ -87,33 +103,37 @@ for exp_name, exp_data in reference.get("experiments", {}).items():
     ref_results = exp_data.get("results", {})
     ref_metrics = list(exp_data.get("metrics", {}).keys())
 
-    # Copy reference results (paper values) — preserve placeholders for unrun methods
+    # Copy reference results (paper values)
     for method_name, method_data in ref_results.items():
         entry = {}
         for key, val in method_data.items():
             if key == "type":
-                continue  # Don't include type in scores.json
+                continue
             entry[key] = val
         exp_copy["results"][method_name] = entry
 
-    # Overwrite with reproduction results where available
+    # Add reproduced results for methods in reference
     for pred_name, metrics in all_results.items():
-        # Map prediction file name to method name
-        if pred_name == "geocot":
-            method_name = "qwen_geocot"
-        elif pred_name == "cot":
-            method_name = "qwen_cot"
-        else:
-            method_name = pred_name
+        method_name = METHOD_MAPPING.get(pred_name, pred_name)
+        if method_name in ref_results:
+            entry = exp_copy["results"][method_name]
+            for key in ref_metrics:
+                if key in metrics:
+                    entry[key] = round(metrics[key], 4)
 
-        if method_name not in ref_results:
-            continue  # Only add methods that exist in reference
-
-        entry = exp_copy["results"][method_name]  # Start with placeholder
-        for key in ref_metrics:
-            if key in metrics:
-                entry[key] = round(metrics[key], 4)
-        exp_copy["results"][method_name] = entry
+    # Add reproduced results for methods NOT in reference (e.g. qwen_geocot vs gpt4o_cot)
+    # These methods belong to geocomp_classification and geocomp_distance experiments
+    if exp_name in ["geocomp_classification", "geocomp_distance"]:
+        for pred_name, metrics in all_results.items():
+            method_name = METHOD_MAPPING.get(pred_name, pred_name)
+            if method_name not in ref_results:
+                # Add as a new method with the experiment's metrics
+                entry = {}
+                for key in ref_metrics:
+                    if key in metrics:
+                        entry[key] = round(metrics[key], 4)
+                if entry:  # Only add if we have some metrics
+                    exp_copy["results"][method_name] = entry
 
     scores["experiments"][exp_name] = exp_copy
 
@@ -121,7 +141,15 @@ scores_path = '/home/user/scoring/scores.json'
 with open(scores_path, 'w') as f:
     json.dump(scores, f, indent=2)
 print(f"\nScores saved to {scores_path}")
-print(json.dumps(scores, indent=2))
+
+# Print summary
+print("\n=== Summary ===")
+for exp_name, exp_data in scores.get("experiments", {}).items():
+    print(f"\n{exp_name}:")
+    for method, result in exp_data.get("results", {}).items():
+        pm = exp_data.get("primary_metric", "")
+        val = result.get(pm, "N/A")
+        print(f"  {method}: {pm}={val}")
 EOPY
 
 echo ""

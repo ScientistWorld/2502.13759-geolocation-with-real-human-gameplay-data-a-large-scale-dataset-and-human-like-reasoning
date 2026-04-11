@@ -5,4 +5,4 @@ action: submit
 gpus: 1
 test: false
 milestone: method_runs
-notes: "Run GeoCoT (5-step structured prompting) vs CoT baseline with Qwen2.5-VL-7B-Instruct on 80 balanced GeoCLIP images. Key fixes: device_map=auto for proper GPU handling, checkpointing every 5 images, robust sys.path setup."
+notes: "RETRY: Previous job (99ad17bb-9fd) failed due to PyTorch _C extension conflict. run.sh fix (mv _C to _C_stubs) is committed. Now running 80-image inference: GeoCoT vs CoT with Qwen2.5-VL-7B-Instruct. Verify scores.json shows GeoCoT > CoT."
