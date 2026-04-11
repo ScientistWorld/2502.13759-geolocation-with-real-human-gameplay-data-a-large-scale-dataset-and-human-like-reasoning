@@ -18,33 +18,25 @@ RESULTS_DIR="/home/user/results"
 mkdir -p "$RESULTS_DIR"
 
 # =============================================================================
-# Environment - Ray manages GPU allocation, do NOT set CUDA_VISIBLE_DEVICES
+# Environment Setup
 # =============================================================================
 echo ""
 echo "=== Step 0: Environment Setup ==="
 
-# CRITICAL: Do NOT add /home/user to PYTHONPATH. The host's /home/user/pylib
-# contains a source-tree torch that conflicts with the overlay's CUDA torch.
-# Instead, add only specific subdirs that contain our code.
-# Ray manages GPU allocation - do NOT set CUDA_VISIBLE_DEVICES.
+# CRITICAL: Ray manages GPU allocation - do NOT set CUDA_VISIBLE_DEVICES.
+# CRITICAL: Set LD_LIBRARY_PATH so pylib's torch/lib CUDA .so files are found.
+# CRITICAL: Prepend pylib to sys.path FIRST so CUDA torch is loaded correctly.
+export LD_LIBRARY_PATH="/home/user/pylib/torch/lib:${LD_LIBRARY_PATH:-}"
 export PYTHONPATH="/home/user/method:/home/user/eval:${PYTHONPATH:-}"
 export HF_HOME="/home/user/shared/models/hf"
 export TRANSFORMERS_CACHE="/home/user/shared/models/hf"
 export HF_HUB_OFFLINE="1"
 
+# Prepend pylib to sys.path BEFORE any Python code runs
 python3 -c "
 import sys
-# CRITICAL: Remove /home/user/pylib from sys.path before importing torch.
-# The host's /home/user/pylib contains a source-tree PyTorch that causes
-# 'Failed to load C extensions' errors when it conflicts with the overlay's
-# CUDA-enabled torch. By removing it from sys.path, we ensure the CUDA torch
-# (installed via setup.sh in the overlay) is used instead.
-import os
-pylib_paths = [p for p in sys.path if '/home/user/pylib' in p]
-for p in pylib_paths:
-    sys.path.remove(p)
-print('Removed pylib paths from sys.path:', pylib_paths)
-
+if '/home/user/pylib' not in sys.path:
+    sys.path.insert(0, '/home/user/pylib')
 import torch
 print(f'PyTorch: {torch.__version__}, CUDA: {torch.cuda.is_available()}')
 if torch.cuda.is_available():
@@ -87,6 +79,9 @@ echo ""
 echo "=== Step 2: Creating Balanced Sample ==="
 
 python3 << 'PYEOF'
+import sys
+if '/home/user/pylib' not in sys.path:
+    sys.path.insert(0, '/home/user/pylib')
 import pandas as pd
 import os
 
@@ -131,11 +126,9 @@ echo "=== Step 3: Loading Qwen2.5-VL Model ==="
 
 python3 << 'PYEOF'
 import sys
-# CRITICAL: Remove /home/user/pylib from sys.path before any torch import.
-# This must happen FIRST, before any other imports.
-for p in list(sys.path):
-    if '/home/user/pylib' in p:
-        sys.path.remove(p)
+# CRITICAL: Prepend pylib FIRST so CUDA torch is loaded correctly
+if '/home/user/pylib' not in sys.path:
+    sys.path.insert(0, '/home/user/pylib')
 
 sys.path.insert(0, '/home/user/method')
 sys.path.insert(0, '/home/user/eval')
@@ -161,11 +154,12 @@ for d in ['/home/user/checkpoints/Qwen2.5-VL-7B-Instruct',
         MODEL_PATH = d
         break
 
+print(f"Model path: {MODEL_PATH}")
 processor = AutoProcessor.from_pretrained(MODEL_PATH)
 model = Qwen2VLForConditionalGeneration.from_pretrained(
     MODEL_PATH,
     torch_dtype=torch.bfloat16,
-    device_map="auto",
+    device_map="cuda:0",  # Explicit GPU assignment for compute nodes
 )
 print("Model loaded successfully!")
 print(f"Device map: {model.hf_device_map}")
@@ -195,7 +189,7 @@ df = pd.read_csv('/home/user/data/geoclip/sample_balanced.csv')
 print(f"\nDataset: {len(df)} images")
 print(f"Countries: {df['country'].value_counts().to_dict()}")
 
-# Run GeoCoT
+# Run inference
 def run_inference(df, prompt, method_name, output_path, max_new_tokens=256):
     print(f"\n--- {method_name} ---")
     if os.path.exists(output_path):
@@ -220,7 +214,7 @@ def run_inference(df, prompt, method_name, output_path, max_new_tokens=256):
             text = processor.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
             image_inputs, _ = process_vision_info(messages)
             inputs = processor(text=[text], images=image_inputs, videos=None, padding=True, return_tensors="pt")
-            inputs = {k: v.to(model.device) for k, v in inputs.items()}
+            inputs = {k: v.to("cuda:0") for k, v in inputs.items()}
 
             generated_ids = model.generate(**inputs, max_new_tokens=max_new_tokens, do_sample=False)
             generated_ids_trimmed = [out_ids[len(in_ids):] for in_ids, out_ids in zip(inputs["input_ids"], generated_ids)]
@@ -255,7 +249,7 @@ def run_inference(df, prompt, method_name, output_path, max_new_tokens=256):
                 "error": str(e),
             })
 
-        if (len(results)) % 20 == 0:
+        if len(results) % 10 == 0:
             print(f"  Processed {len(results)}/{len(df)}")
             with open(output_path, 'w') as f:
                 json.dump(results, f)
@@ -283,9 +277,8 @@ echo "=== Step 4: Evaluating Results ==="
 
 python3 << 'PYEOF'
 import sys
-for p in list(sys.path):
-    if '/home/user/pylib' in p:
-        sys.path.remove(p)
+if '/home/user/pylib' not in sys.path:
+    sys.path.insert(0, '/home/user/pylib')
 
 import json
 import os

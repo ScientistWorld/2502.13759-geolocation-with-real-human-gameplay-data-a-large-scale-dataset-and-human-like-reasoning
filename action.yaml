@@ -5,4 +5,4 @@ action: submit
 gpus: 1
 test: false
 milestone: method_runs
-notes: "Rewrote setup.sh with minimal packages. Removed /home/user from PYTHONPATH in run.sh to prevent pylib torch conflict. GeoCoT vs CoT with Qwen2.5-VL-7B-Instruct on 80 balanced images."
+notes: "Fixed torch import: prepend pylib to sys.path FIRST, set LD_LIBRARY_PATH to torch/lib. Run GeoCoT vs CoT on 80 balanced GeoCLIP images with Qwen2.5-VL-7B-Instruct."
