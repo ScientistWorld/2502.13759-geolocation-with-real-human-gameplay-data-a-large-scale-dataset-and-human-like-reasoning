@@ -22,40 +22,21 @@ mkdir -p "$RESULTS_DIR"
 echo ""
 echo "=== Environment Setup ==="
 
-# Use python3 (system Python 3.12) for running inference
-PYTHON="/usr/bin/python3"
-echo "Using Python: $PYTHON"
-$PYTHON --version
-
-# Ray manages GPU allocation - do NOT set CUDA_VISIBLE_DEVICES.
-# pylib contains CUDA-enabled PyTorch. Use LD_LIBRARY_PATH to find libtorch.
-export LD_LIBRARY_PATH="/home/user/pylib/torch/lib:${LD_LIBRARY_PATH:-}"
-export PYTHONPATH="/home/user/pylib:${PYTHONPATH:-}"
-export HF_HOME="/home/user/shared/models/hf"
-export TRANSFORMERS_CACHE="/home/user/shared/models/hf"
-export HF_HUB_OFFLINE="1"
-
-# Fix PyTorch _C extension conflict by renaming to _C_disabled
-# (prevents shadowing of system 'types' module when torch/__init__.py tries
-#  to import from _C before the system types module is ready)
-if [ -f "/home/user/pylib/torch/_C.cpython-312-x86_64-linux-gnu.so" ]; then
-    if [ ! -f "/home/user/pylib/torch/_C_disabled.cpython-312-x86_64-linux-gnu.so" ]; then
-        mv /home/user/pylib/torch/_C.cpython-312-x86_64-linux-gnu.so \
-           /home/user/pylib/torch/_C_disabled.cpython-312-x86_64-linux-gnu.so
-        echo "Fixed: renamed _C.so to _C_disabled.so"
-    fi
+# Source the runtime setup script
+if [ -f "/home/user/environment/setup.sh" ]; then
+    source /home/user/environment/setup.sh
+else
+    echo "WARNING: setup.sh not found, using inline environment setup"
+    export LD_LIBRARY_PATH="/home/user/pylib/torch/lib:${LD_LIBRARY_PATH:-}"
+    export PYTHONPATH="/home/user/pylib:${PYTHONPATH:-}"
+    export HF_HOME="/home/user/shared/models/hf"
+    export TRANSFORMERS_CACHE="/home/user/shared/models/hf"
+    export HF_HUB_OFFLINE="1"
 fi
 
-# Verify PyTorch loads
-$PYTHON -c "
-import sys
-sys.path.insert(0, '/home/user/pylib')
-import torch
-print(f'PyTorch: {torch.__version__}, CUDA available: {torch.cuda.is_available()}')
-if torch.cuda.is_available():
-    for i in range(torch.cuda.device_count()):
-        print(f'  GPU {i}: {torch.cuda.get_device_name(i)}')
-"
+PYTHON="python3"
+echo "Using Python: $PYTHON"
+$PYTHON --version
 
 # =============================================================================
 # Find Model

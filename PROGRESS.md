@@ -71,7 +71,7 @@ GeoCoT method faithfully reproduced: same 5-step structured prompting with same 
 
 ## Remaining
 
-1. **GPU job** — 80-image inference (submitted, retrying after PyTorch fix)
-2. **Evaluation** — Verify scores.json with 80-image metrics
-3. **core_claim milestone** — After 80-image job completes successfully
+1. **GPU job** — 60-image inference via action.yaml submission (this turn)
+2. **Evaluation** — Verify scores.json with 60-image metrics
+3. **core_claim milestone** — After job completes successfully
 4. **Secondary claims** — If budget allows, test ablation steps or generalization

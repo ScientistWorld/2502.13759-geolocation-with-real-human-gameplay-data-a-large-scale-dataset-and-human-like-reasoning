@@ -5,7 +5,9 @@
   "migrationVersion": 11,
   "userID": "62ec2290571889adfb8334636ec140e0372c0b1d946b3c134f5c1e606956d54b",
   "penguinModeOrgEnabled": true,
-  "clientDataCache": {},
+  "clientDataCache": {
+    "quiet_salted_ember": "true"
+  },
   "additionalModelOptionsCache": [],
   "additionalModelCostsCache": {}
 }
