@@ -2,4 +2,4 @@ action: submit
 gpus: 1
 test: false
 milestone: method_runs
-notes: "RETRY: Container build aborted by system (shutdown). Re-submitting GPU job for 80-image GeoCoT vs CoT inference. Fix: use python3.12 instead of python3."
+notes: "Full GPU job: GeoCoT vs CoT inference with Qwen2.5-VL-7B-Instruct on 60 balanced GeoCLIP images (Kenya/Ecuador/Chile/Madagascar). Fixes: csv module instead of pandas, PyTorch _C.so rename, inline metrics computation."
