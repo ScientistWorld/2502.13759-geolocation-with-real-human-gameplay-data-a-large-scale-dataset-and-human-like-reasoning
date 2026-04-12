@@ -20,3 +20,4 @@
 - GPU job submitted to run GeoCoT vs CoT inference on 80 balanced images
 
 ## Stop Justification
+- Completed at milestone `core_claim`.
