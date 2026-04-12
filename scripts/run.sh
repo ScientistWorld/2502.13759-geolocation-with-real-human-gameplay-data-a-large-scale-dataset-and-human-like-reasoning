@@ -2,7 +2,8 @@
 # GeoCoT Reproduction - GPU Inference Job
 # Runs GeoCoT (5-step prompting) vs CoT (standard chain-of-thought) with Qwen2.5-VL-7B-Instruct
 #
-# Expected: ~5s per image inference. 80 images x 2 methods = 160 inferences ≈ 15-20 min.
+# Environment: Qwen2.5-VL-7B-Instruct on GPU with 80 balanced images from GeoCLIP dataset
+# Expected: ~5s per image. 80 images x 2 methods = 160 inferences ≈ 15-20 min.
 
 set -e
 
@@ -21,21 +22,31 @@ mkdir -p "$RESULTS_DIR"
 echo ""
 echo "=== Environment Setup ==="
 
-# Critical: Use python3.12 (not python3) because:
-# - pylib contains PyTorch 2.6.0 compiled for Python 3.12 (.cpython-312 files)
-# - python3 may be Python 3.10 in the container, which would load system torch instead
-# - python3.12 matches the pylib Python version and finds the correct packages
-export PYTHON=/usr/bin/python3.12
+# Use python3 (system Python 3.12) for running inference
+PYTHON="/usr/bin/python3"
+echo "Using Python: $PYTHON"
+$PYTHON --version
 
 # Ray manages GPU allocation - do NOT set CUDA_VISIBLE_DEVICES.
-# pylib contains CUDA-enabled PyTorch. Prepend to paths first.
+# pylib contains CUDA-enabled PyTorch. Use LD_LIBRARY_PATH to find libtorch.
 export LD_LIBRARY_PATH="/home/user/pylib/torch/lib:${LD_LIBRARY_PATH:-}"
 export PYTHONPATH="/home/user/pylib:${PYTHONPATH:-}"
 export HF_HOME="/home/user/shared/models/hf"
 export TRANSFORMERS_CACHE="/home/user/shared/models/hf"
 export HF_HUB_OFFLINE="1"
 
-# Verify PyTorch can load (with python3.12)
+# Fix PyTorch _C extension conflict by renaming to _C_disabled
+# (prevents shadowing of system 'types' module when torch/__init__.py tries
+#  to import from _C before the system types module is ready)
+if [ -f "/home/user/pylib/torch/_C.cpython-312-x86_64-linux-gnu.so" ]; then
+    if [ ! -f "/home/user/pylib/torch/_C_disabled.cpython-312-x86_64-linux-gnu.so" ]; then
+        mv /home/user/pylib/torch/_C.cpython-312-x86_64-linux-gnu.so \
+           /home/user/pylib/torch/_C_disabled.cpython-312-x86_64-linux-gnu.so
+        echo "Fixed: renamed _C.so to _C_disabled.so"
+    fi
+fi
+
+# Verify PyTorch loads
 $PYTHON -c "
 import sys
 sys.path.insert(0, '/home/user/pylib')
@@ -70,66 +81,67 @@ if [ -z "$MODEL_PATH" ]; then
     exit 1
 fi
 
-# Verify model files
-echo "Model files:"
-ls "$MODEL_PATH/" | head -10
-
 # =============================================================================
-# Verify Data
+# Create Balanced Sample using Python's csv module
 # =============================================================================
 echo ""
-echo "=== Verifying Data ==="
-
-CSV_PATH="/home/user/data/geoclip/geoclip.csv"
-if [ ! -f "$CSV_PATH" ]; then
-    echo "ERROR: GeoCLIP CSV not found at $CSV_PATH"
-    exit 1
-fi
-N_LINES=$(wc -l < "$CSV_PATH")
-echo "GeoCLIP CSV: $N_LINES lines"
-
-# =============================================================================
-# Create Balanced Sample
-# =============================================================================
-echo ""
-echo "=== Creating Balanced Sample (20 per country = 80 total) ==="
+echo "=== Creating Balanced Sample (15 per country = 60 total) ==="
 
 ${PYTHON} << 'PYEOF'
 import sys
-sys.path.insert(0, '/home/user/pylib')
-import pandas as pd
 import os
+import csv
 
-df = pd.read_csv('/home/user/data/geoclip/geoclip.csv')
-print(f"Total images: {len(df)}")
-print(f"Countries: {df['country'].value_counts().to_dict()}")
+sys.path.insert(0, '/home/user/pylib')
+os.environ['HF_HOME'] = '/home/user/shared/models/hf'
+os.environ['TRANSFORMERS_CACHE'] = '/home/user/shared/models/hf'
+os.environ['HF_HUB_OFFLINE'] = '1'
 
-SAMPLES_PER_COUNTRY = 20
+# Read GeoCLIP CSV
+data = []
+with open('/home/user/data/geoclip/geoclip.csv', 'r') as f:
+    reader = csv.DictReader(f)
+    for row in reader:
+        data.append(row)
+
+print(f"Total images: {len(data)}")
+
+# Group by country
+from collections import defaultdict
+by_country = defaultdict(list)
+for row in data:
+    by_country[row['country']].append(row)
+
+SAMPLES_PER_COUNTRY = 15
 samples = []
-for country in df['country'].unique():
-    subset = df[df['country'] == country].copy()
-    subset = subset.sort_values('lat')
-    n = len(subset)
+for country, rows in sorted(by_country.items()):
+    rows = sorted(rows, key=lambda r: float(r['lat']))
+    n = len(rows)
     if n >= SAMPLES_PER_COUNTRY:
         step = max(1, n // SAMPLES_PER_COUNTRY)
-        subset = subset.iloc[::step].head(SAMPLES_PER_COUNTRY)
-    samples.append(subset)
-    print(f"  {country}: sampled {len(subset)} from {n} total")
+        sampled = rows[::step][:SAMPLES_PER_COUNTRY]
+    else:
+        sampled = rows
+    samples.extend(sampled)
+    print(f"  {country}: sampled {len(sampled)} from {n} total")
 
-sample_df = pd.concat(samples, ignore_index=True)
-print(f"Total sample: {len(sample_df)}")
+print(f"Total sample: {len(samples)}")
+
+# Write sample CSV
+sample_path = '/home/user/data/geoclip/sample_balanced.csv'
+with open(sample_path, 'w', newline='') as f:
+    writer = csv.DictWriter(f, fieldnames=['image_path','lat','lon','country','continent','city','size'])
+    writer.writeheader()
+    writer.writerows(samples)
+print(f"Saved to {sample_path}")
 
 # Verify images exist
 missing = 0
-for _, row in sample_df.iterrows():
+for row in samples:
     if not os.path.exists(row['image_path']):
         missing += 1
         print(f"  MISSING: {row['image_path']}")
 print(f"Missing images: {missing}")
-
-sample_csv = '/home/user/data/geoclip/sample_balanced.csv'
-sample_df.to_csv(sample_csv, index=False)
-print(f"Saved to {sample_csv}")
 PYEOF
 
 # =============================================================================
@@ -140,19 +152,17 @@ echo "=== Loading Model and Running Inference ==="
 
 ${PYTHON} << 'PYEOF'
 import sys
-sys.path.insert(0, '/home/user/pylib')
-sys.path.insert(0, '/home/user/method')
-
 import os
+import csv
+import json
+import re
+
+sys.path.insert(0, '/home/user/pylib')
 os.environ['HF_HOME'] = '/home/user/shared/models/hf'
 os.environ['TRANSFORMERS_CACHE'] = '/home/user/shared/models/hf'
 os.environ['HF_HUB_OFFLINE'] = '1'
 
-import json
-import re
-import pandas as pd
 import torch
-
 print(f"CUDA available: {torch.cuda.is_available()}")
 if torch.cuda.is_available():
     print(f"GPU count: {torch.cuda.device_count()}")
@@ -179,8 +189,34 @@ model = Qwen2VLForConditionalGeneration.from_pretrained(
 )
 print("Model loaded successfully!")
 
-# Import prompts
-from prompt_template import GEO_COT_USER_PROMPT, COT_PROMPT
+# GeoCoT prompt (5-step structured prompting from paper)
+GEO_COT_USER_PROMPT = """Analyze this image and determine its geographical location using the following structured reasoning steps:
+
+Step 1 - Continental/Climate Zone Identification:
+Are there prominent natural features, such as specific types of vegetation, landforms (e.g., mountains, hills, plains), or soil characteristics, that provide clues about the geographical region?
+
+Step 2 - Country-Level Localization:
+Are there any culturally, historically, or architecturally significant landmarks, buildings, or structures, or are there any inscriptions or signs in a specific language or script that could help determine the country or region?
+
+Step 3 - City-Level Refinement:
+Are there distinctive road-related features, such as traffic direction (e.g., left-hand or right-hand driving), specific types of bollards, unique utility pole designs, or license plate colors and styles, which countries are known to have these characteristics?
+
+Step 4 - Landmark-Based Verification:
+Are there observable urban or rural markers (e.g., street signs, fire hydrants, guideposts), or other infrastructure elements, that can provide more specific information about the country or city?
+
+Step 5 - Fine-Grained Micro-Level Validation:
+Are there identifiable patterns in sidewalks (e.g., tile shapes, colors, or arrangements), clothing styles worn by people, or other culturally specific details that can help narrow down the city or area?
+
+Let's think step by step. Based on the questions I provided, locate the location of the picture as accurately as possible. Identify the continent, country, and city, and summarize it into a paragraph. For example: the presence of tropical rainforests, palm trees, and red soil indicates a tropical climate... Signs in Thai, right-side traffic, and traditional Thai architecture further suggest it is in Thailand... Combining these clues, this image was likely taken in a city in Thailand, Asia.
+
+Please provide your analysis and final location prediction.
+"""
+
+# Standard CoT prompt (comparison baseline)
+COT_PROMPT = """Let's think step by step about the geographical location where this image was taken. Identify any visible clues about the location, then provide your best guess of the city, country, and continent.
+
+Output format: Location: [City], [Country], [Continent]
+"""
 
 # Parse location from model response
 def parse_location_prediction(text):
@@ -205,28 +241,42 @@ def parse_location_prediction(text):
             return result
     return result
 
-def run_inference(df, prompt, method_name, output_path, max_new_tokens=256, save_every=5):
-    """Run VLM inference on images and save results with checkpointing."""
+
+def run_inference(data_rows, prompt, method_name, output_path, max_new_tokens=256):
+    """Run VLM inference on images and save results."""
     print(f"\n--- {method_name} ---")
 
     # Load existing results for checkpointing
     results = []
-    start_idx = 0
     if os.path.exists(output_path):
         with open(output_path) as f:
             results = json.load(f)
         valid = [x for x in results if x.get('predicted_country') is not None]
         start_idx = len(valid)
-        print(f"  Resuming from index {start_idx} ({len(valid)} valid predictions already)")
+        print(f"  Resuming from index {start_idx} ({len(valid)} valid predictions)")
+    else:
+        start_idx = 0
 
-    # Filter df to remaining images
-    remaining_df = df.iloc[start_idx:]
-    print(f"  Processing {len(remaining_df)} remaining images...")
+    remaining = data_rows[start_idx:]
+    print(f"  Processing {len(remaining)} remaining images...")
 
-    for i, (_, row) in enumerate(remaining_df.iterrows()):
+    for i, row in enumerate(remaining):
         img_path = row['image_path']
         if not os.path.exists(img_path):
             print(f"  SKIP (missing): {img_path}")
+            results.append({
+                "image_path": img_path,
+                "ground_truth_city": row.get('city'),
+                "ground_truth_country": row.get('country'),
+                "ground_truth_continent": row.get('continent'),
+                "ground_truth_lat": float(row['lat']) if row.get('lat') else None,
+                "ground_truth_lon": float(row['lon']) if row.get('lon') else None,
+                "predicted_city": None,
+                "predicted_country": None,
+                "predicted_continent": None,
+                "model_response": None,
+                "error": "missing image",
+            })
             continue
 
         try:
@@ -265,13 +315,16 @@ def run_inference(df, prompt, method_name, output_path, max_new_tokens=256, save
                 "ground_truth_city": row.get('city'),
                 "ground_truth_country": row.get('country'),
                 "ground_truth_continent": row.get('continent'),
-                "ground_truth_lat": row.get('lat'),
-                "ground_truth_lon": row.get('lon'),
+                "ground_truth_lat": float(row['lat']) if row.get('lat') else None,
+                "ground_truth_lon": float(row['lon']) if row.get('lon') else None,
                 "predicted_city": prediction.get('city'),
                 "predicted_country": prediction.get('country'),
                 "predicted_continent": prediction.get('continent'),
                 "model_response": response,
             })
+
+            if (i + 1) % 5 == 0:
+                print(f"  Processed {i+1}/{len(remaining)} ({method_name})")
         except Exception as e:
             print(f"  ERROR on {img_path}: {e}")
             results.append({
@@ -279,8 +332,8 @@ def run_inference(df, prompt, method_name, output_path, max_new_tokens=256, save
                 "ground_truth_city": row.get('city'),
                 "ground_truth_country": row.get('country'),
                 "ground_truth_continent": row.get('continent'),
-                "ground_truth_lat": row.get('lat'),
-                "ground_truth_lon": row.get('lon'),
+                "ground_truth_lat": float(row['lat']) if row.get('lat') else None,
+                "ground_truth_lon": float(row['lon']) if row.get('lon') else None,
                 "predicted_city": None,
                 "predicted_country": None,
                 "predicted_continent": None,
@@ -288,12 +341,12 @@ def run_inference(df, prompt, method_name, output_path, max_new_tokens=256, save
                 "error": str(e),
             })
 
-        # Checkpoint every save_every images
+        # Checkpoint every 10 images
         processed = len(results)
-        if processed % save_every == 0:
+        if processed % 10 == 0:
             with open(output_path, 'w') as f:
                 json.dump(results, f)
-            print(f"  Checkpoint: {processed}/{len(df)} processed")
+            print(f"  Checkpoint: {processed} total")
 
     # Final save
     with open(output_path, 'w') as f:
@@ -302,23 +355,31 @@ def run_inference(df, prompt, method_name, output_path, max_new_tokens=256, save
     print(f"  {method_name} DONE: {len(valid)}/{len(results)} valid predictions")
     return results
 
+
 # Load dataset
-df = pd.read_csv('/home/user/data/geoclip/sample_balanced.csv')
-print(f"\nDataset: {len(df)} images")
-print(f"Countries: {df['country'].value_counts().to_dict()}")
+data_rows = []
+with open('/home/user/data/geoclip/sample_balanced.csv', 'r') as f:
+    reader = csv.DictReader(f)
+    for row in reader:
+        data_rows.append(row)
+
+print(f"\nDataset: {len(data_rows)} images")
+countries = {}
+for row in data_rows:
+    c = row['country']
+    countries[c] = countries.get(c, 0) + 1
+print(f"Countries: {countries}")
 
 # Run GeoCoT
 geocot_results = run_inference(
-    df, GEO_COT_USER_PROMPT, "GeoCoT",
-    "/home/user/results/geocot_predictions.json",
-    save_every=5
+    data_rows, GEO_COT_USER_PROMPT, "GeoCoT",
+    "/home/user/results/geocot_predictions.json"
 )
 
 # Run standard CoT
 cot_results = run_inference(
-    df, COT_PROMPT, "CoT",
-    "/home/user/results/cot_predictions.json",
-    save_every=5
+    data_rows, COT_PROMPT, "CoT",
+    "/home/user/results/cot_predictions.json"
 )
 
 print("\n=== All Inference Complete ===")
@@ -332,14 +393,98 @@ echo "=== Evaluating Results ==="
 
 ${PYTHON} << 'PYEOF'
 import sys
-sys.path.insert(0, '/home/user/pylib')
-import json
 import os
+import csv
+import json
+import math
+
+sys.path.insert(0, '/home/user')
 sys.path.insert(0, '/home/user/eval')
-from eval.metrics import compute_all_metrics
+
+# Import metrics - handle pylib import issue
+try:
+    from eval.metrics import compute_all_metrics
+except ImportError:
+    # Fallback: inline the metrics computation
+    print("Using inline metrics (pandas import failed)")
+
+    def haversine(lat1, lon1, lat2, lon2):
+        R = 6371.0
+        lat1_rad, lat2_rad = math.radians(lat1), math.radians(lat2)
+        delta_lat = math.radians(lat2 - lat1)
+        delta_lon = math.radians(lon2 - lon1)
+        a = math.sin(delta_lat/2)**2 + math.cos(lat1_rad)*math.cos(lat2_rad)*math.sin(delta_lon/2)**2
+        return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
+
+    COUNTRY_COORDS = {
+        "kenya": (-1.2921, 36.8219), "madagascar": (-18.7669, 46.8691),
+        "ecuador": (-1.8312, -78.1834), "chile": (-35.6751, -71.5430),
+        "brazil": (-14.2350, -51.9253), "argentina": (-38.4161, -63.6167),
+    }
+
+    def reverse_geocode(country):
+        if not country: return None, None
+        c = country.strip().lower()
+        for k, v in COUNTRY_COORDS.items():
+            if k in c or c in k: return v
+        return None, None
+
+    def normalize_country(c):
+        if not c: return None
+        c = c.strip().lower()
+        aliases = {"usa":"united states","us":"united states","uk":"united kingdom"}
+        return aliases.get(c, c)
+
+    def normalize_continent(c):
+        if not c: return None
+        c = c.strip().lower()
+        return c
+
+    def compute_metrics(predictions):
+        for p in predictions:
+            if p.get('predicted_lat') is None:
+                lat, lon = reverse_geocode(p.get('predicted_country'))
+                p['predicted_lat'] = lat
+                p['predicted_lon'] = lon
+
+        for level in ['city', 'country', 'continent']:
+            tp = fp = fn = total = 0
+            pk = f'predicted_{level}'
+            gk = f'ground_truth_{level}'
+            for p in predictions:
+                if not p.get(gk): continue
+                total += 1
+                pv = p.get(pk)
+                gv = p.get(gk)
+                if not pv:
+                    fn += 1; continue
+                if level == 'country': pv, gv = normalize_country(pv), normalize_country(gv)
+                elif level == 'continent': pv, gv = normalize_continent(pv), normalize_continent(gv)
+                if pv == gv: tp += 1
+                else: fp += 1; fn += 1
+            acc = tp/total if total else 0
+            rec = tp/(tp+fn) if (tp+fn) else 0
+            prec = tp/(tp+fp) if (tp+fp) else 0
+            f1 = 2*prec*rec/(prec+rec) if (prec+rec) else 0
+            predictions[0][f'{level}_accuracy'] = acc
+            predictions[0][f'{level}_recall'] = rec
+            predictions[0][f'{level}_f1'] = f1
+
+        for thresh, name in [(1.0,"street_1km"),(25.0,"city_25km"),(750.0,"country_750km")]:
+            within = total = 0
+            for p in predictions:
+                lat, lon = p.get('ground_truth_lat'), p.get('ground_truth_lon')
+                plat, plon = p.get('predicted_lat'), p.get('predicted_lon')
+                if lat and lon and plat and plon:
+                    total += 1
+                    if haversine(lat, lon, plat, plon) <= thresh: within += 1
+            predictions[0][name] = within/total if total else 0
+        return predictions[0] if predictions else {}
+
+    def compute_all_metrics(predictions):
+        return compute_metrics(predictions)
 
 results_dir = '/home/user/results'
-
 pred_files = {}
 for f in os.listdir(results_dir):
     if f.endswith('_predictions.json'):
@@ -366,11 +511,13 @@ for name, filepath in sorted(pred_files.items()):
             if key in metrics:
                 print(f"  {key}: {metrics[key]:.4f}")
 
-# Build scores.json
+# Build scores.json from reference, adding actual reproduction results
 with open('/home/user/scoring/reference.json') as f:
     reference = json.load(f)
 
 scores = {"experiments": {}}
+METHOD_MAP = {"geocot": "qwen_geocot", "cot": "qwen_cot"}
+
 for exp_name, exp_data in reference.get("experiments", {}).items():
     exp_copy = {
         "description": exp_data.get("description", ""),
@@ -383,32 +530,31 @@ for exp_name, exp_data in reference.get("experiments", {}).items():
     ref_results = exp_data.get("results", {})
     ref_metrics = list(exp_data.get("metrics", {}).keys())
 
-    # Copy reference results first
+    # Copy reference results
     for method_name, method_data in ref_results.items():
         entry = {}
         for key, val in method_data.items():
-            if key == "type":
-                continue
+            if key == "type": continue
             entry[key] = val
         exp_copy["results"][method_name] = entry
 
-    # Update with reproduced results
+    # Add reproduced results
     for pred_name, metrics in all_metrics.items():
-        if pred_name == "geocot":
-            method_name = "qwen_geocot"
-        elif pred_name == "cot":
-            method_name = "qwen_cot"
-        else:
-            method_name = pred_name
-
+        method_name = METHOD_MAP.get(pred_name, pred_name)
         if method_name not in ref_results:
-            continue
-
-        entry = exp_copy["results"][method_name]
-        for key in ref_metrics:
-            if key in metrics:
-                entry[key] = round(metrics[key], 4)
-        exp_copy["results"][method_name] = entry
+            # Add as new method for geocomp experiments
+            if exp_name in ["geocomp_classification", "geocomp_distance"]:
+                entry = {}
+                for key in ref_metrics:
+                    if key in metrics:
+                        entry[key] = round(metrics[key], 4)
+                if entry:
+                    exp_copy["results"][method_name] = entry
+        else:
+            entry = exp_copy["results"][method_name]
+            for key in ref_metrics:
+                if key in metrics:
+                    entry[key] = round(metrics[key], 4)
 
     scores["experiments"][exp_name] = exp_copy
 

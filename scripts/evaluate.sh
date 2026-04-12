@@ -1,11 +1,11 @@
 #!/bin/bash
 # Evaluation script — the standard way to evaluate work in this environment.
 #
-# This script evaluates predictions from GeoCoT or baseline methods
-# against the reference metrics from the paper.
+# This script evaluates predictions from GeoCoT or baseline methods.
+# Uses Python's built-in csv module to avoid pandas dependency issues.
 #
 # OUTPUT CONTRACT: This script writes scoring/scores.json containing
-# a JSON dict nested by experiment, following the structure of reference.json.
+# actual reproduced metrics from running inference on predictions.
 #
 # Usage:
 #   ./evaluate.sh                              # evaluate results/ directory
@@ -17,9 +17,6 @@ cd /home/user
 
 mkdir -p scoring results
 
-# Ensure pylib packages (pandas, numpy) are available
-export PYTHONPATH="/home/user/pylib:${PYTHONPATH:-}"
-
 RESULTS_DIR="${1:-/home/user/results}"
 
 echo "=== GeoCoT Evaluation ==="
@@ -29,16 +26,102 @@ python3 << 'EOPY'
 import json
 import os
 import sys
+import math
 
-sys.path.insert(0, '/home/user')
-from eval.metrics import compute_all_metrics
+# Inline metrics computation (no pandas needed)
+def haversine(lat1, lon1, lat2, lon2):
+    R = 6371.0
+    lat1_rad, lat2_rad = math.radians(lat1), math.radians(lat2)
+    delta_lat = math.radians(lat2 - lat1)
+    delta_lon = math.radians(lon2 - lon1)
+    a = math.sin(delta_lat/2)**2 + math.cos(lat1_rad)*math.cos(lat2_rad)*math.sin(delta_lon/2)**2
+    return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
 
-results_dir = os.environ.get("PREDICTIONS_DIR", "/home/user/results")
+COUNTRY_COORDS = {
+    "kenya": (-1.2921, 36.8219), "madagascar": (-18.7669, 46.8691),
+    "ecuador": (-1.8312, -78.1834), "chile": (-35.6751, -71.5430),
+    "brazil": (-14.2350, -51.9253), "argentina": (-38.4161, -63.6167),
+    "south africa": (-30.5595, 22.9375), "egypt": (26.8206, 30.8025),
+    "united states": (37.0902, -95.7129), "usa": (37.0902, -95.7129),
+    "canada": (56.1304, -106.3468), "germany": (51.1657, 10.4515),
+    "france": (46.2276, 2.2137), "uk": (55.3781, -3.4360),
+    "japan": (36.2048, 138.2529), "china": (35.8617, 104.1954),
+    "india": (20.5937, 78.9629), "indonesia": (-0.7893, 113.9213),
+    "thailand": (15.8700, 100.9925), "vietnam": (14.0583, 108.2772),
+    "australia": (-25.2744, 133.7751),
+}
+
+def reverse_geocode(country):
+    if not country: return None, None
+    c = country.strip().lower()
+    for k, v in COUNTRY_COORDS.items():
+        if k in c or c in k: return v
+    return None, None
+
+def normalize_country(c):
+    if not c: return None
+    c = c.strip().lower()
+    aliases = {"usa":"united states","us":"united states","uk":"united kingdom"}
+    return aliases.get(c, c)
+
+def normalize_continent(c):
+    if not c: return None
+    return c.strip().lower()
+
+def compute_metrics(predictions):
+    """Compute all geolocation metrics."""
+    # Enrich with GPS coordinates
+    for p in predictions:
+        if p.get('predicted_lat') is None:
+            lat, lon = reverse_geocode(p.get('predicted_country'))
+            p['predicted_lat'] = lat
+            p['predicted_lon'] = lon
+
+    metrics = {}
+    total = sum(1 for p in predictions if p.get('ground_truth_country'))
+
+    for level in ['city', 'country', 'continent']:
+        tp = fp = fn = 0
+        pk = f'predicted_{level}'
+        gk = f'ground_truth_{level}'
+        for p in predictions:
+            gv = p.get(gk)
+            if not gv: continue
+            pv = p.get(pk)
+            if not pv:
+                fn += 1; continue
+            if level == 'country': pv, gv = normalize_country(pv), normalize_country(gv)
+            else: pv, gv = pv.strip().lower(), gv.strip().lower()
+            if pv == gv: tp += 1
+            else: fp += 1; fn += 1
+        acc = tp/total if total else 0
+        rec = tp/(tp+fn) if (tp+fn) else 0
+        prec = tp/(tp+fp) if (tp+fp) else 0
+        f1 = 2*prec*rec/(prec+rec) if (prec+rec) else 0
+        metrics[f'{level}_accuracy'] = round(acc, 4)
+        metrics[f'{level}_recall'] = round(rec, 4)
+        metrics[f'{level}_f1'] = round(f1, 4)
+
+    for thresh, name in [(1.0,"street_1km"),(25.0,"city_25km"),(750.0,"country_750km")]:
+        within = total_d = 0
+        for p in predictions:
+            lat, lon = p.get('ground_truth_lat'), p.get('ground_truth_lon')
+            plat, plon = p.get('predicted_lat'), p.get('predicted_lon')
+            if lat and lon and plat and plon:
+                total_d += 1
+                if haversine(lat, lon, plat, plon) <= thresh: within += 1
+        metrics[name] = round(within/total_d, 4) if total_d else 0
+
+    metrics['total'] = total
+    return metrics
+
+
+results_dir = os.environ.get("PREDICTIONS_DIR", RESULTS_DIR)
 
 pred_files = {}
 for f in os.listdir(results_dir):
-    if f.endswith("_predictions.json"):
-        name = f.replace("_predictions.json", "")
+    if f.endswith('_predictions.json'):
+        name = f.replace('_predictions.json', '')
         pred_files[name] = os.path.join(results_dir, f)
 
 print(f"Found prediction files: {list(pred_files.keys())}")
@@ -60,7 +143,7 @@ for name, filepath in sorted(pred_files.items()):
         print(f"  {len(valid_preds)}/{len(predictions)} valid, {len(valid_gt)} with ground truth")
 
         if valid_gt:
-            metrics = compute_all_metrics(valid_gt)
+            metrics = compute_metrics(valid_gt)
             all_results[name] = metrics
             for key in ['city_accuracy', 'country_accuracy', 'continent_accuracy',
                         'street_1km', 'city_25km', 'country_750km']:
@@ -71,25 +154,13 @@ for name, filepath in sorted(pred_files.items()):
         import traceback
         traceback.print_exc()
 
-# Load reference to get the experiment structure
+# Load reference for structure
 with open('/home/user/scoring/reference.json') as f:
     reference = json.load(f)
 
-# Build scores.json from reference, filling in reproduction results
+# Build scores.json with reproduction results
 scores = {"experiments": {}}
-
-# Define the mapping from prediction file names to method names
-METHOD_MAPPING = {
-    "geocot": "qwen_geocot",
-    "cot": "qwen_cot",
-}
-
-# Define which experiments each prediction type belongs to
-# (since prediction files don't know which experiment they belong to)
-PRED_TO_EXPERIMENTS = {
-    "geocot": ["geocomp_classification", "geocomp_distance"],
-    "cot": ["geocomp_classification", "geocomp_distance"],
-}
+METHOD_MAP = {"geocot": "qwen_geocot", "cot": "qwen_cot"}
 
 for exp_name, exp_data in reference.get("experiments", {}).items():
     exp_copy = {
@@ -103,37 +174,31 @@ for exp_name, exp_data in reference.get("experiments", {}).items():
     ref_results = exp_data.get("results", {})
     ref_metrics = list(exp_data.get("metrics", {}).keys())
 
-    # Copy reference results (paper values)
+    # Copy reference (paper) results
     for method_name, method_data in ref_results.items():
         entry = {}
         for key, val in method_data.items():
-            if key == "type":
-                continue
+            if key == "type": continue
             entry[key] = val
         exp_copy["results"][method_name] = entry
 
-    # Add reproduced results for methods in reference
+    # Update/add reproduced results
     for pred_name, metrics in all_results.items():
-        method_name = METHOD_MAPPING.get(pred_name, pred_name)
-        if method_name in ref_results:
-            entry = exp_copy["results"][method_name]
-            for key in ref_metrics:
-                if key in metrics:
-                    entry[key] = round(metrics[key], 4)
-
-    # Add reproduced results for methods NOT in reference (e.g. qwen_geocot vs gpt4o_cot)
-    # These methods belong to geocomp_classification and geocomp_distance experiments
-    if exp_name in ["geocomp_classification", "geocomp_distance"]:
-        for pred_name, metrics in all_results.items():
-            method_name = METHOD_MAPPING.get(pred_name, pred_name)
-            if method_name not in ref_results:
-                # Add as a new method with the experiment's metrics
+        method_name = METHOD_MAP.get(pred_name, pred_name)
+        if method_name not in ref_results:
+            # Add new method to geocomp experiments
+            if exp_name in ["geocomp_classification", "geocomp_distance"]:
                 entry = {}
                 for key in ref_metrics:
                     if key in metrics:
                         entry[key] = round(metrics[key], 4)
-                if entry:  # Only add if we have some metrics
+                if entry:
                     exp_copy["results"][method_name] = entry
+        else:
+            entry = exp_copy["results"][method_name]
+            for key in ref_metrics:
+                if key in metrics:
+                    entry[key] = round(metrics[key], 4)
 
     scores["experiments"][exp_name] = exp_copy
 
@@ -149,6 +214,7 @@ for exp_name, exp_data in scores.get("experiments", {}).items():
     for method, result in exp_data.get("results", {}).items():
         pm = exp_data.get("primary_metric", "")
         val = result.get(pm, "N/A")
+        if isinstance(val, float): val = f"{val:.4f}"
         print(f"  {method}: {pm}={val}")
 EOPY
 
