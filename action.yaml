@@ -2,4 +2,4 @@ action: submit
 gpus: 1
 test: false
 milestone: method_runs
-notes: "Reduced to 4 per country (16 total), tokens=128, checkpoint=5. Previous 8/country job stuck in queue ~13hrs. Even smaller sample to ensure completion within queue wait + runtime budget."
+notes: "Fixed Python class names: Qwen2VL->Qwen2_5_VLForConditionalGeneration (underscores), Qwen2.5VLProcessor->Qwen2_5_VLProcessor. Fixed PYTHON path to /usr/bin/python3 to bypass wrapper. setup.sh uses idempotent checks. 4 per country (16 total)."

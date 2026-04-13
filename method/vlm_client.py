@@ -86,7 +86,7 @@ class QwenVLClient(VLMClient):
 
         try:
             import torch
-            from transformers import Qwen2VLForConditionalGeneration, AutoProcessor
+            from transformers import Qwen2_5_VLForConditionalGeneration, Qwen2_5_VLProcessor
             from qwen_vl_utils import process_vision_info
         except ImportError as e:
             raise ImportError(
@@ -115,8 +115,8 @@ class QwenVLClient(VLMClient):
         self.device = device if _torch.cuda.is_available() else "cpu"
 
         print(f"Loading Qwen2.5-VL from {self.model_path}...")
-        self.processor = AutoProcessor.from_pretrained(self.model_path)
-        self.model = Qwen2VLForConditionalGeneration.from_pretrained(
+        self.processor = Qwen2_5_VLProcessor.from_pretrained(self.model_path)
+        self.model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
             self.model_path, torch_dtype=torch.bfloat16, device_map="auto"
         )
         print("Model loaded successfully.")

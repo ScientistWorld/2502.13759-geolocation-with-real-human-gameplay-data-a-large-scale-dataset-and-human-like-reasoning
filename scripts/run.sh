@@ -32,7 +32,7 @@ else
     export HF_HUB_OFFLINE="1"
 fi
 
-PYTHON="python3"
+PYTHON="/usr/bin/python3"
 echo "Using Python: $PYTHON"
 $PYTHON --version
 
@@ -150,12 +150,12 @@ for d in ['/home/user/checkpoints/Qwen2.5-VL-7B-Instruct',
 
 print(f"Loading model from: {MODEL_PATH}")
 
-from transformers import Qwen2VLForConditionalGeneration, AutoProcessor
+from transformers import Qwen2_5_VLForConditionalGeneration, Qwen2_5_VLProcessor
 from qwen_vl_utils import process_vision_info
 
-print("Loading Qwen2VL processor and model...")
-processor = AutoProcessor.from_pretrained(MODEL_PATH)
-model = Qwen2VLForConditionalGeneration.from_pretrained(
+print("Loading Qwen2.5-VL processor and model...")
+processor = Qwen2_5_VLProcessor.from_pretrained(MODEL_PATH)
+model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
     MODEL_PATH,
     torch_dtype=torch.bfloat16,
     device_map="auto",
