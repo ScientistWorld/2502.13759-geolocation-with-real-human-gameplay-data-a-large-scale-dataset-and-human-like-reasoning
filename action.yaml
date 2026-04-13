@@ -2,4 +2,4 @@ action: submit
 gpus: 1
 test: false
 milestone: method_runs
-notes: "Full GPU inference: GeoCoT vs CoT with Qwen2.5-VL on 60 balanced GeoCLIP images. Runs complete pipeline: balanced sample creation, model inference with checkpointing, evaluation, and scores.json generation."
+notes: "Fixed: added torchvision to torch install (qwen_vl_utils requires it). Already had huggingface_hub cleanup and --system installs."

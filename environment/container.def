@@ -11,33 +11,3 @@ From: ubuntu:22.04
 
     echo "Python version: $(python3 --version 2>&1)"
     echo "=== Container bootstrap complete ==="
-
-    # Install Python packages (runs at build time - pylib doesn't exist yet)
-    pip install --break-system-packages uv 2>/dev/null || pip install uv 2>/dev/null || true
-    export UV_SYSTEM_PYTHON=1 UV_BREAK_SYSTEM_PACKAGES=1
-
-    echo "=== Installing Python packages (build-time) ==="
-
-    # Remove any broken system torch
-    python3 -m pip uninstall -y torch 2>/dev/null || true
-
-    # Install PyTorch (CPU build - CUDA-enabled torch comes from pylib at runtime)
-    echo "Installing torch..."
-    uv pip install --system torch --index-url https://download.pytorch.org/whl/cpu 2>/dev/null || \
-    python3 -m pip install --break-system-packages torch
-
-    # Install remaining packages
-    echo "Installing transformers and other packages..."
-    uv pip install --system \
-        transformers accelerate qwen_vl_utils protobuf pillow numpy pandas 2>/dev/null || \
-    python3 -m pip install --break-system-packages \
-        transformers accelerate qwen_vl_utils protobuf pillow numpy pandas
-
-    echo "=== Verifying packages ==="
-    python3 -c "import torch; print(f'torch {torch.__version__}')" || echo "torch: FAILED"
-    python3 -c "import transformers; print(f'transformers {transformers.__version__}')" || echo "transformers: FAILED"
-    python3 -c "from qwen_vl_utils import process_vision_info; print('qwen_vl_utils OK')" || echo "qwen_vl_utils: FAILED"
-    python3 -c "import accelerate; print(f'accelerate {accelerate.__version__}')" || echo "accelerate: FAILED"
-    python3 -c "from google import protobuf; print('protobuf OK')" || echo "protobuf: FAILED"
-
-    echo "=== Environment setup complete ==="

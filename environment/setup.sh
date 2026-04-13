@@ -1,54 +1,65 @@
 #!/bin/bash
 # Runtime environment setup for GeoCoT reproduction.
-# This script runs at JOB EXECUTION TIME (before running inference).
-# It configures PYTHONPATH and LD_LIBRARY_PATH to use the bind-mounted pylib
-# (which contains CUDA-enabled PyTorch).
-#
-# NOTE: This is NOT run during container build! The container already has
-# CPU-compatible packages installed. This script prioritizes the pylib
-# CUDA packages at runtime.
+# This script runs at JOB EXECUTION TIME inside the container.
 
 set -e
 
 echo "=== Setting up GeoCoT environment (runtime) ==="
 
-# Set LD_LIBRARY_PATH so CUDA/NCCL libraries from pylib are found.
-export LD_LIBRARY_PATH="/home/user/pylib/torch/lib:/home/user/pylib/nvidia/nccl/lib:/home/user/pylib/nvidia/cuda_runtime/lib:/home/user/pylib/nvidia/cuda_cupti/lib:${LD_LIBRARY_PATH:-}"
+# Remove any conflicting packages in user site-packages that would shadow system installs.
+# The base Ubuntu image has old huggingface_hub in /root/.local that conflicts
+# with the transformers version we install to /usr/local/lib.
+python3 -m pip uninstall -y huggingface_hub 2>/dev/null || true
+rm -rf /root/.local/lib/python3.10/site-packages/huggingface_hub* 2>/dev/null || true
+rm -rf /root/.local/lib/python3.10/site-packages/transformers* 2>/dev/null || true
 
-# Prepend pylib to PYTHONPATH so Python finds CUDA-enabled packages first.
-export PYTHONPATH="/home/user/pylib:${PYTHONPATH:-}"
+# Ensure uv is available
+pip install --break-system-packages uv 2>/dev/null || pip install uv 2>/dev/null || true
+export UV_SYSTEM_PYTHON=1 UV_BREAK_SYSTEM_PACKAGES=1
+
+# Remove any broken system torch
+python3 -m pip uninstall -y torch 2>/dev/null || true
+
+# Install CUDA-enabled PyTorch and torchvision (qwen_vl_utils requires torchvision)
+echo "Installing CUDA-enabled torch..."
+uv pip install --system --no-cache \
+    torch torchvision --index-url https://download.pytorch.org/whl/cu124 2>/dev/null || \
+python3 -m pip install --break-system-packages --no-cache \
+    torch torchvision --index-url https://download.pytorch.org/whl/cu124
+
+# Install all remaining packages together
+echo "Installing transformers and other packages..."
+uv pip install --system --no-cache \
+    transformers \
+    accelerate \
+    qwen_vl_utils \
+    protobuf \
+    pillow \
+    numpy \
+    pandas \
+    huggingface_hub \
+    2>/dev/null || \
+python3 -m pip install --break-system-packages --no-cache \
+    transformers \
+    accelerate \
+    qwen_vl_utils \
+    protobuf \
+    pillow \
+    numpy \
+    pandas \
+    huggingface_hub
 
 # Set HuggingFace cache to shared location
 export HF_HOME="/home/user/shared/models/hf"
 export TRANSFORMERS_CACHE="/home/user/shared/models/hf"
 export HF_HUB_OFFLINE="1"
 
-# Remove broken system torch if it exists (has wrong NCCL symbols).
-# This prevents import conflicts with pylib's CUDA-enabled torch.
-echo "Checking for conflicting system torch..."
-python3 -m pip uninstall -y torch 2>/dev/null || true
-
-# Fix PyTorch _C extension conflict by renaming to _C_disabled.
-# The pylib torch has _C.cpython-312-x86_64-linux-gnu.so which shadows
-# system Python's types module when imported from pylib.
-if [ -f "/home/user/pylib/torch/_C.cpython-312-x86_64-linux-gnu.so" ]; then
-    if [ ! -f "/home/user/pylib/torch/_C_disabled.cpython-312-x86_64-linux-gnu.so" ]; then
-        mv /home/user/pylib/torch/_C.cpython-312-x86_64-linux-gnu.so \
-           /home/user/pylib/torch/_C_disabled.cpython-312-x86_64-linux-gnu.so
-        echo "Fixed: renamed _C.so to _C_disabled.so"
-    fi
-fi
-
-# Verify PyTorch loads with CUDA
-echo "Verifying PyTorch..."
-python3 -c "
-import sys
-sys.path.insert(0, '/home/user/pylib')
-import torch
-print(f'torch {torch.__version__}, CUDA available: {torch.cuda.is_available()}')
-if torch.cuda.is_available():
-    for i in range(torch.cuda.device_count()):
-        print(f'  GPU {i}: {torch.cuda.get_device_name(i)}')
-"
+# Verify packages
+echo "Verifying packages..."
+python3 -c "import torch; print(f'torch {torch.__version__}, CUDA: {torch.cuda.is_available()}')"
+python3 -c "import transformers; print(f'transformers {transformers.__version__}')"
+python3 -c "from transformers import Qwen2VLForConditionalGeneration; print('Qwen2VL import OK')"
+python3 -c "from qwen_vl_utils import process_vision_info; print('qwen_vl_utils OK')"
+python3 -c "import accelerate; print(f'accelerate {accelerate.__version__}')"
 
 echo "=== Runtime environment setup complete ==="

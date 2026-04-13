@@ -27,8 +27,6 @@ if [ -f "/home/user/environment/setup.sh" ]; then
     source /home/user/environment/setup.sh
 else
     echo "WARNING: setup.sh not found, using inline environment setup"
-    export LD_LIBRARY_PATH="/home/user/pylib/torch/lib:${LD_LIBRARY_PATH:-}"
-    export PYTHONPATH="/home/user/pylib:${PYTHONPATH:-}"
     export HF_HOME="/home/user/shared/models/hf"
     export TRANSFORMERS_CACHE="/home/user/shared/models/hf"
     export HF_HUB_OFFLINE="1"
@@ -69,11 +67,8 @@ echo ""
 echo "=== Creating Balanced Sample (15 per country = 60 total) ==="
 
 ${PYTHON} << 'PYEOF'
-import sys
 import os
 import csv
-
-sys.path.insert(0, '/home/user/pylib')
 os.environ['HF_HOME'] = '/home/user/shared/models/hf'
 os.environ['TRANSFORMERS_CACHE'] = '/home/user/shared/models/hf'
 os.environ['HF_HUB_OFFLINE'] = '1'
@@ -132,13 +127,10 @@ echo ""
 echo "=== Loading Model and Running Inference ==="
 
 ${PYTHON} << 'PYEOF'
-import sys
 import os
 import csv
 import json
 import re
-
-sys.path.insert(0, '/home/user/pylib')
 os.environ['HF_HOME'] = '/home/user/shared/models/hf'
 os.environ['TRANSFORMERS_CACHE'] = '/home/user/shared/models/hf'
 os.environ['HF_HUB_OFFLINE'] = '1'
@@ -379,10 +371,7 @@ import csv
 import json
 import math
 
-sys.path.insert(0, '/home/user')
-sys.path.insert(0, '/home/user/eval')
-
-# Import metrics - handle pylib import issue
+# Import metrics from eval package
 try:
     from eval.metrics import compute_all_metrics
 except ImportError:
