@@ -2,4 +2,4 @@ action: submit
 gpus: 1
 test: false
 milestone: method_runs
-notes: "Fixed: added torchvision to torch install (qwen_vl_utils requires it). Already had huggingface_hub cleanup and --system installs."
+notes: "Reduced to 4 per country (16 total), tokens=128, checkpoint=5. Previous 8/country job stuck in queue ~13hrs. Even smaller sample to ensure completion within queue wait + runtime budget."

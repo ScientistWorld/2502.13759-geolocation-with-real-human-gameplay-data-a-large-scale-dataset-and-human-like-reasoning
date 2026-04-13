@@ -1,0 +1,104 @@
+[hive] This stderr log is managed by Hive.
+[hive] job_id: 12600eb3
+[hive] host: della-k16g3
+[hive] node_id: 564614ae89b66d079e2913cd846be21b35daf9d42c7f6e3cb883e8c6
+[hive] user: nexus/tl0463 (remote)
+[hive] resource: pli-2
+[hive] gpus: 1
+[hive] cpus: 1
+[hive] workdir: /home/tl0463
+[hive] timeout_sec: 3600
+[hive] started_at: 2026-04-13 16:20:28 EDT
+[hive] command: apptainer exec --nv --containall --cleanenv --env HF_HOME=/home/user/shared/hf_cache --env TRANSFORMERS_CACHE=/home/user/shared/hf_cache --env HF_DATASETS_CACHE=/home/user/shared/hf_cache/datasets --env TORCH_HOME=/home/user/shared/hf_cache/torch --bind /home/tl0463/scratch/AgentWorkspaces/workspaces/2502.13759:/home/user --overlay /home/tl0463/scratch/AgentWorkspaces/workspaces/2502.13759/environment/overlay.img:ro --bind /home/tl0463/scratch/AgentWorkspaces/shared/datasets:/home/user/shared/datasets:ro --bind /home/tl0463/scratch/AgentWorkspaces/shared/models:/home/user/shared/models:ro --bind /home/tl0463/scratch/AgentWorkspaces/shared/hf_cache:/home/user/shared/hf_cache /home/tl0463/scratch/AgentWorkspaces/workspaces/2502.13759/environment/container.sif bash -c 'cd /home/user && bash /home/user/scripts/run.sh'
+You are using a model of type `qwen2_5_vl` to instantiate a model of type `qwen2_vl`. This may be expected if you are loading a checkpoint that shares a subset of the architecture (e.g., loading a `sam2_video` checkpoint into `Sam2Model`), but is otherwise not supported and can yield errors. Please verify that the checkpoint is compatible with the model you are instantiating.
+
+Loading weights:   0%|          | 0/537 [00:00<?, ?it/s]
+Loading weights:   0%|          | 1/537 [00:01<15:20,  1.72s/it]
+Loading weights:   1%|          | 4/537 [00:01<03:16,  2.72it/s]
+Loading weights:   1%|          | 6/537 [00:02<03:16,  2.71it/s]
+Loading weights:   1%|▏         | 7/537 [00:02<02:50,  3.10it/s]
+Loading weights:   3%|▎         | 17/537 [00:02<00:45, 11.46it/s]
+Loading weights:   4%|▎         | 20/537 [00:03<00:41, 12.42it/s]
+Loading weights:   4%|▍         | 24/537 [00:03<00:32, 15.86it/s]
+Loading weights:   5%|▌         | 28/537 [00:03<00:30, 16.57it/s]
+Loading weights:   6%|▌         | 31/537 [00:04<01:01,  8.27it/s]
+Loading weights:   7%|▋         | 35/537 [00:04<00:45, 11.09it/s]
+Loading weights:   7%|▋         | 40/537 [00:05<00:58,  8.52it/s]
+Loading weights:  10%|▉         | 52/537 [00:05<00:29, 16.30it/s]
+Loading weights:  10%|█         | 56/537 [00:06<00:42, 11.21it/s]
+Loading weights:  12%|█▏        | 64/537 [00:06<00:30, 15.50it/s]
+Loading weights:  12%|█▏        | 67/537 [00:06<00:35, 13.14it/s]
+Loading weights:  14%|█▎        | 73/537 [00:07<00:34, 13.26it/s]
+Loading weights:  14%|█▍        | 75/537 [00:07<00:35, 13.01it/s]
+Loading weights:  17%|█▋        | 89/537 [00:07<00:18, 24.18it/s]
+Loading weights:  17%|█▋        | 93/537 [00:07<00:18, 24.60it/s]
+Loading weights:  18%|█▊        | 97/537 [00:09<00:48,  9.10it/s]
+Loading weights:  21%|██▏       | 115/537 [00:09<00:25, 16.85it/s]
+Loading weights:  22%|██▏       | 118/537 [00:09<00:24, 16.94it/s]
+Loading weights:  25%|██▌       | 136/537 [00:10<00:14, 26.77it/s]
+Loading weights:  26%|██▌       | 140/537 [00:10<00:17, 22.50it/s]
+Loading weights:  27%|██▋       | 145/537 [00:11<00:21, 17.99it/s]
+Loading weights:  29%|██▉       | 156/537 [00:11<00:14, 26.02it/s]
+Loading weights:  30%|██▉       | 161/537 [00:12<00:24, 15.12it/s]
+Loading weights:  31%|███       | 165/537 [00:12<00:26, 14.29it/s]
+Loading weights:  32%|███▏      | 174/537 [00:12<00:19, 18.25it/s]
+Loading weights:  33%|███▎      | 177/537 [00:13<00:38,  9.31it/s]
+Loading weights:  37%|███▋      | 197/537 [00:15<00:28, 12.09it/s]
+Loading weights:  37%|███▋      | 200/537 [00:15<00:27, 12.30it/s]
+Loading weights:  39%|███▉      | 209/537 [00:15<00:21, 15.56it/s]
+Loading weights:  39%|███▉      | 212/537 [00:17<00:39,  8.26it/s]
+Loading weights:  45%|████▍     | 240/537 [00:17<00:14, 20.65it/s]
+Loading weights:  46%|████▌     | 246/537 [00:17<00:14, 20.34it/s]
+Loading weights:  47%|████▋     | 254/537 [00:17<00:11, 24.63it/s]
+Loading weights:  48%|████▊     | 260/537 [00:18<00:13, 20.04it/s]
+Loading weights:  49%|████▉     | 264/537 [00:18<00:15, 17.14it/s]
+Loading weights:  50%|█████     | 270/537 [00:18<00:13, 19.12it/s]
+Loading weights:  51%|█████     | 273/537 [00:19<00:18, 14.22it/s]
+Loading weights:  54%|█████▍    | 290/537 [00:19<00:08, 28.47it/s]
+Loading weights:  55%|█████▌    | 296/537 [00:21<00:25,  9.62it/s]
+Loading weights:  64%|██████▎   | 342/537 [00:21<00:06, 29.82it/s]
+Loading weights:  67%|██████▋   | 358/537 [00:21<00:04, 37.44it/s]
+Loading weights:  69%|██████▉   | 370/537 [00:22<00:03, 42.26it/s]
+Loading weights:  72%|███████▏  | 386/537 [00:22<00:02, 52.81it/s]
+Loading weights:  74%|███████▍  | 398/537 [00:22<00:02, 60.90it/s]
+Loading weights:  76%|███████▋  | 410/537 [00:22<00:01, 64.48it/s]
+Loading weights:  80%|███████▉  | 428/537 [00:22<00:01, 78.99it/s]
+Loading weights:  82%|████████▏ | 440/537 [00:22<00:01, 82.60it/s]
+Loading weights:  86%|████████▌ | 462/537 [00:22<00:00, 97.03it/s]
+Loading weights:  88%|████████▊ | 474/537 [00:22<00:00, 99.67it/s]
+Loading weights:  94%|█████████▍| 504/537 [00:23<00:00, 123.05it/s]
+Loading weights:  96%|█████████▋| 518/537 [00:23<00:00, 115.20it/s]
+Loading weights:  99%|█████████▉| 533/537 [00:23<00:00, 111.57it/s]
+Loading weights: 100%|██████████| 537/537 [00:23<00:00, 22.91it/s] 
+[1mQwen2VLForConditionalGeneration LOAD REPORT[0m from: /home/user/checkpoints/Qwen2.5-VL-7B-Instruct
+Key                                         | Status     |                                                                                               
+--------------------------------------------+------------+-----------------------------------------------------------------------------------------------
+visual.blocks.{0...31}.mlp.gate_proj.weight | UNEXPECTED |                                                                                               
+visual.blocks.{0...31}.mlp.down_proj.bias   | UNEXPECTED |                                                                                               
+visual.blocks.{0...31}.mlp.down_proj.weight | UNEXPECTED |                                                                                               
+visual.blocks.{0...31}.mlp.gate_proj.bias   | UNEXPECTED |                                                                                               
+visual.blocks.{0...31}.mlp.up_proj.bias     | UNEXPECTED |                                                                                               
+visual.blocks.{0...31}.mlp.up_proj.weight   | UNEXPECTED |                                                                                               
+model.visual.blocks.{0...31}.mlp.fc1.weight | MISSING    |                                                                                               
+model.visual.blocks.{0...31}.mlp.fc2.weight | MISSING    |                                                                                               
+model.visual.blocks.{0...31}.mlp.fc1.bias   | MISSING    |                                                                                               
+model.visual.blocks.{0...31}.norm1.bias     | MISSING    |                                                                                               
+model.visual.blocks.{0...31}.norm2.bias     | MISSING    |                                                                                               
+model.visual.blocks.{0...31}.mlp.fc2.bias   | MISSING    |                                                                                               
+model.visual.merger.ln_q.bias               | MISSING    |                                                                                               
+model.visual.merger.mlp.2.weight            | MISMATCH   | Reinit due to size mismatch - ckpt: torch.Size([3584, 5120]) vs model:torch.Size([1280, 5120])
+model.visual.merger.mlp.2.bias              | MISMATCH   | Reinit due to size mismatch - ckpt: torch.Size([3584]) vs model:torch.Size([1280])            
+
+Notes:
+- UNEXPECTED:	can be ignored when loading from different task/architecture; not ok if you expect identical arch.
+- MISSING:	those params were newly initialized because missing from the checkpoint. Consider training on your downstream task.
+- MISMATCH:	ckpt weights were loaded, but they did not match the original empty weight shapes.
+Traceback (most recent call last):
+  File "<stdin>", line 29, in <module>
+  File "/usr/local/lib/python3.10/dist-packages/transformers/modeling_utils.py", line 4136, in from_pretrained
+    loading_info = cls._finalize_model_loading(model, load_config, loading_info)
+  File "/usr/local/lib/python3.10/dist-packages/transformers/modeling_utils.py", line 4298, in _finalize_model_loading
+    log_state_dict_report(
+  File "/usr/local/lib/python3.10/dist-packages/transformers/utils/loading_report.py", line 278, in log_state_dict_report
+    raise RuntimeError(
+RuntimeError: You set `ignore_mismatched_sizes` to `False`, thus raising an error. For details look at the above report!

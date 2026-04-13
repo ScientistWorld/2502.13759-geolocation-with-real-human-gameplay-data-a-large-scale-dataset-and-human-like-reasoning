@@ -88,7 +88,7 @@ by_country = defaultdict(list)
 for row in data:
     by_country[row['country']].append(row)
 
-SAMPLES_PER_COUNTRY = 15
+SAMPLES_PER_COUNTRY = 4
 samples = []
 for country, rows in sorted(by_country.items()):
     rows = sorted(rows, key=lambda r: float(r['lat']))
@@ -215,7 +215,7 @@ def parse_location_prediction(text):
     return result
 
 
-def run_inference(data_rows, prompt, method_name, output_path, max_new_tokens=256):
+def run_inference(data_rows, prompt, method_name, output_path, max_new_tokens=128):
     """Run VLM inference on images and save results."""
     print(f"\n--- {method_name} ---")
 
@@ -314,9 +314,9 @@ def run_inference(data_rows, prompt, method_name, output_path, max_new_tokens=25
                 "error": str(e),
             })
 
-        # Checkpoint every 10 images
+        # Checkpoint every 5 images
         processed = len(results)
-        if processed % 10 == 0:
+        if processed % 5 == 0:
             with open(output_path, 'w') as f:
                 json.dump(results, f)
             print(f"  Checkpoint: {processed} total")

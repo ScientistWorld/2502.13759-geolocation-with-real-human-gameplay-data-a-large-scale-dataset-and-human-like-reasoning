@@ -1,0 +1,54 @@
+[hive] This stdout log is managed by Hive.
+[hive] job_id: 12600eb3
+[hive] host: della-k16g3
+[hive] node_id: 564614ae89b66d079e2913cd846be21b35daf9d42c7f6e3cb883e8c6
+[hive] user: nexus/tl0463 (remote)
+[hive] resource: pli-2
+[hive] gpus: 1
+[hive] cpus: 1
+[hive] workdir: /home/tl0463
+[hive] timeout_sec: 3600
+[hive] started_at: 2026-04-13 16:20:28 EDT
+[hive] command: apptainer exec --nv --containall --cleanenv --env HF_HOME=/home/user/shared/hf_cache --env TRANSFORMERS_CACHE=/home/user/shared/hf_cache --env HF_DATASETS_CACHE=/home/user/shared/hf_cache/datasets --env TORCH_HOME=/home/user/shared/hf_cache/torch --bind /home/tl0463/scratch/AgentWorkspaces/workspaces/2502.13759:/home/user --overlay /home/tl0463/scratch/AgentWorkspaces/workspaces/2502.13759/environment/overlay.img:ro --bind /home/tl0463/scratch/AgentWorkspaces/shared/datasets:/home/user/shared/datasets:ro --bind /home/tl0463/scratch/AgentWorkspaces/shared/models:/home/user/shared/models:ro --bind /home/tl0463/scratch/AgentWorkspaces/shared/hf_cache:/home/user/shared/hf_cache /home/tl0463/scratch/AgentWorkspaces/workspaces/2502.13759/environment/container.sif bash -c 'cd /home/user && bash /home/user/scripts/run.sh'
+==========================================
+GeoCoT Reproduction - Mon Apr 13 16:20:29 EDT 2026
+==========================================
+
+=== Environment Setup ===
+=== Setting up GeoCoT environment (runtime) ===
+Found existing installation: huggingface_hub 1.10.1
+Uninstalling huggingface_hub-1.10.1:
+Defaulting to user installation because normal site-packages is not writeable
+Requirement already satisfied: uv in /usr/local/lib/python3.10/dist-packages (0.11.6)
+Found existing installation: torch 2.6.0+cu124
+Uninstalling torch-2.6.0+cu124:
+Installing CUDA-enabled torch...
+Installing transformers and other packages...
+Verifying packages...
+torch 2.6.0+cu124, CUDA: True
+transformers 5.5.3
+Qwen2VL import OK
+qwen_vl_utils OK
+accelerate 1.13.0
+=== Runtime environment setup complete ===
+Using Python: python3
+Python 3.10.12
+
+=== Finding Qwen2.5-VL Model ===
+Found model at: /home/user/checkpoints/Qwen2.5-VL-7B-Instruct
+
+=== Creating Balanced Sample (15 per country = 60 total) ===
+Total images: 999
+  chile: sampled 4 from 179 total
+  ecuador: sampled 4 from 296 total
+  kenya: sampled 4 from 492 total
+  madagascar: sampled 4 from 32 total
+Total sample: 16
+Saved to /home/user/data/geoclip/sample_balanced.csv
+Missing images: 0
+
+=== Loading Model and Running Inference ===
+CUDA available: True
+GPU count: 2
+Loading model from: /home/user/checkpoints/Qwen2.5-VL-7B-Instruct
+Loading Qwen2VL processor and model...
