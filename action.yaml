@@ -2,4 +2,4 @@ action: submit
 gpus: 1
 test: false
 milestone: method_runs
-notes: "Streamlined setup.sh: only install missing packages (torchvision or qwen_vl_utils). Previous 20-min timeout was from reinstalling everything. 4 per country (16 total)."
+notes: "Fixed setup.sh: install all packages (torch, torchvision, transformers, qwen_vl_utils, etc.) in one command. Previous issue: qwen_vl_utils check passed but transformers was never installed (stderr suppressed). 4 per country (16 total)."
