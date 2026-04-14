@@ -1,8 +1,5 @@
-# IMPORTANT: Once you set action to 'submit' or 'done', STOP immediately.
-# Do NOT sleep, poll, or wait for jobs. The system reads this file
-# only after your turn ends. Sleeping blocks the entire pipeline.
 action: submit
 gpus: 1
 test: false
-milestone: core_claim
-notes: "Core claim demonstrated: qwen_geocot city_25km=0.167 > qwen_cot=0.050 (3.3x), country_acc=0.833 > 0.075 (11x). Queued job with max_new_tokens=768 will strengthen evidence with more valid predictions. validate.py passes."
+milestone: method_runs
+notes: "Run improved GeoCoT with max_new_tokens=2048 and comprehensive country parser. Previous run had 5/51 valid predictions due to truncation; expecting much higher rate now. Budget: ~14 GPU-hrs remaining."
