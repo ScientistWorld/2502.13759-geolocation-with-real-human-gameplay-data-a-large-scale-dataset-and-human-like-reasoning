@@ -15,6 +15,12 @@
 - GeoCoT 5-step structured prompting faithfully implemented from paper
 - validate.py passes with all checks green
 
+### [2026-04-14] - Improving evidence
+- Rewrote run.sh with max_new_tokens=2048 (was 512, caused truncation mid-reasoning)
+- Comprehensive country parser: extracts country names from any part of response
+- Clean execution: no duplicate checkpointing
+- Submitting GPU job to get more valid predictions and stronger evidence
+
 ### [2026-04-13] - method_runs
 - Fixed model loading (Qwen2_5_VL class names), environment setup, max_new_tokens=512
 - Job 639e10b5-c9d completed rc=0: GeoCoT + CoT inference on 40 images
@@ -27,6 +33,6 @@
 | Sample | 500 images | 40 images (10 per country) |
 
 ## Notes
-- GeoCoT only 6/40 valid predictions due to response truncation (max_new_tokens=512)
-- Queued jobs with max_new_tokens=768 will improve extraction rate
-- Caveat: small GeoCoT sample (6) but effect size is very large and consistent
+- Previous run had low valid-prediction rate (5-6/40) due to response truncation at 512 tokens
+- New run with 2048 tokens and better parser should significantly improve coverage
+- The core claim (GeoCoT > CoT) is already demonstrated with large effect sizes

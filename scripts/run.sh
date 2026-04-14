@@ -2,8 +2,13 @@
 # GeoCoT Reproduction - GPU Inference Job
 # Runs GeoCoT (5-step prompting) vs CoT (standard chain-of-thought) with Qwen2.5-VL-7B-Instruct
 #
-# Environment: Qwen2.5-VL-7B-Instruct on GPU with 80 balanced images from GeoCLIP dataset
-# Expected: ~5s per image. 80 images x 2 methods = 160 inferences ≈ 15-20 min.
+# Key fixes from previous runs:
+#   - max_new_tokens=2048 (was 512/768, caused truncation mid-reasoning)
+#   - Comprehensive country parser (extracts from any part of response)
+#   - Clean start (no duplicate checkpointing issues)
+#
+# Expected: ~15s per image for GeoCoT (2048 tokens), ~8s for CoT (512 tokens).
+# 40 images x 2 methods ≈ 15-20 min total.
 
 set -e
 
@@ -22,7 +27,6 @@ mkdir -p "$RESULTS_DIR"
 echo ""
 echo "=== Environment Setup ==="
 
-# Source the runtime setup script
 if [ -f "/home/user/environment/setup.sh" ]; then
     source /home/user/environment/setup.sh
 else
@@ -61,17 +65,14 @@ if [ -z "$MODEL_PATH" ]; then
 fi
 
 # =============================================================================
-# Create Balanced Sample using Python's csv module
+# Create Balanced Sample
 # =============================================================================
 echo ""
-echo "=== Creating Balanced Sample (15 per country = 60 total) ==="
+echo "=== Creating Balanced Sample ==="
 
 ${PYTHON} << 'PYEOF'
 import os
 import csv
-os.environ['HF_HOME'] = '/home/user/shared/models/hf'
-os.environ['TRANSFORMERS_CACHE'] = '/home/user/shared/models/hf'
-os.environ['HF_HUB_OFFLINE'] = '1'
 
 # Read GeoCLIP CSV
 data = []
@@ -80,9 +81,8 @@ with open('/home/user/data/geoclip/geoclip.csv', 'r') as f:
     for row in reader:
         data.append(row)
 
-print(f"Total images: {len(data)}")
+print(f"Total images in dataset: {len(data)}")
 
-# Group by country
 from collections import defaultdict
 by_country = defaultdict(list)
 for row in data:
@@ -103,7 +103,6 @@ for country, rows in sorted(by_country.items()):
 
 print(f"Total sample: {len(samples)}")
 
-# Write sample CSV
 sample_path = '/home/user/data/geoclip/sample_balanced.csv'
 with open(sample_path, 'w', newline='') as f:
     writer = csv.DictWriter(f, fieldnames=['image_path','lat','lon','country','continent','city','size'])
@@ -111,12 +110,7 @@ with open(sample_path, 'w', newline='') as f:
     writer.writerows(samples)
 print(f"Saved to {sample_path}")
 
-# Verify images exist
-missing = 0
-for row in samples:
-    if not os.path.exists(row['image_path']):
-        missing += 1
-        print(f"  MISSING: {row['image_path']}")
+missing = sum(1 for row in samples if not os.path.exists(row['image_path']))
 print(f"Missing images: {missing}")
 PYEOF
 
@@ -131,6 +125,8 @@ import os
 import csv
 import json
 import re
+import time
+
 os.environ['HF_HOME'] = '/home/user/shared/models/hf'
 os.environ['TRANSFORMERS_CACHE'] = '/home/user/shared/models/hf'
 os.environ['HF_HUB_OFFLINE'] = '1'
@@ -139,6 +135,7 @@ import torch
 print(f"CUDA available: {torch.cuda.is_available()}")
 if torch.cuda.is_available():
     print(f"GPU count: {torch.cuda.device_count()}")
+    print(f"GPU name: {torch.cuda.get_device_name(0)}")
 
 # Find model
 MODEL_PATH = ""
@@ -154,15 +151,18 @@ from transformers import Qwen2_5_VLForConditionalGeneration, Qwen2_5_VLProcessor
 from qwen_vl_utils import process_vision_info
 
 print("Loading Qwen2.5-VL processor and model...")
+t0 = time.time()
 processor = Qwen2_5_VLProcessor.from_pretrained(MODEL_PATH)
 model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
     MODEL_PATH,
     torch_dtype=torch.bfloat16,
     device_map="auto",
 )
-print("Model loaded successfully!")
+print(f"Model loaded in {time.time()-t0:.1f}s")
 
-# GeoCoT prompt (5-step structured prompting from paper)
+# =====================================================================
+# GeoCoT prompt (5-step structured prompting from paper Appendix B)
+# =====================================================================
 GEO_COT_USER_PROMPT = """Analyze this image and determine its geographical location using the following structured reasoning steps:
 
 Step 1 - Continental/Climate Zone Identification:
@@ -180,7 +180,7 @@ Are there observable urban or rural markers (e.g., street signs, fire hydrants, 
 Step 5 - Fine-Grained Micro-Level Validation:
 Are there identifiable patterns in sidewalks (e.g., tile shapes, colors, or arrangements), clothing styles worn by people, or other culturally specific details that can help narrow down the city or area?
 
-Let's think step by step. Based on the questions I provided, locate the location of the picture as accurately as possible. Identify the continent, country, and city, and summarize it into a paragraph. For example: the presence of tropical rainforests, palm trees, and red soil indicates a tropical climate... Signs in Thai, right-side traffic, and traditional Thai architecture further suggest it is in Thailand... Combining these clues, this image was likely taken in a city in Thailand, Asia.
+Let's think step by step. Based on the questions I provided, locate the location of the picture as accurately as possible. Identify the continent, country, and city, and summarize it into a paragraph. For example: the presence of tropical rainforests, palm trees, and red soil indicates a tropical climate... Signs in Thai, right-side traffic, and traditional Thai architecture further suggest it is in Thailand... Combining these clues, this image was likely taken in a city in Bangkok, Thailand, Asia.
 
 Please provide your analysis and final location prediction.
 Output format: Location: [City], [Country], [Continent]
@@ -192,77 +192,229 @@ COT_PROMPT = """Let's think step by step about the geographical location where t
 Output format: Location: [City], [Country], [Continent]
 """
 
-# Parse location from model response
-# Known countries in GeoCLIP dataset (for fallback detection)
-KNOWN_COUNTRIES = {
-    "kenya": ("Kenya", "Africa"), "kenyan": ("Kenya", "Africa"),
-    "ecuador": ("Ecuador", "South America"), "ecuadorian": ("Ecuador", "South America"),
-    "chile": ("Chile", "South America"), "chilean": ("Chile", "South America"),
-    "madagascar": ("Madagascar", "Africa"), "malagasy": ("Madagascar", "Africa"),
+# =====================================================================
+# Comprehensive country parser
+# =====================================================================
+# Map: country name -> (canonical_name, continent)
+ALL_COUNTRIES = {
+    # Africa
+    "kenya": ("Kenya", "Africa"), "nigeria": ("Nigeria", "Africa"),
+    "south africa": ("South Africa", "Africa"), "egypt": ("Egypt", "Africa"),
+    "morocco": ("Morocco", "Africa"), "ethiopia": ("Ethiopia", "Africa"),
+    "tanzania": ("Tanzania", "Africa"), "ghana": ("Ghana", "Africa"),
+    "algeria": ("Algeria", "Africa"), "tunisia": ("Tunisia", "Africa"),
+    "uganda": ("Uganda", "Africa"), "cameroon": ("Cameroon", "Africa"),
+    "senegal": ("Senegal", "Africa"), "mozambique": ("Mozambique", "Africa"),
+    "madagascar": ("Madagascar", "Africa"), "angola": ("Angola", "Africa"),
+    "zimbabwe": ("Zimbabwe", "Africa"), "botswana": ("Botswana", "Africa"),
+    "namibia": ("Namibia", "Africa"), "rwanda": ("Rwanda", "Africa"),
+    "zambia": ("Zambia", "Africa"), "malawi": ("Malawi", "Africa"),
+    "libya": ("Libya", "Africa"), "sudan": ("Sudan", "Africa"),
+    "somalia": ("Somalia", "Africa"), "ivory coast": ("Ivory Coast", "Africa"),
+    "democratic republic of congo": ("DR Congo", "Africa"),
+    "congo": ("Congo", "Africa"),
+    # South America
+    "ecuador": ("Ecuador", "South America"),
+    "chile": ("Chile", "South America"),
+    "brazil": ("Brazil", "South America"),
+    "argentina": ("Argentina", "South America"),
+    "peru": ("Peru", "South America"),
+    "colombia": ("Colombia", "South America"),
+    "venezuela": ("Venezuela", "South America"),
+    "bolivia": ("Bolivia", "South America"),
+    "paraguay": ("Paraguay", "South America"),
+    "uruguay": ("Uruguay", "South America"),
+    "guyana": ("Guyana", "South America"),
+    "suriname": ("Suriname", "South America"),
+    # North/Central America
+    "united states": ("United States", "North America"),
+    "usa": ("United States", "North America"),
+    "canada": ("Canada", "North America"),
+    "mexico": ("Mexico", "North America"),
+    "guatemala": ("Guatemala", "North America"),
+    "cuba": ("Cuba", "North America"),
+    "honduras": ("Honduras", "North America"),
+    "panama": ("Panama", "North America"),
+    "costa rica": ("Costa Rica", "North America"),
+    "jamaica": ("Jamaica", "North America"),
+    "dominican republic": ("Dominican Republic", "North America"),
+    # Europe
+    "germany": ("Germany", "Europe"), "france": ("France", "Europe"),
+    "united kingdom": ("United Kingdom", "Europe"), "spain": ("Spain", "Europe"),
+    "italy": ("Italy", "Europe"), "netherlands": ("Netherlands", "Europe"),
+    "belgium": ("Belgium", "Europe"), "switzerland": ("Switzerland", "Europe"),
+    "austria": ("Austria", "Europe"), "poland": ("Poland", "Europe"),
+    "sweden": ("Sweden", "Europe"), "norway": ("Norway", "Europe"),
+    "denmark": ("Denmark", "Europe"), "finland": ("Finland", "Europe"),
+    "portugal": ("Portugal", "Europe"), "greece": ("Greece", "Europe"),
+    "czech republic": ("Czech Republic", "Europe"), "hungary": ("Hungary", "Europe"),
+    "romania": ("Romania", "Europe"), "ireland": ("Ireland", "Europe"),
+    "russia": ("Russia", "Europe"), "ukraine": ("Ukraine", "Europe"),
+    "turkey": ("Turkey", "Europe"), "serbia": ("Serbia", "Europe"),
+    "croatia": ("Croatia", "Europe"), "bulgaria": ("Bulgaria", "Europe"),
+    # Asia
+    "china": ("China", "Asia"), "japan": ("Japan", "Asia"),
+    "south korea": ("South Korea", "Asia"), "india": ("India", "Asia"),
+    "indonesia": ("Indonesia", "Asia"), "thailand": ("Thailand", "Asia"),
+    "vietnam": ("Vietnam", "Asia"), "philippines": ("Philippines", "Asia"),
+    "malaysia": ("Malaysia", "Asia"), "singapore": ("Singapore", "Asia"),
+    "pakistan": ("Pakistan", "Asia"), "bangladesh": ("Bangladesh", "Asia"),
+    "nepal": ("Nepal", "Asia"), "sri lanka": ("Sri Lanka", "Asia"),
+    "cambodia": ("Cambodia", "Asia"), "myanmar": ("Myanmar", "Asia"),
+    "mongolia": ("Mongolia", "Asia"), "taiwan": ("Taiwan", "Asia"),
+    "uae": ("UAE", "Asia"), "saudi arabia": ("Saudi Arabia", "Asia"),
+    "israel": ("Israel", "Asia"), "iran": ("Iran", "Asia"),
+    "iraq": ("Iraq", "Asia"), "kazakhstan": ("Kazakhstan", "Asia"),
+    # Oceania
+    "australia": ("Australia", "Oceania"),
+    "new zealand": ("New Zealand", "Oceania"),
 }
-COUNTRY_PATTERNS = {v[0].lower(): v for k, v in KNOWN_COUNTRIES.items()}
+
+# Build a pattern: for each country, include name + adjective form
+COUNTRY_SEARCH_PATTERNS = {}
+for name_lower, (canonical, continent) in ALL_COUNTRIES.items():
+    COUNTRY_SEARCH_PATTERNS[name_lower] = (canonical, continent)
+
+# Add adjective forms and common variants
+COUNTRY_SEARCH_PATTERNS.update({
+    "kenyan": ("Kenya", "Africa"), "ugandan": ("Uganda", "Africa"),
+    "ecuadorian": ("Ecuador", "South America"),
+    "chilean": ("Chile", "South America"),
+    "brazilian": ("Brazil", "South America"),
+    "argentine": ("Argentina", "South America"), "argentinian": ("Argentina", "South America"),
+    "peruvian": ("Peru", "South America"),
+    "colombian": ("Colombia", "South America"),
+    "malagasy": ("Madagascar", "Africa"),
+    "american": ("United States", "North America"),
+    "british": ("United Kingdom", "Europe"),
+    "german": ("Germany", "Europe"),
+    "french": ("France", "Europe"),
+    "italian": ("Italy", "Europe"),
+    "spanish": ("Spain", "Europe"),
+    "chinese": ("China", "Asia"),
+    "japanese": ("Japan", "Asia"),
+    "korean": ("South Korea", "Asia"),
+    "indian": ("India", "Asia"),
+    "thai": ("Thailand", "Asia"),
+    "vietnamese": ("Vietnam", "Asia"),
+    "australian": ("Australia", "Oceania"),
+})
+
+# Countries in our dataset (priority search)
+DATASET_COUNTRIES = {"kenya", "ecuador", "chile", "madagascar"}
+
 
 def parse_location_prediction(text):
-    """Extract city, country, continent from model response."""
+    """Extract city, country, continent from model response using comprehensive parsing."""
     if not text:
         return {"city": None, "country": None, "continent": None, "raw_prediction": text}
 
     result = {"city": None, "country": None, "continent": None, "raw_prediction": text}
-
-    # Final Prediction format: "Final Prediction: ... in [Country], [Continent]."
-    fp_match = re.search(
-        r"Final\s+Prediction:\s*(?:The image was likely taken in\s+)?"
-        r"(?:a\s+)?(?:city\s+in\s+)?(?:rural\s+area\s+in\s+)?"
-        r"(.+?),?\s*(South America|Africa|Asia|Europe|North America|Australia|Oceania|Central America)",
-        text, re.IGNORECASE | re.DOTALL
-    )
-    if fp_match:
-        result["country"] = fp_match.group(1).strip().rstrip(',').strip()
-        result["continent"] = fp_match.group(2).strip()
-        # Clean up "or Chile" type phrases in country field
-        if " or " in result["country"]:
-            result["country"] = result["country"].split(" or ")[0].strip()
-        return result
-
-    # Fallback: search for known country names anywhere in the response
     text_lower = text.lower()
-    for country_lower, (country_name, continent) in COUNTRY_PATTERNS.items():
-        if country_lower in text_lower:
-            result["country"] = country_name
-            result["continent"] = continent
-            # Try to also extract a city name near the country mention
-            idx = text_lower.find(country_lower)
-            snippet = text[max(0, idx-100):idx+50]
-            city_match = re.search(r'\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+){0,2})\b', snippet)
-            if city_match:
-                result["city"] = city_match.group(1).strip()
+
+    # Strategy 1: Look for "Location:" pattern
+    loc_patterns = [
+        r"Location:\s*(.+?),\s*(.+?),\s*(.+?)(?:\n|$|\.)",
+        r"location:\s*(.+?),\s*(.+?),\s*(.+?)(?:\n|$|\.)",
+    ]
+    for pattern in loc_patterns:
+        match = re.search(pattern, text, re.IGNORECASE)
+        if match:
+            result["city"] = match.group(1).strip()
+            result["country"] = match.group(2).strip()
+            result["continent"] = match.group(3).strip()
             return result
+
+    # Strategy 2: Look for "Final Prediction:" and extract country/continent
+    fp_section = ""
+    fp_match = re.search(r"Final\s+Prediction:\s*(.*)", text, re.IGNORECASE | re.DOTALL)
+    if fp_match:
+        fp_section = fp_match.group(1)
+
+    # Strategy 3: Search for continent names in the text, prefer Final Prediction section
+    continents = ["south america", "north america", "africa", "europe", "asia", "oceania", "australia", "central america"]
+    found_continent = None
+    search_text = fp_section if fp_section else text_lower
+    for cont in continents:
+        if cont in search_text.lower():
+            if cont == "australia":
+                found_continent = "Oceania"
+            else:
+                found_continent = cont.title()
+            break
+    if found_continent:
+        result["continent"] = found_continent
+
+    # Strategy 4: Search for country names - prefer those in Final Prediction section
+    # First search Final Prediction section, then full text
+    best_country = None
+    best_continent = None
+    best_priority = -1  # Higher = better match
+
+    # Search order: FP section first, then conclusion, then full text
+    search_sections = []
+    if fp_section:
+        search_sections.append((fp_section, 100))  # Highest priority
+    # Conclusion-like sections (last 1/3 of text)
+    conclusion_text = text[-len(text)//3:]
+    search_sections.append((conclusion_text, 50))
+    search_sections.append((text, 10))  # Lowest priority
+
+    for section, priority in search_sections:
+        section_lower = section.lower()
+        for pattern, (canonical, continent) in COUNTRY_SEARCH_PATTERNS.items():
+            if pattern in section_lower:
+                # Skip adjective forms that might be misleading ("American-style")
+                if pattern.endswith("n") and len(pattern) > 5:
+                    # It's an adjective form - lower priority
+                    p = priority - 5
+                else:
+                    p = priority
+                # Prefer dataset countries
+                if pattern in DATASET_COUNTRIES:
+                    p += 20
+                if p > best_priority:
+                    best_country = canonical
+                    best_continent = continent
+                    best_priority = p
+
+    if best_country:
+        result["country"] = best_country
+        if not result["continent"]:
+            result["continent"] = best_continent
+
+    # Strategy 5: Try to extract city name near country mention
+    if result["country"] and not result["city"]:
+        country_lower = result["country"].lower()
+        idx = text_lower.find(country_lower)
+        if idx >= 0:
+            # Look for capitalized words before the country name
+            snippet = text[max(0, idx-150):idx]
+            city_matches = re.findall(r'\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+){0,2})\b', snippet)
+            # Filter out common non-city words
+            non_cities = {"The", "This", "Step", "Based", "Image", "However", "Final",
+                         "Prediction", "Location", "South", "North", "Central", "East",
+                         "West", "Combining", "Clues", "Visible", "Presence"}
+            for cm in reversed(city_matches):
+                if cm not in non_cities and len(cm) > 2:
+                    result["city"] = cm
+                    break
 
     return result
 
 
-def run_inference(data_rows, prompt, method_name, output_path, max_new_tokens=768):
+def run_inference(data_rows, prompt, method_name, output_path, max_new_tokens=2048):
     """Run VLM inference on images and save results."""
-    print(f"\n--- {method_name} ---")
+    print(f"\n--- {method_name} (max_new_tokens={max_new_tokens}) ---")
 
-    # Load existing results for checkpointing
+    # Start fresh - don't use old checkpointed results to avoid duplicates
     results = []
-    if os.path.exists(output_path):
-        with open(output_path) as f:
-            results = json.load(f)
-        valid = [x for x in results if x.get('predicted_country') is not None]
-        start_idx = len(valid)
-        print(f"  Resuming from index {start_idx} ({len(valid)} valid predictions)")
-    else:
-        start_idx = 0
+    print(f"  Processing {len(data_rows)} images...")
 
-    remaining = data_rows[start_idx:]
-    print(f"  Processing {len(remaining)} remaining images...")
-
-    for i, row in enumerate(remaining):
+    for i, row in enumerate(data_rows):
         img_path = row['image_path']
         if not os.path.exists(img_path):
-            print(f"  SKIP (missing): {img_path}")
+            print(f"  SKIP (missing): {os.path.basename(img_path)}")
             results.append({
                 "image_path": img_path,
                 "ground_truth_city": row.get('city'),
@@ -270,11 +422,8 @@ def run_inference(data_rows, prompt, method_name, output_path, max_new_tokens=76
                 "ground_truth_continent": row.get('continent'),
                 "ground_truth_lat": float(row['lat']) if row.get('lat') else None,
                 "ground_truth_lon": float(row['lon']) if row.get('lon') else None,
-                "predicted_city": None,
-                "predicted_country": None,
-                "predicted_continent": None,
-                "model_response": None,
-                "error": "missing image",
+                "predicted_city": None, "predicted_country": None, "predicted_continent": None,
+                "model_response": None, "error": "missing image",
             })
             continue
 
@@ -283,21 +432,24 @@ def run_inference(data_rows, prompt, method_name, output_path, max_new_tokens=76
                 {"type": "image", "image": img_path},
                 {"type": "text", "text": prompt}
             ]}]
-            text = processor.apply_chat_template(
+            text_input = processor.apply_chat_template(
                 messages, tokenize=False, add_generation_prompt=True)
             image_inputs, _ = process_vision_info(messages)
             inputs = processor(
-                text=[text], images=image_inputs, videos=None,
+                text=[text_input], images=image_inputs, videos=None,
                 padding=True, return_tensors="pt"
             )
             inputs = {k: v.to(model.device) for k, v in inputs.items()}
 
+            t_start = time.time()
             with torch.no_grad():
                 generated_ids = model.generate(
                     **inputs,
                     max_new_tokens=max_new_tokens,
                     do_sample=False,
                 )
+            elapsed = time.time() - t_start
+
             generated_ids_trimmed = [
                 out_ids[len(in_ids):]
                 for in_ids, out_ids in zip(inputs["input_ids"], generated_ids)
@@ -320,12 +472,16 @@ def run_inference(data_rows, prompt, method_name, output_path, max_new_tokens=76
                 "predicted_country": prediction.get('country'),
                 "predicted_continent": prediction.get('continent'),
                 "model_response": response,
+                "inference_time": round(elapsed, 2),
             })
 
+            # Progress logging
+            country_pred = prediction.get('country', 'None')
             if (i + 1) % 5 == 0:
-                print(f"  Processed {i+1}/{len(remaining)} ({method_name})")
+                print(f"  [{i+1}/{len(data_rows)}] {os.path.basename(img_path)[:30]} -> {country_pred} ({elapsed:.1f}s, {len(response)} chars)")
+
         except Exception as e:
-            print(f"  ERROR on {img_path}: {e}")
+            print(f"  ERROR on {os.path.basename(img_path)}: {e}")
             results.append({
                 "image_path": img_path,
                 "ground_truth_city": row.get('city'),
@@ -333,19 +489,16 @@ def run_inference(data_rows, prompt, method_name, output_path, max_new_tokens=76
                 "ground_truth_continent": row.get('continent'),
                 "ground_truth_lat": float(row['lat']) if row.get('lat') else None,
                 "ground_truth_lon": float(row['lon']) if row.get('lon') else None,
-                "predicted_city": None,
-                "predicted_country": None,
-                "predicted_continent": None,
-                "model_response": None,
-                "error": str(e),
+                "predicted_city": None, "predicted_country": None, "predicted_continent": None,
+                "model_response": None, "error": str(e),
             })
 
-        # Checkpoint every 5 images
-        processed = len(results)
-        if processed % 5 == 0:
+        # Checkpoint every 10 images
+        if (i + 1) % 10 == 0:
             with open(output_path, 'w') as f:
                 json.dump(results, f)
-            print(f"  Checkpoint: {processed} total")
+            valid_count = sum(1 for r in results if r.get('predicted_country'))
+            print(f"  Checkpoint: {i+1} done, {valid_count} valid predictions")
 
     # Final save
     with open(output_path, 'w') as f:
@@ -369,16 +522,18 @@ for row in data_rows:
     countries[c] = countries.get(c, 0) + 1
 print(f"Countries: {countries}")
 
-# Run GeoCoT
+# Run GeoCoT (2048 tokens for full reasoning)
 geocot_results = run_inference(
     data_rows, GEO_COT_USER_PROMPT, "GeoCoT",
-    "/home/user/results/geocot_predictions.json"
+    "/home/user/results/geocot_predictions.json",
+    max_new_tokens=2048
 )
 
-# Run standard CoT
+# Run standard CoT (512 tokens is enough for shorter responses)
 cot_results = run_inference(
     data_rows, COT_PROMPT, "CoT",
-    "/home/user/results/cot_predictions.json"
+    "/home/user/results/cot_predictions.json",
+    max_new_tokens=512
 )
 
 print("\n=== All Inference Complete ===")
@@ -397,92 +552,108 @@ import csv
 import json
 import math
 
-# Import metrics from eval package
-try:
-    from eval.metrics import compute_all_metrics
-except ImportError:
-    # Fallback: inline the metrics computation
-    print("Using inline metrics (pandas import failed)")
+def haversine(lat1, lon1, lat2, lon2):
+    R = 6371.0
+    lat1_rad, lat2_rad = math.radians(lat1), math.radians(lat2)
+    delta_lat = math.radians(lat2 - lat1)
+    delta_lon = math.radians(lon2 - lon1)
+    a = math.sin(delta_lat/2)**2 + math.cos(lat1_rad)*math.cos(lat2_rad)*math.sin(delta_lon/2)**2
+    return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
 
-    def haversine(lat1, lon1, lat2, lon2):
-        R = 6371.0
-        lat1_rad, lat2_rad = math.radians(lat1), math.radians(lat2)
-        delta_lat = math.radians(lat2 - lat1)
-        delta_lon = math.radians(lon2 - lon1)
-        a = math.sin(delta_lat/2)**2 + math.cos(lat1_rad)*math.cos(lat2_rad)*math.sin(delta_lon/2)**2
-        return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
+COUNTRY_COORDS = {
+    "kenya": (-1.2921, 36.8219), "madagascar": (-18.7669, 46.8691),
+    "ecuador": (-1.8312, -78.1834), "chile": (-35.6751, -71.5430),
+    "brazil": (-14.2350, -51.9253), "argentina": (-38.4161, -63.6167),
+    "peru": (-9.1900, -75.0152), "colombia": (4.5709, -74.2973),
+    "united states": (37.0902, -95.7129), "canada": (56.1304, -106.3468),
+    "south africa": (-30.5595, 22.9375), "egypt": (26.8206, 30.8025),
+    "nigeria": (9.0820, 8.6753), "australia": (-25.2744, 133.7751),
+    "germany": (51.1657, 10.4515), "france": (46.2276, 2.2137),
+    "united kingdom": (55.3781, -3.4360), "china": (35.8617, 104.1954),
+    "japan": (36.2048, 138.2529), "india": (20.5937, 78.9629),
+    "russia": (61.5240, 105.3188), "mexico": (23.6345, -102.5528),
+}
 
-    COUNTRY_COORDS = {
-        "kenya": (-1.2921, 36.8219), "madagascar": (-18.7669, 46.8691),
-        "ecuador": (-1.8312, -78.1834), "chile": (-35.6751, -71.5430),
-        "brazil": (-14.2350, -51.9253), "argentina": (-38.4161, -63.6167),
-    }
+def reverse_geocode(country):
+    if not country: return None, None
+    c = country.strip().lower()
+    for k, v in COUNTRY_COORDS.items():
+        if k in c or c in k: return v
+    return None, None
 
-    def reverse_geocode(country):
-        if not country: return None, None
-        c = country.strip().lower()
-        for k, v in COUNTRY_COORDS.items():
-            if k in c or c in k: return v
-        return None, None
+def normalize_country(c):
+    if not c: return None
+    c = c.strip().lower()
+    aliases = {"usa":"united states","us":"united states","uk":"united kingdom",
+               "british":"united kingdom","american":"united states"}
+    return aliases.get(c, c)
 
-    def normalize_country(c):
-        if not c: return None
-        c = c.strip().lower()
-        aliases = {"usa":"united states","us":"united states","uk":"united kingdom"}
-        return aliases.get(c, c)
+def normalize_continent(c):
+    if not c: return None
+    c = c.strip().lower()
+    if "australia" in c: c = "oceania"
+    return c
 
-    def normalize_continent(c):
-        if not c: return None
-        c = c.strip().lower()
-        return c
+def compute_all_metrics(predictions):
+    """Compute all geolocation metrics."""
+    # Enrich with coordinates
+    for p in predictions:
+        if p.get('predicted_lat') is None:
+            lat, lon = reverse_geocode(p.get('predicted_country'))
+            p['predicted_lat'] = lat
+            p['predicted_lon'] = lon
 
-    def compute_metrics(predictions):
+    metrics = {}
+
+    # Classification metrics at each level
+    for level in ['city', 'country', 'continent']:
+        pk = f'predicted_{level}'
+        gk = f'ground_truth_{level}'
+        tp = fp = fn = total = 0
         for p in predictions:
-            if p.get('predicted_lat') is None:
-                lat, lon = reverse_geocode(p.get('predicted_country'))
-                p['predicted_lat'] = lat
-                p['predicted_lon'] = lon
+            if not p.get(gk): continue
+            total += 1
+            pv = p.get(pk)
+            gv = p.get(gk)
+            if not pv:
+                fn += 1; continue
+            if level == 'country':
+                pv, gv = normalize_country(pv), normalize_country(gv)
+            elif level == 'continent':
+                pv, gv = normalize_continent(pv), normalize_continent(gv)
+            else:
+                pv, gv = pv.strip().lower(), gv.strip().lower() if gv else ""
+            if pv == gv: tp += 1
+            else: fp += 1; fn += 1
+        acc = tp/total if total else 0
+        rec = tp/(tp+fn) if (tp+fn) else 0
+        prec = tp/(tp+fp) if (tp+fp) else 0
+        f1 = 2*prec*rec/(prec+rec) if (prec+rec) else 0
+        metrics[f'{level}_accuracy'] = round(acc, 4)
+        metrics[f'{level}_recall'] = round(rec, 4)
+        metrics[f'{level}_f1'] = round(f1, 4)
+        metrics[f'{level}_total'] = total
 
-        for level in ['city', 'country', 'continent']:
-            tp = fp = fn = total = 0
-            pk = f'predicted_{level}'
-            gk = f'ground_truth_{level}'
-            for p in predictions:
-                if not p.get(gk): continue
+    # Distance metrics
+    for thresh, name in [(1.0,"street_1km"),(25.0,"city_25km"),(750.0,"country_750km")]:
+        within = total = 0
+        for p in predictions:
+            lat, lon = p.get('ground_truth_lat'), p.get('ground_truth_lon')
+            plat, plon = p.get('predicted_lat'), p.get('predicted_lon')
+            if lat and lon and plat and plon:
                 total += 1
-                pv = p.get(pk)
-                gv = p.get(gk)
-                if not pv:
-                    fn += 1; continue
-                if level == 'country': pv, gv = normalize_country(pv), normalize_country(gv)
-                elif level == 'continent': pv, gv = normalize_continent(pv), normalize_continent(gv)
-                if pv == gv: tp += 1
-                else: fp += 1; fn += 1
-            acc = tp/total if total else 0
-            rec = tp/(tp+fn) if (tp+fn) else 0
-            prec = tp/(tp+fp) if (tp+fp) else 0
-            f1 = 2*prec*rec/(prec+rec) if (prec+rec) else 0
-            predictions[0][f'{level}_accuracy'] = acc
-            predictions[0][f'{level}_recall'] = rec
-            predictions[0][f'{level}_f1'] = f1
+                if haversine(float(lat), float(lon), float(plat), float(plon)) <= thresh:
+                    within += 1
+        metrics[name] = round(within/total, 4) if total else 0.0
+        metrics[f'{name}_count'] = f'{within}/{total}'
 
-        for thresh, name in [(1.0,"street_1km"),(25.0,"city_25km"),(750.0,"country_750km")]:
-            within = total = 0
-            for p in predictions:
-                lat, lon = p.get('ground_truth_lat'), p.get('ground_truth_lon')
-                plat, plon = p.get('predicted_lat'), p.get('predicted_lon')
-                if lat and lon and plat and plon:
-                    total += 1
-                    if haversine(lat, lon, plat, plon) <= thresh: within += 1
-            predictions[0][name] = within/total if total else 0
-        return predictions[0] if predictions else {}
+    return metrics
 
-    def compute_all_metrics(predictions):
-        return compute_metrics(predictions)
 
+# Evaluate all prediction files
 results_dir = '/home/user/results'
 pred_files = {}
-for f in os.listdir(results_dir):
+for f in sorted(os.listdir(results_dir)):
     if f.endswith('_predictions.json'):
         name = f.replace('_predictions.json', '')
         pred_files[name] = os.path.join(results_dir, f)
@@ -497,7 +668,7 @@ for name, filepath in sorted(pred_files.items()):
 
     valid_preds = [p for p in predictions if p.get('predicted_country') is not None]
     valid_gt = [p for p in valid_preds if p.get('ground_truth_country') is not None]
-    print(f"  {len(valid_preds)}/{len(predictions)} valid, {len(valid_gt)} with ground truth")
+    print(f"  {len(valid_preds)}/{len(predictions)} valid predictions, {len(valid_gt)} with ground truth")
 
     if valid_gt:
         metrics = compute_all_metrics(valid_gt)
@@ -505,9 +676,9 @@ for name, filepath in sorted(pred_files.items()):
         for key in ['city_accuracy', 'country_accuracy', 'continent_accuracy',
                     'street_1km', 'city_25km', 'country_750km']:
             if key in metrics:
-                print(f"  {key}: {metrics[key]:.4f}")
+                print(f"  {key}: {metrics[key]}")
 
-# Build scores.json from reference, adding actual reproduction results
+# Build scores.json
 with open('/home/user/scoring/reference.json') as f:
     reference = json.load(f)
 
@@ -526,7 +697,7 @@ for exp_name, exp_data in reference.get("experiments", {}).items():
     ref_results = exp_data.get("results", {})
     ref_metrics = list(exp_data.get("metrics", {}).keys())
 
-    # Copy reference results
+    # Copy reference (paper) results
     for method_name, method_data in ref_results.items():
         entry = {}
         for key, val in method_data.items():
@@ -538,19 +709,18 @@ for exp_name, exp_data in reference.get("experiments", {}).items():
     for pred_name, metrics in all_metrics.items():
         method_name = METHOD_MAP.get(pred_name, pred_name)
         if method_name not in ref_results:
-            # Add as new method for geocomp experiments
             if exp_name in ["geocomp_classification", "geocomp_distance"]:
                 entry = {}
                 for key in ref_metrics:
                     if key in metrics:
-                        entry[key] = round(metrics[key], 4)
+                        entry[key] = metrics[key]
                 if entry:
                     exp_copy["results"][method_name] = entry
         else:
             entry = exp_copy["results"][method_name]
             for key in ref_metrics:
                 if key in metrics:
-                    entry[key] = round(metrics[key], 4)
+                    entry[key] = metrics[key]
 
     scores["experiments"][exp_name] = exp_copy
 

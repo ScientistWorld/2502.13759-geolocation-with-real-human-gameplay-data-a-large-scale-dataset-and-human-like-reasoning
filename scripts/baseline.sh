@@ -1,8 +1,8 @@
 #!/bin/bash
-# Baseline script — runs CoT baseline for geolocation
+# Baseline script — runs standard CoT baseline for geolocation
 #
-# This script runs the baseline method (standard chain-of-thought without
-# GeoCoT-structured geographical reasoning) on the geolocation dataset.
+# Runs a standard chain-of-thought prompt (without GeoCoT-structured
+# geographical reasoning) on the geolocation dataset for comparison.
 
 set -e
 
@@ -11,70 +11,128 @@ cd /home/user
 RESULTS_DIR="/home/user/results"
 mkdir -p "$RESULTS_DIR"
 
-# Use the same VLM type as method.sh (LLaVA-1.5-7B)
-VLM_TYPE="llava"
-MAX_IMAGES=10
+echo "=== Baseline: Standard CoT on GeoCLIP dataset ==="
 
-echo "=========================================="
-echo "Baseline: Standard CoT on GeoCLIP dataset"
-echo "=========================================="
+# The run.sh script already includes CoT baseline inference.
+# This script re-runs just the CoT portion if needed.
 
-DATASET="/home/user/data/geoclip/geoclip.csv"
-OUTPUT_PATH="$RESULTS_DIR/cot_baseline_predictions.json"
+# Environment setup
+if [ -f "/home/user/environment/setup.sh" ]; then
+    source /home/user/environment/setup.sh
+fi
 
-echo "Dataset: $DATASET"
-echo "VLM Type: $VLM_TYPE"
-echo "Max Images: $MAX_IMAGES"
-echo "Output: $OUTPUT_PATH"
+# Find model
+MODEL_PATH=""
+for dir in "/home/user/checkpoints/Qwen2.5-VL-7B-Instruct" \
+            "/home/user/shared/models/Qwen2.5-VL-7B-Instruct"; do
+    if [ -d "$dir" ] && [ -f "$dir/model.safetensors.index.json" ]; then
+        MODEL_PATH="$dir"
+        break
+    fi
+done
 
-python3 << 'EOF'
-import sys
-sys.path.insert(0, '/home/user')
-from baseline.llm_cot_baseline import run_baseline
+if [ -z "$MODEL_PATH" ]; then
+    echo "ERROR: No VLM model found"
+    exit 1
+fi
 
-results = run_baseline(
-    dataset_path="/home/user/data/geoclip/geoclip.csv",
-    output_path="/home/user/results/cot_baseline_predictions.json",
-    vlm_type="llava",
-    max_images=10,
-)
+echo "Model: $MODEL_PATH"
 
-print(f"\nGenerated {len(results)} predictions")
-print(f"Saved to /home/user/results/cot_baseline_predictions.json")
-EOF
+# Run CoT inference
+python3 << 'PYEOF'
+import os, csv, json, re, time
+import torch
+os.environ['HF_HOME'] = '/home/user/shared/models/hf'
+os.environ['TRANSFORMERS_CACHE'] = '/home/user/shared/models/hf'
+os.environ['HF_HUB_OFFLINE'] = '1'
 
-# Generate scores
+from transformers import Qwen2_5_VLForConditionalGeneration, Qwen2_5_VLProcessor
+from qwen_vl_utils import process_vision_info
+
+# Find model
+MODEL_PATH = ""
+for d in ['/home/user/checkpoints/Qwen2.5-VL-7B-Instruct',
+           '/home/user/shared/models/Qwen2.5-VL-7B-Instruct']:
+    if os.path.isdir(d) and os.path.exists(os.path.join(d, 'model.safetensors.index.json')):
+        MODEL_PATH = d
+        break
+
+processor = Qwen2_5_VLProcessor.from_pretrained(MODEL_PATH)
+model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
+    MODEL_PATH, torch_dtype=torch.bfloat16, device_map="auto")
+
+COT_PROMPT = """Let's think step by step about the geographical location where this image was taken. Identify any visible clues about the location, then provide your best guess of the city, country, and continent.
+
+Output format: Location: [City], [Country], [Continent]
+"""
+
+# Same comprehensive country list as run.sh
+ALL_COUNTRIES = {
+    "kenya": ("Kenya", "Africa"), "madagascar": ("Madagascar", "Africa"),
+    "ecuador": ("Ecuador", "South America"), "chile": ("Chile", "South America"),
+    "brazil": ("Brazil", "South America"), "argentina": ("Argentina", "South America"),
+    "peru": ("Peru", "South America"), "colombia": ("Colombia", "South America"),
+    "united states": ("United States", "North America"), "canada": ("Canada", "North America"),
+    "mexico": ("Mexico", "North America"), "germany": ("Germany", "Europe"),
+    "france": ("France", "Europe"), "china": ("China", "Asia"), "japan": ("Japan", "Asia"),
+    "india": ("India", "Asia"), "australia": ("Australia", "Oceania"),
+    "russia": ("Russia", "Europe"),
+}
+
+def parse_location(text):
+    if not text: return {"city": None, "country": None, "continent": None}
+    result = {"city": None, "country": None, "continent": None}
+    text_lower = text.lower()
+    for name, (canonical, continent) in ALL_COUNTRIES.items():
+        if name in text_lower:
+            result["country"] = canonical
+            result["continent"] = continent
+            break
+    return result
+
+# Load dataset
+data = []
+with open('/home/user/data/geoclip/sample_balanced.csv') as f:
+    for row in csv.DictReader(f):
+        data.append(row)
+
+results = []
+for i, row in enumerate(data):
+    img_path = row['image_path']
+    if not os.path.exists(img_path): continue
+    try:
+        messages = [{"role": "user", "content": [
+            {"type": "image", "image": img_path},
+            {"type": "text", "text": COT_PROMPT}
+        ]}]
+        text_input = processor.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+        image_inputs, _ = process_vision_info(messages)
+        inputs = processor(text=[text_input], images=image_inputs, videos=None, padding=True, return_tensors="pt")
+        inputs = {k: v.to(model.device) for k, v in inputs.items()}
+        with torch.no_grad():
+            ids = model.generate(**inputs, max_new_tokens=512, do_sample=False)
+        trimmed = [out[len(inp):] for inp, out in zip(inputs["input_ids"], ids)]
+        response = processor.batch_decode(trimmed, skip_special_tokens=True, clean_up_tokenization_spaces=False)[0]
+        pred = parse_location(response)
+        results.append({
+            "image_path": img_path,
+            "ground_truth_city": row.get('city'), "ground_truth_country": row.get('country'),
+            "ground_truth_continent": row.get('continent'),
+            "ground_truth_lat": float(row['lat']) if row.get('lat') else None,
+            "ground_truth_lon": float(row['lon']) if row.get('lon') else None,
+            "predicted_city": pred.get('city'), "predicted_country": pred.get('country'),
+            "predicted_continent": pred.get('continent'), "model_response": response,
+        })
+        if (i+1) % 10 == 0:
+            print(f"  Processed {i+1}/{len(data)}")
+    except Exception as e:
+        print(f"  Error on {img_path}: {e}")
+
+with open('/home/user/results/cot_predictions.json', 'w') as f:
+    json.dump(results, f)
+print(f"CoT baseline: {sum(1 for r in results if r.get('predicted_country'))}/{len(results)} valid")
+PYEOF
+
 echo ""
-echo "=== Evaluating baseline results ==="
-
-python3 << 'EOF'
-import sys
-sys.path.insert(0, '/home/user')
-import json
-import os
-from eval.metrics import evaluate_predictions, compute_all_metrics
-
-pred_path = "/home/user/results/cot_baseline_predictions.json"
-if os.path.exists(pred_path):
-    with open(pred_path, "r") as f:
-        predictions = json.load(f)
-
-    metrics = compute_all_metrics(predictions)
-    print("\nBaseline Metrics:")
-    for key in ["city_accuracy", "country_accuracy", "continent_accuracy"]:
-        if key in metrics:
-            print(f"  {key}: {metrics[key]:.4f}")
-
-    # Save as separate file for evaluate.sh to pick up
-    scores_path = "/home/user/results/cot_baseline_metrics.json"
-    with open(scores_path, "w") as f:
-        json.dump(metrics, f, indent=2)
-    print(f"\nMetrics saved to {scores_path}")
-else
-    echo "No predictions found - baseline may have failed"
-EOF
-
-echo ""
-echo "=========================================="
-echo "Baseline Complete - $OUTPUT_PATH generated"
-echo "=========================================="
+echo "=== Evaluating baseline ==="
+bash scripts/evaluate.sh

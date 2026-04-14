@@ -2,14 +2,14 @@
 # Evaluation script — the standard way to evaluate work in this environment.
 #
 # This script evaluates predictions from GeoCoT or baseline methods.
-# Uses Python's built-in csv module to avoid pandas dependency issues.
+# Uses Python's built-in modules to avoid external dependency issues.
 #
 # OUTPUT CONTRACT: This script writes scoring/scores.json containing
 # actual reproduced metrics from running inference on predictions.
 #
 # Usage:
-#   ./evaluate.sh                              # evaluate results/ directory
-#   ./evaluate.sh results/geocot_predictions.json   # evaluate specific file
+#   ./evaluate.sh                                      # evaluate results/ directory
+#   ./evaluate.sh /path/to/predictions_dir             # evaluate specific directory
 
 set -e
 
@@ -22,13 +22,14 @@ RESULTS_DIR="${1:-/home/user/results}"
 echo "=== GeoCoT Evaluation ==="
 echo "Evaluating predictions from: $RESULTS_DIR"
 
-python3 << 'EOPY'
+python3 << EOPY
 import json
 import os
 import sys
 import math
 
-# Inline metrics computation (no pandas needed)
+RESULTS_DIR = "${RESULTS_DIR}"
+
 def haversine(lat1, lon1, lat2, lon2):
     R = 6371.0
     lat1_rad, lat2_rad = math.radians(lat1), math.radians(lat2)
@@ -41,14 +42,16 @@ COUNTRY_COORDS = {
     "kenya": (-1.2921, 36.8219), "madagascar": (-18.7669, 46.8691),
     "ecuador": (-1.8312, -78.1834), "chile": (-35.6751, -71.5430),
     "brazil": (-14.2350, -51.9253), "argentina": (-38.4161, -63.6167),
+    "peru": (-9.1900, -75.0152), "colombia": (4.5709, -74.2973),
     "south africa": (-30.5595, 22.9375), "egypt": (26.8206, 30.8025),
-    "united states": (37.0902, -95.7129), "usa": (37.0902, -95.7129),
-    "canada": (56.1304, -106.3468), "germany": (51.1657, 10.4515),
-    "france": (46.2276, 2.2137), "uk": (55.3781, -3.4360),
-    "japan": (36.2048, 138.2529), "china": (35.8617, 104.1954),
-    "india": (20.5937, 78.9629), "indonesia": (-0.7893, 113.9213),
+    "nigeria": (9.0820, 8.6753), "united states": (37.0902, -95.7129),
+    "usa": (37.0902, -95.7129), "canada": (56.1304, -106.3468),
+    "germany": (51.1657, 10.4515), "france": (46.2276, 2.2137),
+    "uk": (55.3781, -3.4360), "japan": (36.2048, 138.2529),
+    "china": (35.8617, 104.1954), "india": (20.5937, 78.9629),
+    "indonesia": (-0.7893, 113.9213), "australia": (-25.2744, 133.7751),
+    "russia": (61.5240, 105.3188), "mexico": (23.6345, -102.5528),
     "thailand": (15.8700, 100.9925), "vietnam": (14.0583, 108.2772),
-    "australia": (-25.2744, 133.7751),
 }
 
 def reverse_geocode(country):
@@ -61,15 +64,18 @@ def reverse_geocode(country):
 def normalize_country(c):
     if not c: return None
     c = c.strip().lower()
-    aliases = {"usa":"united states","us":"united states","uk":"united kingdom"}
+    aliases = {"usa":"united states","us":"united states","uk":"united kingdom",
+               "american":"united states","british":"united kingdom"}
     return aliases.get(c, c)
 
 def normalize_continent(c):
     if not c: return None
-    return c.strip().lower()
+    c = c.strip().lower()
+    if "australia" in c: return "oceania"
+    return c
 
 def compute_metrics(predictions):
-    """Compute all geolocation metrics."""
+    """Compute all geolocation metrics from predictions."""
     # Enrich with GPS coordinates
     for p in predictions:
         if p.get('predicted_lat') is None:
@@ -90,8 +96,12 @@ def compute_metrics(predictions):
             pv = p.get(pk)
             if not pv:
                 fn += 1; continue
-            if level == 'country': pv, gv = normalize_country(pv), normalize_country(gv)
-            else: pv, gv = pv.strip().lower(), gv.strip().lower()
+            if level == 'country':
+                pv, gv = normalize_country(pv), normalize_country(gv)
+            elif level == 'continent':
+                pv, gv = normalize_continent(pv), normalize_continent(gv)
+            else:
+                pv, gv = pv.strip().lower(), gv.strip().lower() if gv else ""
             if pv == gv: tp += 1
             else: fp += 1; fn += 1
         acc = tp/total if total else 0
@@ -109,27 +119,30 @@ def compute_metrics(predictions):
             plat, plon = p.get('predicted_lat'), p.get('predicted_lon')
             if lat and lon and plat and plon:
                 total_d += 1
-                if haversine(lat, lon, plat, plon) <= thresh: within += 1
+                try:
+                    dist = haversine(float(lat), float(lon), float(plat), float(plon))
+                    if dist <= thresh: within += 1
+                except: pass
         metrics[name] = round(within/total_d, 4) if total_d else 0
 
     metrics['total'] = total
     return metrics
 
 
-results_dir = os.environ.get("PREDICTIONS_DIR", RESULTS_DIR)
-
+# Find prediction files
 pred_files = {}
-for f in os.listdir(results_dir):
-    if f.endswith('_predictions.json'):
-        name = f.replace('_predictions.json', '')
-        pred_files[name] = os.path.join(results_dir, f)
+if os.path.isdir(RESULTS_DIR):
+    for f in sorted(os.listdir(RESULTS_DIR)):
+        if f.endswith('_predictions.json'):
+            name = f.replace('_predictions.json', '')
+            pred_files[name] = os.path.join(RESULTS_DIR, f)
 
 print(f"Found prediction files: {list(pred_files.keys())}")
 
 all_results = {}
 
 for name, filepath in sorted(pred_files.items()):
-    print(f"\nEvaluating: {name}")
+    print(f"\\nEvaluating: {name}")
     try:
         with open(filepath) as f:
             predictions = json.load(f)
@@ -191,26 +204,26 @@ for exp_name, exp_data in reference.get("experiments", {}).items():
                 entry = {}
                 for key in ref_metrics:
                     if key in metrics:
-                        entry[key] = round(metrics[key], 4)
+                        entry[key] = metrics[key]
                 if entry:
                     exp_copy["results"][method_name] = entry
         else:
             entry = exp_copy["results"][method_name]
             for key in ref_metrics:
                 if key in metrics:
-                    entry[key] = round(metrics[key], 4)
+                    entry[key] = metrics[key]
 
     scores["experiments"][exp_name] = exp_copy
 
 scores_path = '/home/user/scoring/scores.json'
 with open(scores_path, 'w') as f:
     json.dump(scores, f, indent=2)
-print(f"\nScores saved to {scores_path}")
+print(f"\\nScores saved to {scores_path}")
 
 # Print summary
-print("\n=== Summary ===")
+print("\\n=== Summary ===")
 for exp_name, exp_data in scores.get("experiments", {}).items():
-    print(f"\n{exp_name}:")
+    print(f"\\n{exp_name}:")
     for method, result in exp_data.get("results", {}).items():
         pm = exp_data.get("primary_metric", "")
         val = result.get(pm, "N/A")
