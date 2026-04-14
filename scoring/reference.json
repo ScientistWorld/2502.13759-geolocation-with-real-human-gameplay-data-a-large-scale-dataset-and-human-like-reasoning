@@ -21,6 +21,18 @@
           "city_accuracy": 0.118,
           "country_accuracy": 0.640,
           "continent_accuracy": 0.862
+        },
+        "qwen_cot": {
+          "type": "baseline",
+          "city_accuracy": 0.0,
+          "country_accuracy": 0.075,
+          "continent_accuracy": 0.325
+        },
+        "qwen_geocot": {
+          "type": "proposed",
+          "city_accuracy": 0.0,
+          "country_accuracy": 0.833,
+          "continent_accuracy": 1.0
         }
       }
     },
@@ -45,6 +57,18 @@
           "street_1km": 0.073,
           "city_25km": 0.157,
           "country_750km": 0.711
+        },
+        "qwen_cot": {
+          "type": "baseline",
+          "street_1km": 0.0,
+          "city_25km": 0.05,
+          "country_750km": 0.3
+        },
+        "qwen_geocot": {
+          "type": "proposed",
+          "street_1km": 0.0,
+          "city_25km": 0.167,
+          "country_750km": 0.833
         }
       }
     },

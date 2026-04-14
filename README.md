@@ -652,7 +652,4 @@ Target performance (paper's reported results on GeoComp test set with 500 images
 
 # Reproduction Milestones
 
-**Current: none**
-
-## Stop Justification
-- Completed at milestone `method_runs`.
+**Current: core_claim**
