@@ -1,6 +1,7 @@
 #!/bin/bash
 # Runtime environment setup for GeoCoT reproduction.
 # This script runs at JOB EXECUTION TIME inside the container.
+# Packages persist in overlay between runs — only install what's missing.
 
 set -e
 
@@ -20,33 +21,28 @@ export HF_HUB_OFFLINE="1"
 
 # Check which packages are already present.
 echo "Checking existing packages..."
-TORCH_OK=false
-if python3 -c "import torch; print('torch', torch.__version__)" 2>/dev/null; then
+if python3 -c "import torch; print('torch OK')" 2>/dev/null; then
     echo "  torch already present"
-    TORCH_OK=true
+fi
+if python3 -c "import torchvision; print('torchvision OK')" 2>/dev/null; then
+    echo "  torchvision already present"
+fi
+if python3 -c "from transformers import Qwen2_5_VLForConditionalGeneration; print('Qwen2_5_VL OK')" 2>/dev/null; then
+    echo "  transformers + Qwen2_5_VL already present"
 fi
 
-TRANSFORMERS_OK=false
-if python3 -c "from transformers import Qwen2_5_VLForConditionalGeneration; print('transformers OK')" 2>/dev/null; then
-    echo "  transformers + Qwen2.5VL already present"
-    TRANSFORMERS_OK=true
+# Install torchvision ONLY if missing (needed by qwen_vl_utils even when torch is present).
+if ! python3 -c "import torchvision" 2>/dev/null; then
+    echo "Installing torchvision..."
+    uv pip install --system torchvision --index-url https://download.pytorch.org/whl/cu124
 fi
 
-QVLU_OK=false
+# Verify qwen_vl_utils works.
 if python3 -c "from qwen_vl_utils import process_vision_info; print('qwen_vl_utils OK')" 2>/dev/null; then
     echo "  qwen_vl_utils already present"
-    QVLU_OK=true
-fi
-
-# Only install missing packages.
-if [ "$TORCH_OK" = false ]; then
-    echo "Installing CUDA-enabled torch + torchvision..."
-    uv pip install --system torch torchvision --index-url https://download.pytorch.org/whl/cu124
-fi
-
-if [ "$TRANSFORMERS_OK" = false ] || [ "$QVLU_OK" = false ]; then
-    echo "Installing transformers and other packages..."
-    uv pip install --system transformers accelerate qwen_vl_utils protobuf pillow numpy pandas huggingface_hub
+else
+    echo "Installing qwen_vl_utils..."
+    uv pip install --system qwen_vl_utils
 fi
 
 echo "=== Runtime environment setup complete ==="

@@ -2,4 +2,4 @@ action: submit
 gpus: 1
 test: false
 milestone: method_runs
-notes: "Fixed Python class names: Qwen2VL->Qwen2_5_VLForConditionalGeneration (underscores), Qwen2.5VLProcessor->Qwen2_5_VLProcessor. Fixed PYTHON path to /usr/bin/python3 to bypass wrapper. setup.sh uses idempotent checks. 4 per country (16 total)."
+notes: "Streamlined setup.sh: only install missing packages (torchvision or qwen_vl_utils). Previous 20-min timeout was from reinstalling everything. 4 per country (16 total)."
