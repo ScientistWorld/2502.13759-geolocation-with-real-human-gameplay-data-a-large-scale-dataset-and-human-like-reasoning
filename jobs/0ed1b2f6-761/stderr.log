@@ -1,0 +1,65 @@
+[hive] This stderr log is managed by Hive.
+[hive] job_id: f565c7db
+[hive] host: della-k17g2
+[hive] node_id: 6202f7c97cc7d6b883de17982f1630e879c4fd0e5a0b0456aa0b26a0
+[hive] user: nexus/tl0463 (remote)
+[hive] resource: pli-1
+[hive] gpus: 1
+[hive] cpus: 1
+[hive] workdir: /home/tl0463
+[hive] timeout_sec: 3600
+[hive] started_at: 2026-04-14 17:15:48 EDT
+[hive] command: apptainer exec --nv --containall --cleanenv --env HF_HOME=/home/user/shared/hf_cache --env TRANSFORMERS_CACHE=/home/user/shared/hf_cache --env HF_DATASETS_CACHE=/home/user/shared/hf_cache/datasets --env TORCH_HOME=/home/user/shared/hf_cache/torch --bind /home/tl0463/scratch/AgentWorkspaces/workspaces/2502.13759:/home/user --overlay /home/tl0463/scratch/AgentWorkspaces/workspaces/2502.13759/environment/overlay.img:ro --bind /home/tl0463/scratch/AgentWorkspaces/shared/datasets:/home/user/shared/datasets:ro --bind /home/tl0463/scratch/AgentWorkspaces/shared/models:/home/user/shared/models:ro --bind /home/tl0463/scratch/AgentWorkspaces/shared/hf_cache:/home/user/shared/hf_cache /home/tl0463/scratch/AgentWorkspaces/workspaces/2502.13759/environment/container.sif bash -c 'cd /home/user && bash /home/user/scripts/run.sh'
+Using Python 3.10.12 environment at: /usr
+Checked 10 packages in 285ms
+
+Loading weights:   0%|          | 0/729 [00:00<?, ?it/s]
+Loading weights:   0%|          | 1/729 [00:00<11:19,  1.07it/s]
+Loading weights:   0%|          | 2/729 [00:02<13:39,  1.13s/it]
+Loading weights:   0%|          | 3/729 [00:02<11:34,  1.05it/s]
+Loading weights:   2%|▏         | 17/729 [00:04<01:55,  6.16it/s]
+Loading weights:   5%|▍         | 34/729 [00:04<00:56, 12.27it/s]
+Loading weights:   6%|▋         | 46/729 [00:05<00:46, 14.55it/s]
+Loading weights:   8%|▊         | 61/729 [00:05<00:34, 19.22it/s]
+Loading weights:   9%|▉         | 66/729 [00:06<00:44, 14.94it/s]
+Loading weights:  12%|█▏        | 85/729 [00:06<00:31, 20.55it/s]
+Loading weights:  12%|█▏        | 88/729 [00:07<00:47, 13.38it/s]
+Loading weights:  13%|█▎        | 94/729 [00:08<00:46, 13.77it/s]
+Loading weights:  17%|█▋        | 125/729 [00:08<00:20, 28.77it/s]
+Loading weights:  18%|█▊        | 129/729 [00:08<00:26, 22.55it/s]
+Loading weights:  19%|█▉        | 138/729 [00:09<00:22, 26.08it/s]
+Loading weights:  19%|█▉        | 142/729 [00:09<00:27, 21.29it/s]
+Loading weights:  21%|██        | 150/729 [00:09<00:23, 24.92it/s]
+Loading weights:  22%|██▏       | 159/729 [00:10<00:23, 24.24it/s]
+Loading weights:  22%|██▏       | 163/729 [00:10<00:23, 24.31it/s]
+Loading weights:  23%|██▎       | 167/729 [00:11<00:38, 14.46it/s]
+Loading weights:  25%|██▌       | 185/729 [00:11<00:23, 23.56it/s]
+Loading weights:  26%|██▋       | 192/729 [00:11<00:24, 21.63it/s]
+Loading weights:  27%|██▋       | 197/729 [00:11<00:23, 22.65it/s]
+Loading weights:  28%|██▊       | 203/729 [00:12<00:25, 20.53it/s]
+Loading weights:  29%|██▉       | 210/729 [00:13<00:46, 11.14it/s]
+Loading weights:  33%|███▎      | 239/729 [00:14<00:20, 24.41it/s]
+Loading weights:  34%|███▎      | 246/729 [00:14<00:19, 24.84it/s]
+Loading weights:  35%|███▍      | 255/729 [00:14<00:17, 27.86it/s]
+Loading weights:  36%|███▌      | 259/729 [00:15<00:28, 16.62it/s]
+Loading weights:  38%|███▊      | 279/729 [00:15<00:17, 25.27it/s]
+Loading weights:  39%|███▉      | 283/729 [00:16<00:23, 19.08it/s]
+Loading weights:  40%|████      | 292/729 [00:16<00:18, 23.73it/s]
+Loading weights:  41%|████▏     | 301/729 [00:16<00:16, 25.22it/s]
+Loading weights:  42%|████▏     | 305/729 [00:17<00:32, 13.24it/s]
+Loading weights:  45%|████▌     | 329/729 [00:18<00:14, 27.82it/s]
+Loading weights:  50%|█████     | 367/729 [00:18<00:06, 58.02it/s]
+Loading weights:  53%|█████▎    | 384/729 [00:18<00:05, 67.64it/s]
+Loading weights:  56%|█████▌    | 405/729 [00:18<00:03, 84.43it/s]
+Loading weights:  60%|██████    | 438/729 [00:18<00:02, 110.63it/s]
+Loading weights:  64%|██████▍   | 470/729 [00:18<00:01, 135.69it/s]
+Loading weights:  68%|██████▊   | 494/729 [00:18<00:01, 151.34it/s]
+Loading weights:  74%|███████▍  | 538/729 [00:18<00:01, 189.94it/s]
+Loading weights:  78%|███████▊  | 572/729 [00:19<00:01, 125.19it/s]
+Loading weights:  84%|████████▍ | 613/729 [00:19<00:00, 163.79it/s]
+Loading weights:  88%|████████▊ | 639/729 [00:19<00:00, 171.77it/s]
+Loading weights:  91%|█████████ | 662/729 [00:19<00:00, 166.49it/s]
+Loading weights:  95%|█████████▍| 692/729 [00:19<00:00, 190.03it/s]
+Loading weights:  98%|█████████▊| 718/729 [00:20<00:00, 162.04it/s]
+Loading weights: 100%|██████████| 729/729 [00:20<00:00, 36.22it/s] 
+The following generation flags are not valid and may be ignored: ['temperature']. Set `TRANSFORMERS_VERBOSITY=info` for more details.

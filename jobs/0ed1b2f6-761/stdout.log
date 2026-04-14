@@ -1,0 +1,137 @@
+[hive] This stdout log is managed by Hive.
+[hive] job_id: f565c7db
+[hive] host: della-k17g2
+[hive] node_id: 6202f7c97cc7d6b883de17982f1630e879c4fd0e5a0b0456aa0b26a0
+[hive] user: nexus/tl0463 (remote)
+[hive] resource: pli-1
+[hive] gpus: 1
+[hive] cpus: 1
+[hive] workdir: /home/tl0463
+[hive] timeout_sec: 3600
+[hive] started_at: 2026-04-14 17:15:48 EDT
+[hive] command: apptainer exec --nv --containall --cleanenv --env HF_HOME=/home/user/shared/hf_cache --env TRANSFORMERS_CACHE=/home/user/shared/hf_cache --env HF_DATASETS_CACHE=/home/user/shared/hf_cache/datasets --env TORCH_HOME=/home/user/shared/hf_cache/torch --bind /home/tl0463/scratch/AgentWorkspaces/workspaces/2502.13759:/home/user --overlay /home/tl0463/scratch/AgentWorkspaces/workspaces/2502.13759/environment/overlay.img:ro --bind /home/tl0463/scratch/AgentWorkspaces/shared/datasets:/home/user/shared/datasets:ro --bind /home/tl0463/scratch/AgentWorkspaces/shared/models:/home/user/shared/models:ro --bind /home/tl0463/scratch/AgentWorkspaces/shared/hf_cache:/home/user/shared/hf_cache /home/tl0463/scratch/AgentWorkspaces/workspaces/2502.13759/environment/container.sif bash -c 'cd /home/user && bash /home/user/scripts/run.sh'
+==========================================
+GeoCoT Reproduction - Tue Apr 14 17:15:48 EDT 2026
+==========================================
+
+=== Environment Setup ===
+=== Setting up GeoCoT environment (runtime) ===
+Found existing installation: huggingface_hub 1.10.1
+Uninstalling huggingface_hub-1.10.1:
+Installing required packages...
+=== Runtime environment setup complete ===
+Using Python: /usr/bin/python3
+Python 3.10.12
+
+=== Finding Qwen2.5-VL Model ===
+Found model at: /home/user/checkpoints/Qwen2.5-VL-7B-Instruct
+
+=== Creating Balanced Sample ===
+Total images in dataset: 999
+  chile: sampled 10 from 179 total
+  ecuador: sampled 10 from 296 total
+  kenya: sampled 10 from 492 total
+  madagascar: sampled 10 from 32 total
+Total sample: 40
+Saved to /home/user/data/geoclip/sample_balanced.csv
+Missing images: 0
+
+=== Loading Model and Running Inference ===
+CUDA available: True
+GPU count: 1
+GPU name: NVIDIA H100 80GB HBM3
+Loading model from: /home/user/checkpoints/Qwen2.5-VL-7B-Instruct
+Loading Qwen2.5-VL processor and model...
+Model loaded in 21.9s
+
+Dataset: 40 images
+Countries: {'chile': 10, 'ecuador': 10, 'kenya': 10, 'madagascar': 10}
+
+--- GeoCoT (max_new_tokens=2048) ---
+  Processing 40 images...
+  [5/40] -30.159818649291992_-71.370376 -> United States (6.5s, 1919 chars)
+  [10/40] -22.43998908996582_-68.9316711 -> None (5.5s, 1684 chars)
+  Checkpoint: 10 done, 9 valid predictions
+  [15/40] -1.5168824195861816_-78.713249 -> None (5.4s, 1616 chars)
+  [20/40] -0.1999897211790084_-78.489982 -> Colombia (5.9s, 1649 chars)
+  Checkpoint: 20 done, 15 valid predictions
+  [25/40] -1.223993897438049_35.26281356 -> None (5.2s, 1564 chars)
+  [30/40] -0.264878511428833_36.02236557 -> Kenya (6.6s, 1972 chars)
+  Checkpoint: 30 done, 21 valid predictions
+  [35/40] -20.292774200439453_44.2698860 -> None (7.0s, 2099 chars)
+  [40/40] -18.555164337158203_43.8605117 -> United States (5.2s, 1580 chars)
+  Checkpoint: 40 done, 27 valid predictions
+  GeoCoT DONE: 27/40 valid predictions
+
+--- CoT (max_new_tokens=512) ---
+  Processing 40 images...
+  [5/40] -30.159818649291992_-71.370376 -> California (2.6s, 763 chars)
+  [10/40] -22.43998908996582_-68.9316711 -> Mexico (2.3s, 698 chars)
+  Checkpoint: 10 done, 9 valid predictions
+  [15/40] -1.5168824195861816_-78.713249 -> Scotland (2.3s, 630 chars)
+  [20/40] -0.1999897211790084_-78.489982 -> Brazil (3.6s, 1064 chars)
+  Checkpoint: 20 done, 19 valid predictions
+  [25/40] -1.223993897438049_35.26281356 -> Kenya (2.5s, 730 chars)
+  [30/40] -0.264878511428833_36.02236557 -> Kenya (1.7s, 439 chars)
+  Checkpoint: 30 done, 28 valid predictions
+  [35/40] -20.292774200439453_44.2698860 -> Florida (4.4s, 1234 chars)
+  [40/40] -18.555164337158203_43.8605117 -> South Africa (2.5s, 724 chars)
+  Checkpoint: 40 done, 38 valid predictions
+  CoT DONE: 38/40 valid predictions
+
+=== All Inference Complete ===
+
+=== Evaluating Results ===
+Found prediction files: ['cot', 'geocot']
+
+Evaluating: cot
+  38/40 valid predictions, 38 with ground truth
+  city_accuracy: 0
+  country_accuracy: 0.1579
+  continent_accuracy: 0.4474
+  street_1km: 0.0
+  city_25km: 0.0625
+  country_750km: 0.375
+
+Evaluating: geocot
+  14/20 valid predictions, 14 with ground truth
+  city_accuracy: 0
+  country_accuracy: 0.0
+  continent_accuracy: 0.2857
+  street_1km: 0.0
+  city_25km: 0.0
+  country_750km: 0.0
+
+Scores saved to /home/user/scoring/scores.json
+
+=== Summary ===
+
+geocomp_classification:
+  gpt4o: country_accuracy=0.615
+  gpt4o_cot: country_accuracy=0.623
+  geocot: country_accuracy=0.64
+  qwen_cot: country_accuracy=0.1579
+  qwen_geocot: country_accuracy=0.0
+
+geocomp_distance:
+  gpt4o: city_25km=0.147
+  gpt4o_cot: city_25km=0.151
+  geocot: city_25km=0.157
+  qwen_cot: city_25km=0.0625
+  qwen_geocot: city_25km=0.0
+
+im2gps_generalization:
+  gpt4o_im2gps: city_25km=0.47
+  gpt4o_cot_im2gps: city_25km=0.49
+  geocot_im2gps: city_25km=0.55
+
+ablation_geocot_steps:
+  geocot_step1: country_accuracy=0.551
+  geocot_step1_2: country_accuracy=0.571
+  geocot_step1_2_3: country_accuracy=0.592
+  geocot_step1_2_3_4: country_accuracy=0.604
+  geocot_full: country_accuracy=0.64
+
+==========================================
+Run complete - Tue Apr 14 17:23:07 EDT 2026
+==========================================
