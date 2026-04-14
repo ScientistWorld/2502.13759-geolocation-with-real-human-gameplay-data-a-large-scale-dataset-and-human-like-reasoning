@@ -117,8 +117,8 @@ echo "=== Loading Model and Running Inference ==="
 ${PYTHON} << 'PYEOF'
 import os, csv, json, re, time, math
 
-os.environ['HF_HOME'] = '/home/user/shared/models/hf'
-os.environ['TRANSFORMERS_CACHE'] = '/home/user/shared/models/hf'
+os.environ['HF_HOME'] = '/tmp/hf_cache'
+os.environ['TRANSFORMERS_CACHE'] = '/tmp/hf_cache'
 os.environ['HF_HUB_OFFLINE'] = '1'
 
 import torch
@@ -142,12 +142,28 @@ print(f"Model: {MODEL_PATH} ({MODEL_SIZE})")
 from transformers import Qwen2_5_VLForConditionalGeneration, Qwen2_5_VLProcessor
 from qwen_vl_utils import process_vision_info
 
+def load_model(path):
+    proc = Qwen2_5_VLProcessor.from_pretrained(path)
+    mdl = Qwen2_5_VLForConditionalGeneration.from_pretrained(
+        path, torch_dtype=torch.bfloat16, device_map="auto",
+    )
+    return proc, mdl
+
 t0 = time.time()
-processor = Qwen2_5_VLProcessor.from_pretrained(MODEL_PATH)
-model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
-    MODEL_PATH, torch_dtype=torch.bfloat16, device_map="auto",
-)
-print(f"Loaded in {time.time()-t0:.1f}s, GPU mem: {torch.cuda.memory_allocated()/1e9:.1f} GB")
+try:
+    processor, model = load_model(MODEL_PATH)
+except (torch.cuda.OutOfMemoryError, RuntimeError) as e:
+    print(f"OOM loading {MODEL_SIZE} model: {e}")
+    if MODEL_SIZE == "32B":
+        torch.cuda.empty_cache()
+        FALLBACK = '/home/user/checkpoints/Qwen2.5-VL-7B-Instruct'
+        print(f"Falling back to 7B model at {FALLBACK}")
+        MODEL_PATH = FALLBACK
+        MODEL_SIZE = "7B"
+        processor, model = load_model(MODEL_PATH)
+    else:
+        raise
+print(f"Loaded {MODEL_SIZE} in {time.time()-t0:.1f}s, GPU mem: {torch.cuda.memory_allocated()/1e9:.1f} GB")
 
 # =================================================================
 # PROMPTS - from paper's actual code

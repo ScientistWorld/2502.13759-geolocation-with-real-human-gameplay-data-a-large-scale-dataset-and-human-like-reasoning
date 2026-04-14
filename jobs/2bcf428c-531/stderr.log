@@ -1,0 +1,88 @@
+[hive] This stderr log is managed by Hive.
+[hive] job_id: 0c2a7076
+[hive] host: della-k17g1
+[hive] node_id: 6a4e397a06bbd6c082da3f39f234552a293c210b77f644aae053b1c1
+[hive] user: nexus/tl0463 (remote)
+[hive] resource: pli-2
+[hive] gpus: 1
+[hive] cpus: 1
+[hive] workdir: /home/tl0463
+[hive] timeout_sec: 3600
+[hive] started_at: 2026-04-14 17:18:08 EDT
+[hive] command: apptainer exec --nv --containall --cleanenv --env HF_HOME=/home/user/shared/hf_cache --env TRANSFORMERS_CACHE=/home/user/shared/hf_cache --env HF_DATASETS_CACHE=/home/user/shared/hf_cache/datasets --env TORCH_HOME=/home/user/shared/hf_cache/torch --bind /home/tl0463/scratch/AgentWorkspaces/workspaces/2502.13759:/home/user --overlay /home/tl0463/scratch/AgentWorkspaces/workspaces/2502.13759/environment/overlay.img:ro --bind /home/tl0463/scratch/AgentWorkspaces/shared/datasets:/home/user/shared/datasets:ro --bind /home/tl0463/scratch/AgentWorkspaces/shared/models:/home/user/shared/models:ro --bind /home/tl0463/scratch/AgentWorkspaces/shared/hf_cache:/home/user/shared/hf_cache /home/tl0463/scratch/AgentWorkspaces/workspaces/2502.13759/environment/container.sif bash -c 'cd /home/user && bash /home/user/scripts/run.sh'
+Using Python 3.10.12 environment at: /usr
+Checked 10 packages in 258ms
+
+Loading weights:   0%|          | 0/729 [00:00<?, ?it/s]
+Loading weights:   0%|          | 1/729 [00:01<14:14,  1.17s/it]
+Loading weights:   1%|          | 4/729 [00:01<03:07,  3.87it/s]
+Loading weights:   1%|          | 6/729 [00:01<02:26,  4.95it/s]
+Loading weights:   2%|▏         | 16/729 [00:01<00:45, 15.77it/s]
+Loading weights:   3%|▎         | 19/729 [00:02<00:49, 14.49it/s]
+Loading weights:   4%|▍         | 28/729 [00:02<00:31, 22.55it/s]
+Loading weights:   4%|▍         | 32/729 [00:02<00:34, 20.24it/s]
+Loading weights:   5%|▌         | 40/729 [00:02<00:27, 25.46it/s]
+Loading weights:   6%|▌         | 44/729 [00:02<00:31, 21.74it/s]
+Loading weights:   7%|▋         | 51/729 [00:03<00:31, 21.35it/s]
+Loading weights:   7%|▋         | 54/729 [00:03<00:31, 21.69it/s]
+Loading weights:   9%|▉         | 64/729 [00:03<00:22, 30.03it/s]
+Loading weights:   9%|▉         | 68/729 [00:03<00:26, 24.93it/s]
+Loading weights:  10%|█         | 76/729 [00:04<00:22, 29.58it/s]
+Loading weights:  11%|█         | 80/729 [00:04<00:26, 24.85it/s]
+Loading weights:  12%|█▏        | 88/729 [00:04<00:22, 28.80it/s]
+Loading weights:  13%|█▎        | 92/729 [00:04<00:26, 23.68it/s]
+Loading weights:  14%|█▎        | 100/729 [00:04<00:22, 28.49it/s]
+Loading weights:  14%|█▍        | 104/729 [00:05<00:25, 24.25it/s]
+Loading weights:  15%|█▌        | 112/729 [00:05<00:21, 29.18it/s]
+Loading weights:  16%|█▌        | 116/729 [00:05<00:24, 24.64it/s]
+Loading weights:  17%|█▋        | 124/729 [00:05<00:20, 29.00it/s]
+Loading weights:  18%|█▊        | 128/729 [00:06<00:25, 23.80it/s]
+Loading weights:  19%|█▊        | 136/729 [00:06<00:20, 28.85it/s]
+Loading weights:  19%|█▉        | 140/729 [00:06<00:24, 24.35it/s]
+Loading weights:  20%|██        | 148/729 [00:06<00:19, 29.18it/s]
+Loading weights:  21%|██        | 152/729 [00:07<00:23, 24.59it/s]
+Loading weights:  22%|██▏       | 159/729 [00:07<00:20, 28.02it/s]
+Loading weights:  22%|██▏       | 163/729 [00:07<00:23, 23.91it/s]
+Loading weights:  24%|██▎       | 172/729 [00:07<00:18, 29.68it/s]
+Loading weights:  24%|██▍       | 176/729 [00:07<00:22, 24.40it/s]
+Loading weights:  25%|██▌       | 184/729 [00:08<00:21, 24.89it/s]
+Loading weights:  26%|██▌       | 187/729 [00:08<00:22, 24.62it/s]
+Loading weights:  27%|██▋       | 196/729 [00:08<00:23, 22.56it/s]
+Loading weights:  29%|██▊       | 208/729 [00:09<00:16, 31.64it/s]
+Loading weights:  29%|██▉       | 212/729 [00:09<00:20, 25.76it/s]
+Loading weights:  30%|███       | 220/729 [00:09<00:17, 29.61it/s]
+Loading weights:  31%|███       | 224/729 [00:09<00:20, 24.47it/s]
+Loading weights:  32%|███▏      | 231/729 [00:10<00:21, 23.50it/s]
+Loading weights:  32%|███▏      | 234/729 [00:10<00:21, 23.40it/s]
+Loading weights:  33%|███▎      | 244/729 [00:10<00:18, 26.38it/s]
+Loading weights:  34%|███▍      | 247/729 [00:10<00:18, 25.84it/s]
+Loading weights:  35%|███▍      | 255/729 [00:10<00:15, 30.53it/s]
+Loading weights:  36%|███▌      | 259/729 [00:11<00:18, 25.24it/s]
+Loading weights:  37%|███▋      | 268/729 [00:11<00:14, 30.79it/s]
+Loading weights:  37%|███▋      | 272/729 [00:11<00:18, 25.27it/s]
+Loading weights:  38%|███▊      | 280/729 [00:11<00:15, 29.68it/s]
+Loading weights:  39%|███▉      | 284/729 [00:12<00:17, 24.98it/s]
+Loading weights:  40%|████      | 292/729 [00:12<00:14, 29.76it/s]
+Loading weights:  41%|████      | 296/729 [00:12<00:17, 24.92it/s]
+Loading weights:  42%|████▏     | 304/729 [00:12<00:16, 25.28it/s]
+Loading weights:  42%|████▏     | 307/729 [00:12<00:17, 24.79it/s]
+Loading weights:  43%|████▎     | 316/729 [00:13<00:13, 30.62it/s]
+Loading weights:  44%|████▍     | 320/729 [00:13<00:16, 24.67it/s]
+Loading weights:  45%|████▍     | 328/729 [00:13<00:13, 29.32it/s]
+Loading weights:  46%|████▌     | 332/729 [00:13<00:16, 24.40it/s]
+Loading weights:  48%|████▊     | 353/729 [00:13<00:07, 53.07it/s]
+Loading weights:  52%|█████▏    | 379/729 [00:14<00:03, 90.43it/s]
+Loading weights:  55%|█████▌    | 402/729 [00:14<00:02, 116.64it/s]
+Loading weights:  59%|█████▉    | 431/729 [00:14<00:01, 154.21it/s]
+Loading weights:  64%|██████▍   | 465/729 [00:14<00:01, 195.49it/s]
+Loading weights:  68%|██████▊   | 493/729 [00:14<00:01, 215.68it/s]
+Loading weights:  71%|███████▏  | 521/729 [00:14<00:00, 231.28it/s]
+Loading weights:  76%|███████▌  | 551/729 [00:14<00:00, 243.00it/s]
+Loading weights:  80%|███████▉  | 582/729 [00:14<00:00, 256.76it/s]
+Loading weights:  84%|████████▎ | 609/729 [00:14<00:00, 258.59it/s]
+Loading weights:  88%|████████▊ | 639/729 [00:14<00:00, 270.29it/s]
+Loading weights:  92%|█████████▏| 671/729 [00:15<00:00, 277.33it/s]
+Loading weights:  96%|█████████▌| 701/729 [00:15<00:00, 282.98it/s]
+Loading weights: 100%|██████████| 729/729 [00:15<00:00, 47.45it/s] 
+The following generation flags are not valid and may be ignored: ['temperature']. Set `TRANSFORMERS_VERBOSITY=info` for more details.
+[hive] Job cancelled

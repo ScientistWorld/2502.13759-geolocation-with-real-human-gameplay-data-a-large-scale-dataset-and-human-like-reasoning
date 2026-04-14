@@ -1,5 +1,5 @@
 action: submit
 gpus: 1
 test: false
-milestone: core_claim
-notes: "Fix prompt: remove bracket template format that confused model into outputting placeholders. Add explicit instruction to provide specific names. Update parser with smart template detection. Expecting higher valid country predictions."
+milestone: method_runs
+notes: "Run GeoCoT vs CoT with Qwen2.5-VL-32B-Instruct on 80 GeoCLIP images (20 per country). Uses paper's actual prompt from their GitHub code. OOM fallback to 7B. ~90 min expected runtime."

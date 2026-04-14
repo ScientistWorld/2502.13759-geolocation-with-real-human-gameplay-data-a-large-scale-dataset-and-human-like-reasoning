@@ -394,6 +394,40 @@ def check_imports_not_gitignored() -> list[str]:
     return errors
 
 
+_SHARED_PATTERN = re.compile(r"(?<![A-Za-z0-9_/])/?shared/(?:datasets|models|hf_cache)\b")
+
+
+def check_no_shared_references() -> list[str]:
+    """Check that committed code does NOT reference shared/ paths.
+
+    `shared/` is a local cache on the swarm machine and does not exist
+    on a fresh clone. Any reference in committed code (method/, eval/,
+    baseline/, scripts/ including download.sh) breaks reproducibility.
+    """
+    errors: list[str] = []
+    for dirname in ("method", "eval", "baseline", "scripts"):
+        dirpath = WORKSPACE_DIR / dirname
+        if not dirpath.is_dir():
+            continue
+        for fpath in dirpath.rglob("*"):
+            if not fpath.is_file():
+                continue
+            if fpath.suffix not in (".py", ".sh"):
+                continue
+            try:
+                lines = fpath.read_text().splitlines()
+            except Exception:
+                continue
+            rel = fpath.relative_to(WORKSPACE_DIR)
+            for lineno, line in enumerate(lines, 1):
+                if _SHARED_PATTERN.search(line):
+                    errors.append(
+                        f"{rel}:{lineno}: references shared/ "
+                        f"(won't exist on fresh clone — use data/downloads/ instead)"
+                    )
+    return errors
+
+
 # ── Main ─────────────────────────────────────────────────────────────────────
 
 
@@ -471,6 +505,16 @@ def main():
         ok = False
     else:
         print("  gitignored imports — OK (all eval/method/baseline imports resolve to tracked files)")
+
+    # 5. No shared/ references in committed code (would break on fresh clone)
+    shared_errors = check_no_shared_references()
+    if shared_errors:
+        print(f"  shared/ references — {len(shared_errors)} error(s):")
+        for e in shared_errors:
+            print(f"    ✗ {e}")
+        ok = False
+    else:
+        print("  shared/ references — OK (no shared/ paths in committed code)")
 
     # Summary
     print()

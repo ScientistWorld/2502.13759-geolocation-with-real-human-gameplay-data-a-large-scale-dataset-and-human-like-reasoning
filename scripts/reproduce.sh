@@ -8,9 +8,8 @@
 #
 # Workflow:
 #   1. Download models and datasets (if not present)
-#   2. Run GeoCoT with local VLM
-#   3. Run standard CoT baseline
-#   4. Evaluate and generate scores.json
+#   2. Run GeoCoT vs CoT inference with local VLM
+#   3. Evaluate and generate scores.json
 
 set -e
 
@@ -22,17 +21,9 @@ echo "=== GeoCoT Full Reproduction ==="
 echo "Step 1: Ensuring data is available..."
 bash scripts/download.sh
 
-# Step 2: Run the method
-echo "Step 2: Running GeoCoT method..."
-bash scripts/method.sh
-
-# Step 3: Run baseline
-echo "Step 3: Running baseline..."
-bash scripts/baseline.sh
-
-# Step 4: Evaluate
-echo "Step 4: Evaluating..."
-bash scripts/evaluate.sh
+# Step 2: Run inference and evaluation (all in one script)
+echo "Step 2: Running GeoCoT + CoT inference and evaluation..."
+bash scripts/run.sh
 
 echo ""
 echo "=== Reproduction Complete ==="

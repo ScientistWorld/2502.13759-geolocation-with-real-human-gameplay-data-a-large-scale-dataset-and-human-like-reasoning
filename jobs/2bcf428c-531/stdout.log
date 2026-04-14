@@ -1,0 +1,44 @@
+[hive] This stdout log is managed by Hive.
+[hive] job_id: 0c2a7076
+[hive] host: della-k17g1
+[hive] node_id: 6a4e397a06bbd6c082da3f39f234552a293c210b77f644aae053b1c1
+[hive] user: nexus/tl0463 (remote)
+[hive] resource: pli-2
+[hive] gpus: 1
+[hive] cpus: 1
+[hive] workdir: /home/tl0463
+[hive] timeout_sec: 3600
+[hive] started_at: 2026-04-14 17:18:08 EDT
+[hive] command: apptainer exec --nv --containall --cleanenv --env HF_HOME=/home/user/shared/hf_cache --env TRANSFORMERS_CACHE=/home/user/shared/hf_cache --env HF_DATASETS_CACHE=/home/user/shared/hf_cache/datasets --env TORCH_HOME=/home/user/shared/hf_cache/torch --bind /home/tl0463/scratch/AgentWorkspaces/workspaces/2502.13759:/home/user --overlay /home/tl0463/scratch/AgentWorkspaces/workspaces/2502.13759/environment/overlay.img:ro --bind /home/tl0463/scratch/AgentWorkspaces/shared/datasets:/home/user/shared/datasets:ro --bind /home/tl0463/scratch/AgentWorkspaces/shared/models:/home/user/shared/models:ro --bind /home/tl0463/scratch/AgentWorkspaces/shared/hf_cache:/home/user/shared/hf_cache /home/tl0463/scratch/AgentWorkspaces/workspaces/2502.13759/environment/container.sif bash -c 'cd /home/user && bash /home/user/scripts/run.sh'
+==========================================
+GeoCoT Reproduction - Tue Apr 14 17:18:08 EDT 2026
+==========================================
+
+=== Environment Setup ===
+=== Setting up GeoCoT environment (runtime) ===
+Found existing installation: huggingface_hub 1.10.1
+Uninstalling huggingface_hub-1.10.1:
+Installing required packages...
+=== Runtime environment setup complete ===
+Using Python: /usr/bin/python3
+Python 3.10.12
+
+=== Finding Qwen2.5-VL Model ===
+Found model at: /home/user/checkpoints/Qwen2.5-VL-7B-Instruct
+
+=== Creating Balanced Sample ===
+Total images in dataset: 999
+  chile: sampled 10 from 179 total
+  ecuador: sampled 10 from 296 total
+  kenya: sampled 10 from 492 total
+  madagascar: sampled 10 from 32 total
+Total sample: 40
+Saved to /home/user/data/geoclip/sample_balanced.csv
+Missing images: 0
+
+=== Loading Model and Running Inference ===
+CUDA available: True
+GPU count: 2
+GPU name: NVIDIA H100 80GB HBM3
+Loading model from: /home/user/checkpoints/Qwen2.5-VL-7B-Instruct
+Loading Qwen2.5-VL processor and model...
