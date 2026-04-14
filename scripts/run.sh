@@ -183,13 +183,17 @@ Are there identifiable patterns in sidewalks (e.g., tile shapes, colors, or arra
 Let's think step by step. Based on the questions I provided, locate the location of the picture as accurately as possible. Identify the continent, country, and city, and summarize it into a paragraph. For example: the presence of tropical rainforests, palm trees, and red soil indicates a tropical climate... Signs in Thai, right-side traffic, and traditional Thai architecture further suggest it is in Thailand... Combining these clues, this image was likely taken in a city in Bangkok, Thailand, Asia.
 
 Please provide your analysis and final location prediction.
-Output format: Location: [City], [Country], [Continent]
+You MUST provide specific city, country, and continent names as your best guess. Do NOT use placeholder words like Unknown or Unspecified.
+Output format: Location: City, Country, Continent
+Example: Location: Bangkok, Thailand, Asia
 """
 
 # Standard CoT prompt (comparison baseline)
 COT_PROMPT = """Let's think step by step about the geographical location where this image was taken. Identify any visible clues about the location, then provide your best guess of the city, country, and continent.
 
-Output format: Location: [City], [Country], [Continent]
+You MUST provide specific city, country, and continent names as your best guess. Do NOT use placeholder words like Unknown or Unspecified.
+Output format: Location: City, Country, Continent
+Example: Location: Nairobi, Kenya, Africa
 """
 
 # =====================================================================
@@ -304,75 +308,97 @@ COUNTRY_SEARCH_PATTERNS.update({
 DATASET_COUNTRIES = {"kenya", "ecuador", "chile", "madagascar"}
 
 
+
+# Template words indicating placeholder, not real answers
+TEMPLATE_WORDS = {
+    "unknown", "unspecified", "country", "city", "continent", "not specified",
+    "unknown country", "unknown city", "unknown continent", "tropical country",
+    "developing country", "east africa", "west africa", "north africa",
+    "southeast asia", "central america", "latin america",
+    "north america", "south america", "africa", "asia", "europe", "oceania",
+    "caribbean", "middle east", "western australia", "eastern europe",
+}
+
+def is_template(text):
+    if not text: return True
+    cleaned = text.strip().lower().strip("[]()").strip()
+    return cleaned in TEMPLATE_WORDS or len(cleaned) <= 2
+
+
 def parse_location_prediction(text):
-    """Extract city, country, continent from model response using comprehensive parsing."""
+    """Extract city, country, continent from model response using smart parsing."""
     if not text:
         return {"city": None, "country": None, "continent": None, "raw_prediction": text}
 
     result = {"city": None, "country": None, "continent": None, "raw_prediction": text}
     text_lower = text.lower()
 
-    # Strategy 1: Look for "Location:" pattern
+    # Strategy 1: Look for "Location:" pattern - but only accept non-template text
     loc_patterns = [
-        r"Location:\s*(.+?),\s*(.+?),\s*(.+?)(?:\n|$|\.)",
-        r"location:\s*(.+?),\s*(.+?),\s*(.+?)(?:\n|$|\.)",
+        r"[Ll]ocation:\s*(.+?),\s*(.+?)(?:,\s*(.+?))?(?:\n|$|\.)",
     ]
     for pattern in loc_patterns:
-        match = re.search(pattern, text, re.IGNORECASE)
+        match = re.search(pattern, text)
         if match:
-            result["city"] = match.group(1).strip()
-            result["country"] = match.group(2).strip()
-            result["continent"] = match.group(3).strip()
-            return result
+            city_str = match.group(1).strip().strip("[]").strip()
+            country_str = match.group(2).strip().strip("[]").strip()
+            continent_str = match.group(3).strip().strip("[]").strip() if match.group(3) else ""
 
-    # Strategy 2: Look for "Final Prediction:" and extract country/continent
+            if not is_template(country_str):
+                # Got a real country from Location: line - look it up
+                c_lower = country_str.lower()
+                if c_lower in ALL_COUNTRIES:
+                    canonical, continent = ALL_COUNTRIES[c_lower]
+                    result["country"] = canonical
+                    result["continent"] = continent
+                else:
+                    result["country"] = country_str
+                    result["continent"] = continent_str if continent_str else None
+                result["city"] = city_str if not is_template(city_str) else None
+                return result
+            # Template text found - fall through to smart extraction
+
+    # Strategy 2: Search for country names in prioritized sections
+    # Priority: Final Prediction > Conclusion > Last third > Full text
     fp_section = ""
     fp_match = re.search(r"Final\s+Prediction:\s*(.*)", text, re.IGNORECASE | re.DOTALL)
     if fp_match:
         fp_section = fp_match.group(1)
 
-    # Strategy 3: Search for continent names in the text, prefer Final Prediction section
-    continents = ["south america", "north america", "africa", "europe", "asia", "oceania", "australia", "central america"]
-    found_continent = None
-    search_text = fp_section if fp_section else text_lower
-    for cont in continents:
-        if cont in search_text.lower():
-            if cont == "australia":
-                found_continent = "Oceania"
-            else:
-                found_continent = cont.title()
-            break
-    if found_continent:
-        result["continent"] = found_continent
+    # Conclusion-like section
+    conclusion_text = ""
+    conc_match = re.search(
+        r"(?:Given|Based on|Considering).*?(?:analysis|clues|observations|factors)[,:]\s*(.*)",
+        text, re.IGNORECASE | re.DOTALL
+    )
+    if conc_match:
+        conclusion_text = conc_match.group(1)
 
-    # Strategy 4: Search for country names - prefer those in Final Prediction section
-    # First search Final Prediction section, then full text
-    best_country = None
-    best_continent = None
-    best_priority = -1  # Higher = better match
+    last_third = text[len(text)*2//3:]
 
-    # Search order: FP section first, then conclusion, then full text
     search_sections = []
     if fp_section:
-        search_sections.append((fp_section, 100))  # Highest priority
-    # Conclusion-like sections (last 1/3 of text)
-    conclusion_text = text[-len(text)//3:]
-    search_sections.append((conclusion_text, 50))
-    search_sections.append((text, 10))  # Lowest priority
+        search_sections.append((fp_section, 200))
+    if conclusion_text:
+        search_sections.append((conclusion_text, 100))
+    search_sections.append((last_third, 50))
+    search_sections.append((text, 10))
+
+    best_country = None
+    best_continent = None
+    best_priority = -1
 
     for section, priority in search_sections:
         section_lower = section.lower()
         for pattern, (canonical, continent) in COUNTRY_SEARCH_PATTERNS.items():
             if pattern in section_lower:
-                # Skip adjective forms that might be misleading ("American-style")
-                if pattern.endswith("n") and len(pattern) > 5:
-                    # It's an adjective form - lower priority
-                    p = priority - 5
-                else:
-                    p = priority
-                # Prefer dataset countries
+                p = priority
+                # Adjective forms get lower priority
+                if pattern.endswith("n") and len(pattern) > 5 and pattern not in ALL_COUNTRIES:
+                    p -= 5
+                # Dataset countries get bonus
                 if pattern in DATASET_COUNTRIES:
-                    p += 20
+                    p += 5
                 if p > best_priority:
                     best_country = canonical
                     best_continent = continent
@@ -383,15 +409,27 @@ def parse_location_prediction(text):
         if not result["continent"]:
             result["continent"] = best_continent
 
-    # Strategy 5: Try to extract city name near country mention
+    # Strategy 3: Extract continent from text if not yet found
+    if not result["continent"]:
+        CONTINENT_MAP = {
+            "south america": "South America", "north america": "North America",
+            "africa": "Africa", "europe": "Europe", "asia": "Asia",
+            "oceania": "Oceania", "australia": "Oceania",
+            "central america": "North America", "caribbean": "North America",
+            "middle east": "Asia",
+        }
+        for cont_name, canonical in CONTINENT_MAP.items():
+            if cont_name in text_lower:
+                result["continent"] = canonical
+                break
+
+    # Strategy 4: Try to extract city name near country mention
     if result["country"] and not result["city"]:
         country_lower = result["country"].lower()
         idx = text_lower.find(country_lower)
         if idx >= 0:
-            # Look for capitalized words before the country name
             snippet = text[max(0, idx-150):idx]
             city_matches = re.findall(r'\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+){0,2})\b', snippet)
-            # Filter out common non-city words
             non_cities = {"The", "This", "Step", "Based", "Image", "However", "Final",
                          "Prediction", "Location", "South", "North", "Central", "East",
                          "West", "Combining", "Clues", "Visible", "Presence"}

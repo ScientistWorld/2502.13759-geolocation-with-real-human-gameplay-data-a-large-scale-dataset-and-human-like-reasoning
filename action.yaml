@@ -1,5 +1,5 @@
 action: submit
 gpus: 1
 test: false
-milestone: method_runs
-notes: "Run improved GeoCoT with max_new_tokens=2048 and comprehensive country parser. Previous run had 5/51 valid predictions due to truncation; expecting much higher rate now. Budget: ~14 GPU-hrs remaining."
+milestone: core_claim
+notes: "Fix prompt: remove bracket template format that confused model into outputting placeholders. Add explicit instruction to provide specific names. Update parser with smart template detection. Expecting higher valid country predictions."
