@@ -2,4 +2,4 @@ action: submit
 gpus: 1
 test: false
 milestone: method_runs
-notes: "Fixed setup.sh: install all packages (torch, torchvision, transformers, qwen_vl_utils, etc.) in one command. Previous issue: qwen_vl_utils check passed but transformers was never installed (stderr suppressed). 4 per country (16 total)."
+notes: "Fixed run.sh: max_new_tokens=512 (was 128, truncating responses before Location summary), improved parse_location_prediction with fallback country-name extraction, SAMPLES_PER_COUNTRY=10 (40 total). Previous job got 0/16 valid predictions due to truncation."

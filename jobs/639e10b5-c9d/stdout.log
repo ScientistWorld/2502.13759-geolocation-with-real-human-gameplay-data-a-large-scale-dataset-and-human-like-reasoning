@@ -1,0 +1,142 @@
+[hive] This stdout log is managed by Hive.
+[hive] job_id: 757fe5ac
+[hive] host: della-k18g3
+[hive] node_id: 4a4bad8a586204a693b56f640631972ac65aed3feff80fd753dbfb03
+[hive] user: nexus/tl0463 (remote)
+[hive] resource: pli-2
+[hive] gpus: 1
+[hive] cpus: 1
+[hive] workdir: /home/tl0463
+[hive] timeout_sec: 3600
+[hive] started_at: 2026-04-13 20:22:08 EDT
+[hive] command: apptainer exec --nv --containall --cleanenv --env HF_HOME=/home/user/shared/hf_cache --env TRANSFORMERS_CACHE=/home/user/shared/hf_cache --env HF_DATASETS_CACHE=/home/user/shared/hf_cache/datasets --env TORCH_HOME=/home/user/shared/hf_cache/torch --bind /home/tl0463/scratch/AgentWorkspaces/workspaces/2502.13759:/home/user --overlay /home/tl0463/scratch/AgentWorkspaces/workspaces/2502.13759/environment/overlay.img:ro --bind /home/tl0463/scratch/AgentWorkspaces/shared/datasets:/home/user/shared/datasets:ro --bind /home/tl0463/scratch/AgentWorkspaces/shared/models:/home/user/shared/models:ro --bind /home/tl0463/scratch/AgentWorkspaces/shared/hf_cache:/home/user/shared/hf_cache /home/tl0463/scratch/AgentWorkspaces/workspaces/2502.13759/environment/container.sif bash -c 'cd /home/user && bash /home/user/scripts/run.sh'
+==========================================
+GeoCoT Reproduction - Mon Apr 13 20:22:09 EDT 2026
+==========================================
+
+=== Environment Setup ===
+=== Setting up GeoCoT environment (runtime) ===
+Found existing installation: huggingface_hub 1.10.1
+Uninstalling huggingface_hub-1.10.1:
+Installing required packages...
+=== Runtime environment setup complete ===
+Using Python: /usr/bin/python3
+Python 3.10.12
+
+=== Finding Qwen2.5-VL Model ===
+Found model at: /home/user/checkpoints/Qwen2.5-VL-7B-Instruct
+
+=== Creating Balanced Sample (15 per country = 60 total) ===
+Total images: 999
+  chile: sampled 10 from 179 total
+  ecuador: sampled 10 from 296 total
+  kenya: sampled 10 from 492 total
+  madagascar: sampled 10 from 32 total
+Total sample: 40
+Saved to /home/user/data/geoclip/sample_balanced.csv
+Missing images: 0
+
+=== Loading Model and Running Inference ===
+CUDA available: True
+GPU count: 2
+Loading model from: /home/user/checkpoints/Qwen2.5-VL-7B-Instruct
+Loading Qwen2.5-VL processor and model...
+Model loaded successfully!
+
+Dataset: 40 images
+Countries: {'chile': 10, 'ecuador': 10, 'kenya': 10, 'madagascar': 10}
+
+--- GeoCoT ---
+  Resuming from index 0 (0 valid predictions)
+  Processing 40 remaining images...
+  Checkpoint: 20 total
+  Processed 5/40 (GeoCoT)
+  Checkpoint: 25 total
+  Processed 10/40 (GeoCoT)
+  Checkpoint: 30 total
+  Processed 15/40 (GeoCoT)
+  Checkpoint: 35 total
+  Processed 20/40 (GeoCoT)
+  Checkpoint: 40 total
+  Processed 25/40 (GeoCoT)
+  Checkpoint: 45 total
+  Processed 30/40 (GeoCoT)
+  Checkpoint: 50 total
+  Processed 35/40 (GeoCoT)
+  Checkpoint: 55 total
+  Processed 40/40 (GeoCoT)
+  GeoCoT DONE: 6/56 valid predictions
+
+--- CoT ---
+  Resuming from index 0 (0 valid predictions)
+  Processing 40 remaining images...
+  Checkpoint: 20 total
+  Processed 5/40 (CoT)
+  Checkpoint: 25 total
+  Processed 10/40 (CoT)
+  Checkpoint: 30 total
+  Processed 15/40 (CoT)
+  Checkpoint: 35 total
+  Processed 20/40 (CoT)
+  Checkpoint: 40 total
+  Processed 25/40 (CoT)
+  Checkpoint: 45 total
+  Processed 30/40 (CoT)
+  Checkpoint: 50 total
+  Processed 35/40 (CoT)
+  Checkpoint: 55 total
+  Processed 40/40 (CoT)
+  CoT DONE: 40/56 valid predictions
+
+=== All Inference Complete ===
+
+=== Evaluating Results ===
+Found prediction files: ['cot', 'geocot']
+
+Evaluating: cot
+  40/56 valid, 40 with ground truth
+  city_accuracy: 0.0000
+  country_accuracy: 0.0750
+  continent_accuracy: 0.3250
+  street_1km: 0.0000
+  city_25km: 0.0500
+  country_750km: 0.3000
+
+Evaluating: geocot
+  6/56 valid, 6 with ground truth
+  city_accuracy: 0.0000
+  country_accuracy: 0.8333
+  continent_accuracy: 1.0000
+  street_1km: 0.0000
+  city_25km: 0.1667
+  country_750km: 0.8333
+
+Scores saved to /home/user/scoring/scores.json
+
+=== Summary ===
+
+geocomp_classification:
+  gpt4o_cot: city_accuracy=0.094
+  geocot: city_accuracy=0.118
+  qwen_cot: city_accuracy=0.0
+  qwen_geocot: city_accuracy=0.0
+
+geocomp_distance:
+  gpt4o_cot: city_25km=0.151
+  geocot: city_25km=0.157
+  qwen_cot: city_25km=0.05
+  qwen_geocot: city_25km=0.1667
+
+im2gps_generalization:
+  geocot_im2gps: city_25km=0.55
+  gpt4o_cot_im2gps: city_25km=0.49
+
+ablation_geocot_steps:
+  geocot_step1: city_accuracy=0.113
+  geocot_step1_2: city_accuracy=0.112
+  geocot_step1_2_3: city_accuracy=0.114
+  geocot_full: city_accuracy=0.118
+
+==========================================
+Run complete - Mon Apr 13 20:35:00 EDT 2026
+==========================================

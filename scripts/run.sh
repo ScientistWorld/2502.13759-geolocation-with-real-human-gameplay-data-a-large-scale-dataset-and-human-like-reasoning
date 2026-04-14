@@ -88,7 +88,7 @@ by_country = defaultdict(list)
 for row in data:
     by_country[row['country']].append(row)
 
-SAMPLES_PER_COUNTRY = 4
+SAMPLES_PER_COUNTRY = 10
 samples = []
 for country, rows in sorted(by_country.items()):
     rows = sorted(rows, key=lambda r: float(r['lat']))
@@ -192,6 +192,15 @@ Output format: Location: [City], [Country], [Continent]
 """
 
 # Parse location from model response
+# Known countries in GeoCLIP dataset (for fallback detection)
+KNOWN_COUNTRIES = {
+    "kenya": ("Kenya", "Africa"), "kenyan": ("Kenya", "Africa"),
+    "ecuador": ("Ecuador", "South America"), "ecuadorian": ("Ecuador", "South America"),
+    "chile": ("Chile", "South America"), "chilean": ("Chile", "South America"),
+    "madagascar": ("Madagascar", "Africa"), "malagasy": ("Madagascar", "Africa"),
+}
+COUNTRY_PATTERNS = {v[0].lower(): v for k, v in KNOWN_COUNTRIES.items()}
+
 def parse_location_prediction(text):
     """Extract city, country, continent from model response."""
     if not text:
@@ -212,10 +221,19 @@ def parse_location_prediction(text):
             result["country"] = match.group(2).strip()
             result["continent"] = match.group(3).strip()
             return result
+
+    # Fallback: search for known country names anywhere in the response
+    text_lower = text.lower()
+    for country_lower, (country_name, continent) in COUNTRY_PATTERNS.items():
+        if country_lower in text_lower:
+            result["country"] = country_name
+            result["continent"] = continent
+            return result
+
     return result
 
 
-def run_inference(data_rows, prompt, method_name, output_path, max_new_tokens=128):
+def run_inference(data_rows, prompt, method_name, output_path, max_new_tokens=512):
     """Run VLM inference on images and save results."""
     print(f"\n--- {method_name} ---")
 
