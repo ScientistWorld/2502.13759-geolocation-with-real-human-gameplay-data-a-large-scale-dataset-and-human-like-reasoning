@@ -10,8 +10,10 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import ast
 import json
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -292,6 +294,106 @@ def check_import_separation() -> list[str]:
     return errors
 
 
+def _resolve_local_import(module: str, from_file: Path | None, level: int) -> Path | None:
+    """Resolve a dotted module name to a file inside the workspace, if any.
+
+    Returns None if the import does not resolve to a workspace-local file
+    (i.e. it is stdlib, third-party, or unresolvable).
+    """
+    if level > 0 and from_file is not None:
+        anchor = from_file.parent
+        for _ in range(level - 1):
+            anchor = anchor.parent
+        parts = module.split(".") if module else []
+        candidate_base = anchor.joinpath(*parts) if parts else anchor
+    else:
+        if not module:
+            return None
+        parts = module.split(".")
+        candidate_base = WORKSPACE_DIR.joinpath(*parts)
+
+    # Must live inside the workspace
+    try:
+        candidate_base.resolve().relative_to(WORKSPACE_DIR.resolve())
+    except ValueError:
+        return None
+
+    py_file = candidate_base.with_suffix(".py")
+    if py_file.is_file():
+        return py_file
+    init_file = candidate_base / "__init__.py"
+    if init_file.is_file():
+        return init_file
+    return None
+
+
+def check_imports_not_gitignored() -> list[str]:
+    """Check that every workspace-local import in eval/, method/, baseline/
+    resolves to a file that git tracks.
+
+    If an import resolves to a gitignored file, that file will NOT exist after
+    a fresh `git clone`, so the gym will fail with ImportError for anyone else.
+    """
+    errors: list[str] = []
+    # resolved_path -> list of (source_file, lineno) tuples
+    import_map: dict[Path, list[tuple[Path, int]]] = {}
+
+    for dirname in ("eval", "method", "baseline"):
+        dirpath = WORKSPACE_DIR / dirname
+        if not dirpath.is_dir():
+            continue
+        for pyfile in dirpath.rglob("*.py"):
+            try:
+                source = pyfile.read_text()
+            except Exception:
+                continue
+            try:
+                tree = ast.parse(source, filename=str(pyfile))
+            except SyntaxError:
+                continue
+            for node in ast.walk(tree):
+                if isinstance(node, ast.Import):
+                    for alias in node.names:
+                        resolved = _resolve_local_import(alias.name, None, 0)
+                        if resolved:
+                            import_map.setdefault(resolved, []).append((pyfile, node.lineno))
+                elif isinstance(node, ast.ImportFrom):
+                    # Skip `from __future__ import ...` etc. where level==0 and module is None
+                    if node.module is None and node.level == 0:
+                        continue
+                    resolved = _resolve_local_import(node.module or "", pyfile, node.level)
+                    if resolved:
+                        import_map.setdefault(resolved, []).append((pyfile, node.lineno))
+
+    if not import_map:
+        return errors
+
+    # Batch one `git check-ignore --stdin` call for all resolved paths.
+    rel_paths = [str(p.relative_to(WORKSPACE_DIR)) for p in import_map]
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(WORKSPACE_DIR), "check-ignore", "--stdin"],
+            input="\n".join(rel_paths),
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+    except (subprocess.SubprocessError, FileNotFoundError):
+        # Git unavailable or not a repo — skip this check rather than fail.
+        return errors
+
+    ignored_rels = {line.strip() for line in result.stdout.splitlines() if line.strip()}
+    for ignored_rel in sorted(ignored_rels):
+        ignored_path = WORKSPACE_DIR / ignored_rel
+        for source_file, lineno in import_map.get(ignored_path, []):
+            rel_source = source_file.relative_to(WORKSPACE_DIR)
+            errors.append(
+                f"{rel_source}:{lineno}: imports {ignored_rel}, which is gitignored "
+                f"(will not exist on fresh clone)"
+            )
+    return errors
+
+
 # ── Main ─────────────────────────────────────────────────────────────────────
 
 
@@ -359,6 +461,16 @@ def main():
         ok = False
     else:
         print("  import separation — OK (eval/ and data/ do not import from method/)")
+
+    # 4. Imports don't land on gitignored files (would break on fresh clone)
+    ignored_errors = check_imports_not_gitignored()
+    if ignored_errors:
+        print(f"  gitignored imports — {len(ignored_errors)} error(s):")
+        for e in ignored_errors:
+            print(f"    ✗ {e}")
+        ok = False
+    else:
+        print("  gitignored imports — OK (all eval/method/baseline imports resolve to tracked files)")
 
     # Summary
     print()

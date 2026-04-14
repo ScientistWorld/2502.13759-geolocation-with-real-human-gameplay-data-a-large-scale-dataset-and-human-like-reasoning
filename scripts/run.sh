@@ -209,23 +209,20 @@ def parse_location_prediction(text):
 
     result = {"city": None, "country": None, "continent": None, "raw_prediction": text}
 
-    patterns = [
-        r"Location:\s*(.+?),\s*(.+?),\s*(.+?)(?:\n|$)",
-        r"Predicted\s*Location:\s*(.+?),\s*(.+?),\s*(.+?)(?:\n|$)",
-        r"location:\s*(.+?),\s*(.+?),\s*(.+?)(?:\n|$)",
-        r"City:\s*(.+?),\s*Country:\s*(.+?),\s*Continent:\s*(.+?)(?:\n|$)",
-        r"Final\s+Prediction:\s*(?:The image was likely taken in\s+)?(?:a\s+)?(?:city\s+in\s+)?(?:rural\s+area\s+in\s+)?(.+?)(?:,|\s+South America|\s+Africa|\s+Asia|\s+Europe|\s+North America|\s+Australia|\s+Oceania|\s+Central America)(?:,?\s*(South America|Africa|Asia|Europe|North America|Australia|Oceania|Central America))?(?:\.|$)",
-    ]
-    for pattern in patterns:
-        match = re.search(pattern, text, re.IGNORECASE | re.DOTALL)
-        if match:
-            result["city"] = match.group(1).strip()
-            result["country"] = match.group(2).strip()
-            result["continent"] = match.group(3).strip()
-            # Skip if any field is just a placeholder
-            if any(x in (result["city"], result["country"], result["continent"]) for x in ["[City]", "[Country]", "[Continent]", "[Specific City]", "[Not specified]", "[city]"]):
-                break
-            return result
+    # Final Prediction format: "Final Prediction: ... in [Country], [Continent]."
+    fp_match = re.search(
+        r"Final\s+Prediction:\s*(?:The image was likely taken in\s+)?"
+        r"(?:a\s+)?(?:city\s+in\s+)?(?:rural\s+area\s+in\s+)?"
+        r"(.+?),?\s*(South America|Africa|Asia|Europe|North America|Australia|Oceania|Central America)",
+        text, re.IGNORECASE | re.DOTALL
+    )
+    if fp_match:
+        result["country"] = fp_match.group(1).strip().rstrip(',').strip()
+        result["continent"] = fp_match.group(2).strip()
+        # Clean up "or Chile" type phrases in country field
+        if " or " in result["country"]:
+            result["country"] = result["country"].split(" or ")[0].strip()
+        return result
 
     # Fallback: search for known country names anywhere in the response
     text_lower = text.lower()
@@ -235,7 +232,6 @@ def parse_location_prediction(text):
             result["continent"] = continent
             # Try to also extract a city name near the country mention
             idx = text_lower.find(country_lower)
-            # Search backwards for a capitalized word (potential city name)
             snippet = text[max(0, idx-100):idx+50]
             city_match = re.search(r'\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+){0,2})\b', snippet)
             if city_match:
@@ -245,7 +241,7 @@ def parse_location_prediction(text):
     return result
 
 
-def run_inference(data_rows, prompt, method_name, output_path, max_new_tokens=512):
+def run_inference(data_rows, prompt, method_name, output_path, max_new_tokens=768):
     """Run VLM inference on images and save results."""
     print(f"\n--- {method_name} ---")
 

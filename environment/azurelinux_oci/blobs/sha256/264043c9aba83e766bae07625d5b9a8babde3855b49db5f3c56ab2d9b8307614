@@ -1,0 +1,21 @@
+{
+  "architecture": "amd64",
+  "os": "linux",
+  "config": {
+    "Hostname": "",
+    "User": "root",
+    "Env": [
+      "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+    ],
+    "Cmd": [
+      "/bin/bash"
+    ]
+  },
+  "rootfs": {
+    "type": "layers",
+    "diff_ids": [
+      "sha256:38754426c4ee57c6d6b88f56d3dc05c0c8a501cd3ad203091c29b22c7848e472"
+    ]
+  },
+  "history": []
+}

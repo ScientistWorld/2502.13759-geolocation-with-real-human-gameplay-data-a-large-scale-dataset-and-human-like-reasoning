@@ -1,0 +1,23 @@
+[hive] This stdout log is managed by Hive.
+[hive] job_id: b639fc67
+[hive] host: della-i21g3
+[hive] node_id: 3cfc25d619395e28ae2ea8354079e365d5495aa4ecf4fd9aa1590dae
+[hive] user: nexus/tl0463 (remote)
+[hive] resource: ailab-2
+[hive] gpus: 1
+[hive] cpus: 1
+[hive] workdir: /home/tl0463
+[hive] timeout_sec: 3600
+[hive] started_at: 2026-04-13 01:19:50 EDT
+[hive] command: apptainer exec --nv --containall --cleanenv --env HF_HOME=/home/user/shared/hf_cache --env TRANSFORMERS_CACHE=/home/user/shared/hf_cache --env HF_DATASETS_CACHE=/home/user/shared/hf_cache/datasets --env TORCH_HOME=/home/user/shared/hf_cache/torch --bind /home/tl0463/scratch/AgentWorkspaces/workspaces/2502.13759:/home/user --overlay /home/tl0463/scratch/AgentWorkspaces/workspaces/2502.13759/environment/overlay.img:ro --bind /home/tl0463/scratch/AgentWorkspaces/shared/datasets:/home/user/shared/datasets:ro --bind /home/tl0463/scratch/AgentWorkspaces/shared/models:/home/user/shared/models:ro --bind /home/tl0463/scratch/AgentWorkspaces/shared/hf_cache:/home/user/shared/hf_cache /home/tl0463/scratch/AgentWorkspaces/workspaces/2502.13759/environment/container.sif bash -c 'cd /home/user && bash /home/user/scripts/run.sh'
+==========================================
+GeoCoT Reproduction - Mon Apr 13 01:19:50 EDT 2026
+==========================================
+
+=== Environment Setup ===
+=== Setting up GeoCoT environment (runtime) ===
+Found existing installation: huggingface_hub 1.10.1
+Uninstalling huggingface_hub-1.10.1:
+Defaulting to user installation because normal site-packages is not writeable
+Requirement already satisfied: uv in /usr/local/lib/python3.10/dist-packages (0.11.6)
+Found existing installation: torch 2.6.0+cu124

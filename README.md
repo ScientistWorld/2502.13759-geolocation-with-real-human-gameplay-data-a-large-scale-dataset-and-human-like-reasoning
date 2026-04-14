@@ -655,4 +655,4 @@ Target performance (paper's reported results on GeoComp test set with 500 images
 **Current: none**
 
 ## Stop Justification
-- Completed at milestone `none`.
+- Completed at milestone `method_runs`.

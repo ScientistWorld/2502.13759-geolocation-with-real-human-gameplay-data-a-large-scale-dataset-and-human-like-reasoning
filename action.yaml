@@ -1,8 +1,8 @@
 # IMPORTANT: Once you set action to 'submit' or 'done', STOP immediately.
 # Do NOT sleep, poll, or wait for jobs. The system reads this file
 # only after your turn ends. Sleeping blocks the entire pipeline.
-action: pending
+action: submit
 gpus: 1
 test: false
 milestone: none
-notes: ""
+notes: "Two fixes: (1) max_new_tokens=768 (was 512) — GeoCoT responses truncated at 600-700 tokens before summary line; (2) parse_location_prediction now handles 'Final Prediction: appears to be from [Country]' format and splits 'Argentina, Uruguay, or Chile' to first country. Job 2be9010c-e92 is queued — will pick up these changes from bind-mounted workspace."
