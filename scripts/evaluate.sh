@@ -43,15 +43,19 @@ COUNTRY_COORDS = {
     "ecuador": (-1.8312, -78.1834), "chile": (-35.6751, -71.5430),
     "brazil": (-14.2350, -51.9253), "argentina": (-38.4161, -63.6167),
     "peru": (-9.1900, -75.0152), "colombia": (4.5709, -74.2973),
+    "united states": (37.0902, -95.7129), "canada": (56.1304, -106.3468),
     "south africa": (-30.5595, 22.9375), "egypt": (26.8206, 30.8025),
-    "nigeria": (9.0820, 8.6753), "united states": (37.0902, -95.7129),
-    "usa": (37.0902, -95.7129), "canada": (56.1304, -106.3468),
+    "nigeria": (9.0820, 8.6753), "australia": (-25.2744, 133.7751),
     "germany": (51.1657, 10.4515), "france": (46.2276, 2.2137),
-    "uk": (55.3781, -3.4360), "japan": (36.2048, 138.2529),
-    "china": (35.8617, 104.1954), "india": (20.5937, 78.9629),
-    "indonesia": (-0.7893, 113.9213), "australia": (-25.2744, 133.7751),
+    "united kingdom": (55.3781, -3.4360), "china": (35.8617, 104.1954),
+    "japan": (36.2048, 138.2529), "india": (20.5937, 78.9629),
     "russia": (61.5240, 105.3188), "mexico": (23.6345, -102.5528),
-    "thailand": (15.8700, 100.9925), "vietnam": (14.0583, 108.2772),
+    "thailand": (15.8700, 100.9925), "indonesia": (-0.7893, 113.9213),
+    "saudi arabia": (24.7136, 46.6753), "oman": (21.4735, 55.9754),
+    "turkey": (38.9637, 35.2433), "south korea": (35.9078, 127.7669),
+    "italy": (41.8719, 12.5674), "spain": (40.4637, -3.7492),
+    "finland": (61.9241, 25.7482), "new zealand": (-40.9006, 174.8860),
+    "uganda": (1.3733, 32.2903),
 }
 
 def reverse_geocode(country):
@@ -64,14 +68,20 @@ def reverse_geocode(country):
 def normalize_country(c):
     if not c: return None
     c = c.strip().lower()
-    aliases = {"usa":"united states","us":"united states","uk":"united kingdom",
-               "american":"united states","british":"united kingdom"}
+    aliases = {
+        "usa": "united states", "us": "united states",
+        "uk": "united kingdom", "british": "united kingdom",
+        "american": "united states", "california": "united states",
+        "nevada": "united states", "florida": "united states",
+        "scotland": "united kingdom",
+    }
     return aliases.get(c, c)
 
 def normalize_continent(c):
     if not c: return None
     c = c.strip().lower()
     if "australia" in c: return "oceania"
+    if "oceania" in c: return "oceania"
     return c
 
 def compute_metrics(predictions):
@@ -173,7 +183,22 @@ with open('/home/user/scoring/reference.json') as f:
 
 # Build scores.json with reproduction results
 scores = {"experiments": {}}
-METHOD_MAP = {"geocot": "qwen_geocot", "cot": "qwen_cot"}
+
+# Detect model size from prediction names
+METHOD_MAP = {}
+for n in all_results.keys():
+    if "geocot" in n.lower():
+        if "32b" in n.lower():
+            METHOD_MAP[n] = "qwen32b_geocot"
+        else:
+            METHOD_MAP[n] = "qwen_geocot"
+    elif "cot" in n.lower():
+        if "32b" in n.lower():
+            METHOD_MAP[n] = "qwen32b_cot"
+        else:
+            METHOD_MAP[n] = "qwen_cot"
+    else:
+        METHOD_MAP[n] = n
 
 for exp_name, exp_data in reference.get("experiments", {}).items():
     exp_copy = {
@@ -195,23 +220,17 @@ for exp_name, exp_data in reference.get("experiments", {}).items():
             entry[key] = val
         exp_copy["results"][method_name] = entry
 
-    # Update/add reproduced results
+    # Add/update reproduced results
     for pred_name, metrics in all_results.items():
         method_name = METHOD_MAP.get(pred_name, pred_name)
-        if method_name not in ref_results:
-            # Add new method to geocomp experiments
-            if exp_name in ["geocomp_classification", "geocomp_distance"]:
-                entry = {}
-                for key in ref_metrics:
-                    if key in metrics:
-                        entry[key] = metrics[key]
-                if entry:
-                    exp_copy["results"][method_name] = entry
-        else:
-            entry = exp_copy["results"][method_name]
+        # Add to classification and distance experiments
+        if exp_name in ["geocomp_classification", "geocomp_distance"]:
+            entry = {}
             for key in ref_metrics:
                 if key in metrics:
                     entry[key] = metrics[key]
+            if entry:
+                exp_copy["results"][method_name] = entry
 
     scores["experiments"][exp_name] = exp_copy
 
