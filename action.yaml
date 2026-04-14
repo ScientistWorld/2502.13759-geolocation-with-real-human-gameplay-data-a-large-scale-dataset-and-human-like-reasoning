@@ -1,5 +1,8 @@
-action: submit
+# IMPORTANT: Once you set action to 'submit' or 'done', STOP immediately.
+# Do NOT sleep, poll, or wait for jobs. The system reads this file
+# only after your turn ends. Sleeping blocks the entire pipeline.
+action: pending
 gpus: 1
 test: false
-milestone: method_runs
-notes: "Fixed run.sh: max_new_tokens=512 (was 128, truncating responses before Location summary), improved parse_location_prediction with fallback country-name extraction, SAMPLES_PER_COUNTRY=10 (40 total). Previous job got 0/16 valid predictions due to truncation."
+milestone: none
+notes: ""

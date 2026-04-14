@@ -183,6 +183,7 @@ Are there identifiable patterns in sidewalks (e.g., tile shapes, colors, or arra
 Let's think step by step. Based on the questions I provided, locate the location of the picture as accurately as possible. Identify the continent, country, and city, and summarize it into a paragraph. For example: the presence of tropical rainforests, palm trees, and red soil indicates a tropical climate... Signs in Thai, right-side traffic, and traditional Thai architecture further suggest it is in Thailand... Combining these clues, this image was likely taken in a city in Thailand, Asia.
 
 Please provide your analysis and final location prediction.
+Output format: Location: [City], [Country], [Continent]
 """
 
 # Standard CoT prompt (comparison baseline)
@@ -213,6 +214,7 @@ def parse_location_prediction(text):
         r"Predicted\s*Location:\s*(.+?),\s*(.+?),\s*(.+?)(?:\n|$)",
         r"location:\s*(.+?),\s*(.+?),\s*(.+?)(?:\n|$)",
         r"City:\s*(.+?),\s*Country:\s*(.+?),\s*Continent:\s*(.+?)(?:\n|$)",
+        r"Final\s+Prediction:\s*(?:The image was likely taken in\s+)?(?:a\s+)?(?:city\s+in\s+)?(?:rural\s+area\s+in\s+)?(.+?)(?:,|\s+South America|\s+Africa|\s+Asia|\s+Europe|\s+North America|\s+Australia|\s+Oceania|\s+Central America)(?:,?\s*(South America|Africa|Asia|Europe|North America|Australia|Oceania|Central America))?(?:\.|$)",
     ]
     for pattern in patterns:
         match = re.search(pattern, text, re.IGNORECASE | re.DOTALL)
@@ -220,6 +222,9 @@ def parse_location_prediction(text):
             result["city"] = match.group(1).strip()
             result["country"] = match.group(2).strip()
             result["continent"] = match.group(3).strip()
+            # Skip if any field is just a placeholder
+            if any(x in (result["city"], result["country"], result["continent"]) for x in ["[City]", "[Country]", "[Continent]", "[Specific City]", "[Not specified]", "[city]"]):
+                break
             return result
 
     # Fallback: search for known country names anywhere in the response
@@ -228,6 +233,13 @@ def parse_location_prediction(text):
         if country_lower in text_lower:
             result["country"] = country_name
             result["continent"] = continent
+            # Try to also extract a city name near the country mention
+            idx = text_lower.find(country_lower)
+            # Search backwards for a capitalized word (potential city name)
+            snippet = text[max(0, idx-100):idx+50]
+            city_match = re.search(r'\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+){0,2})\b', snippet)
+            if city_match:
+                result["city"] = city_match.group(1).strip()
             return result
 
     return result
