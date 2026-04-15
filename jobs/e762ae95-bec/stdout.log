@@ -1,0 +1,269 @@
+[hive] This stdout log is managed by Hive.
+[hive] job_id: 4bc711ab
+[hive] host: della-h14n3
+[hive] node_id: f21e215c125c30e2259de38105ba633ea67c0b0a0e2f860b041d957d
+[hive] user: nexus/tl0463 (remote)
+[hive] resource: gpu-cpu-test
+[hive] gpus: 0
+[hive] cpus: 1
+[hive] workdir: /home/tl0463
+[hive] timeout_sec: 3600
+[hive] started_at: 2026-04-15 07:09:33 EDT
+[hive] command: apptainer exec --containall --cleanenv --env HF_HOME=/home/user/shared/hf_cache --env TRANSFORMERS_CACHE=/home/user/shared/hf_cache --env HF_DATASETS_CACHE=/home/user/shared/hf_cache/datasets --env TORCH_HOME=/home/user/shared/hf_cache/torch --bind /home/tl0463/scratch/AgentWorkspaces/workspaces/2502.13759:/home/user --overlay /home/tl0463/scratch/AgentWorkspaces/workspaces/2502.13759/environment/overlay.img:ro --bind /home/tl0463/scratch/AgentWorkspaces/shared/datasets:/home/user/shared/datasets:ro --bind /home/tl0463/scratch/AgentWorkspaces/shared/models:/home/user/shared/models:ro --bind /home/tl0463/scratch/AgentWorkspaces/shared/hf_cache:/home/user/shared/hf_cache /home/tl0463/scratch/AgentWorkspaces/workspaces/2502.13759/environment/container.sif bash -c 'cd /home/user && bash /home/user/scripts/run.sh'
+==========================================
+GeoCoT scoring validation - Wed Apr 15 07:09:33 EDT 2026
+==========================================
+=== GeoCoT Evaluation ===
+Evaluating predictions from: /home/user/results
+Found prediction files: ['abl_cot', 'abl_geocot_full', 'abl_geocot_step1', 'abl_geocot_step2', 'abl_geocot_step3', 'abl_geocot_step4', 'cot_32B', 'geocot_32B']
+
+Evaluating: abl_cot
+  20/20 valid, 20 with ground truth
+  city_accuracy: 0.0000
+  country_accuracy: 0.0000
+  continent_accuracy: 0.3500
+  street_1km: 0.0000
+  city_25km: 0.0000
+  country_750km: 0.3333
+  avg_inference_time_s: 20.4350
+
+Evaluating: abl_geocot_full
+  19/20 valid, 19 with ground truth
+  city_accuracy: 0.0000
+  country_accuracy: 0.0000
+  continent_accuracy: 0.3684
+  street_1km: 0.0000
+  city_25km: 0.0000
+  country_750km: 0.1333
+  avg_inference_time_s: 51.7632
+
+Evaluating: abl_geocot_step1
+  19/20 valid, 19 with ground truth
+  city_accuracy: 0.0000
+  country_accuracy: 0.0526
+  continent_accuracy: 0.5263
+  street_1km: 0.0000
+  city_25km: 0.0000
+  country_750km: 0.2143
+  avg_inference_time_s: 17.6137
+
+Evaluating: abl_geocot_step2
+  20/20 valid, 20 with ground truth
+  city_accuracy: 0.0000
+  country_accuracy: 0.1500
+  continent_accuracy: 0.6000
+  street_1km: 0.0000
+  city_25km: 0.0526
+  country_750km: 0.1579
+  avg_inference_time_s: 21.2105
+
+Evaluating: abl_geocot_step3
+  20/20 valid, 20 with ground truth
+  city_accuracy: 0.0000
+  country_accuracy: 0.1000
+  continent_accuracy: 0.5500
+  street_1km: 0.0000
+  city_25km: 0.0625
+  country_750km: 0.2500
+  avg_inference_time_s: 23.5655
+
+Evaluating: abl_geocot_step4
+  20/20 valid, 20 with ground truth
+  city_accuracy: 0.0000
+  country_accuracy: 0.0500
+  continent_accuracy: 0.5500
+  street_1km: 0.0000
+  city_25km: 0.0000
+  country_750km: 0.2000
+  avg_inference_time_s: 48.7605
+
+Evaluating: cot_32B
+  20/20 valid, 20 with ground truth
+  city_accuracy: 0.0000
+  country_accuracy: 0.0500
+  continent_accuracy: 0.3500
+  street_1km: 0.0000
+  city_25km: 0.0000
+  country_750km: 0.1875
+  avg_inference_time_s: 51.0045
+
+Evaluating: geocot_32B
+  20/20 valid, 20 with ground truth
+  city_accuracy: 0.0000
+  country_accuracy: 0.0500
+  continent_accuracy: 0.5000
+  street_1km: 0.0000
+  city_25km: 0.0000
+  country_750km: 0.1500
+  avg_inference_time_s: 78.7605
+
+Scores saved to /home/user/scoring/scores.json
+
+=== Evaluation Complete ===
+── Scoring ──
+  reference.json — OK (5 experiments, 56 methods)
+  scores.json — OK (1 experiments, 5 methods)
+
+=== geocomp_classification (weight: 0.3) ===
+    GeoComp classification results from Table 2: city/country/continent accuracy, recall, and F1 on the 500-image GeoComp test set.
+
+    Method                    Source      city_accuracy    city_recall        city_f1country_accuracy * country_recall     country_f1continent_accuracycontinent_recall   continent_f1
+    ------------------------- ----------───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+    llava_1_6 [baseline]      paper               0.002          0.001          0.002          0.041          0.019          0.028          0.175          0.067          0.056
+
+    llama_3_2_vision [baseline] paper               0.081          0.037          0.030          0.630          0.199          0.217          0.866          0.643          0.639
+
+    qwen_vl [baseline]        paper               0.016          0.013          0.014          0.069          0.042          0.070          0.130          0.115          0.077
+
+    geoclip [baseline]        paper               0.018          0.007          0.008          0.550          0.197          0.204          0.872          0.746          0.731
+
+    georeasoner [baseline]    paper               0.018          0.014          0.012          0.092          0.053          0.085          0.208          0.161          0.144
+
+    kimi_latest [baseline]    paper               0.027          0.023          0.024          0.135          0.112          0.156          0.315          0.148          0.220
+
+    kimi_latest_cot [baseline] paper               0.028          0.029          0.029          0.139          0.092          0.124          0.331          0.154          0.210
+
+    kimi_latest_geocot [proposed] paper               0.038          0.035          0.029          0.239          0.192          0.224          0.361          0.168          0.232
+
+    gpt4o [baseline]          paper               0.092          0.048          0.044          0.615          0.188          0.208          0.807          0.468          0.487
+
+    gpt4o_cot [baseline]      paper               0.094          0.052          0.042          0.623          0.194          0.212          0.819          0.430          0.449
+
+    geocot [proposed]         paper               0.118          0.089          0.086          0.640          0.260          0.291          0.862          0.638          0.646
+
+    qwen_cot [baseline]       paper               0.016          0.013          0.014          0.069          0.042          0.070          0.130          0.115          0.077
+                              repro               0.000          0.000          0.000          0.050          0.050          0.050          0.350          0.350          0.368
+
+    qwen_geocot [proposed]    paper               0.118          0.089          0.086          0.640          0.260          0.291          0.862          0.638          0.646
+                              repro               0.000          0.000          0.000          0.050          0.050          0.050          0.500          0.500          0.513
+
+
+=== geocomp_distance (weight: 0.25) ===
+    GeoComp distance-based accuracy from Table 3: fraction of predictions within 1km, 25km, and 750km of ground truth.
+
+    Method                    Source         street_1km    city_25km *  country_750km
+    ------------------------- ----------─────────────────────────────────────────────
+    llava_1_6 [baseline]      paper               0.006          0.020          0.082
+
+    llama_3_2_vision [baseline] paper               0.018          0.104          0.638
+
+    qwen_vl [baseline]        paper               0.004          0.014          0.090
+
+    geoclip [baseline]        paper               0.035          0.077          0.625
+
+    georeasoner [baseline]    paper               0.010          0.020          0.128
+
+    gpt4o [baseline]          paper               0.045          0.147          0.678
+
+    gpt4o_cot [baseline]      paper               0.047          0.151          0.701
+
+    geocot [proposed]         paper               0.073          0.157          0.711
+
+    qwen_cot [baseline]       paper               0.004          0.014          0.090
+                              repro               0.000          0.000          0.188
+
+    qwen_geocot [proposed]    paper               0.073          0.157          0.711
+                              repro               0.000          0.000          0.150
+
+
+=== geocomp_efficiency (weight: 0.2) ===
+    Inference efficiency constraint from Table 7: GeoCoT should improve reasoning while keeping latency and generated-token overhead modest relative to standard CoT.
+
+    Method                    Source    avg_generated_tokensavg_inference_time_s *
+    ------------------------- ----------──────────────────────────────
+    globe [baseline]          paper             397.740          8.130
+
+    gpt4o [baseline]          paper              89.760          5.620
+
+    gpt4o_cot [baseline]      paper             141.580          7.570
+
+    geocot [proposed]         paper             173.280          8.880
+
+    qwen_cot [baseline]       paper             141.580          7.570
+                              repro             394.400         51.005
+
+    qwen_geocot [proposed]    paper             173.280          8.880
+                              repro             551.650         78.760
+
+
+=== ablation_geocot_steps (weight: 0.15) ===
+    Ablation from Table 8: cumulative effect of adding GeoCoT reasoning stages, measured with accuracy, recall, and F1 at city/country/continent levels.
+
+    Method                    Source      city_accuracy    city_recall        city_f1country_accuracy * country_recall     country_f1continent_accuracycontinent_recall   continent_f1
+    ------------------------- ----------───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+    geocot_step1 [proposed]   paper               0.113          0.098          0.076          0.551          0.133          0.151          0.776          0.443          0.468
+                              repro               0.000          0.000          0.000          0.053          0.053          0.053          0.526          0.526          0.526
+
+    geocot_step2 [proposed]   paper               0.103          0.086          0.074          0.510          0.157          0.181          0.755          0.438          0.464
+
+    geocot_step3 [proposed]   paper               0.102          0.073          0.076          0.490          0.142          0.165          0.673          0.334          0.380
+
+    geocot_step4 [proposed]   paper               0.082          0.078          0.069          0.469          0.122          0.142          0.735          0.346          0.369
+
+    geocot_step5 [proposed]   paper               0.102          0.088          0.078          0.551          0.151          0.173          0.776          0.338          0.363
+
+    geocot_step1_2 [proposed] paper               0.112          0.083          0.086          0.571          0.196          0.190          0.795          0.443          0.468
+                              repro               0.000          0.000          0.000          0.150          0.150          0.150          0.600          0.600          0.615
+
+    geocot_step1_2_3 [proposed] paper               0.114          0.102          0.089          0.592          0.216          0.192          0.816          0.453          0.474
+                              repro               0.000          0.000          0.000          0.100          0.100          0.100          0.550          0.550          0.550
+
+    geocot_step1_2_3_4 [proposed] paper               0.112          0.089          0.078          0.604          0.231          0.293          0.824          0.550          0.572
+                              repro               0.000          0.000          0.000          0.050          0.050          0.050          0.550          0.550          0.550
+
+    geocot_full [proposed]    paper               0.118          0.089          0.086          0.640          0.260          0.291          0.862          0.638          0.646
+                              repro               0.000          0.000          0.000          0.000          0.000          0.000          0.368          0.368          0.378
+
+
+=== im2gps_generalization (weight: 0.1) ===
+    Generalization to Im2GPS and Im2GPS3K from Table 4, using distance-threshold accuracy on traditional image geolocation benchmarks.
+
+    Method                    Source         street_1km    city_25km *  country_750km
+    ------------------------- ----------─────────────────────────────────────────────
+    llava_1_6_im2gps [baseline] paper               0.040          0.180          0.390
+
+    llama_3_2_vision_im2gps [baseline] paper               0.090          0.370          0.650
+
+    qwen_vl_im2gps [baseline] paper               0.040          0.210          0.370
+
+    geoclip_im2gps [baseline] paper               0.170          0.410          0.770
+
+    georeasoner_im2gps [baseline] paper               0.050          0.190          0.330
+
+    planet_im2gps [baseline]  paper               0.080          0.250          0.540
+
+    gpt4o_im2gps [baseline]   paper               0.130          0.470          0.740
+
+    gpt4o_cot_im2gps [baseline] paper               0.160          0.490          0.770
+
+    geocot_im2gps [proposed]  paper               0.220          0.550          0.830
+
+    llava_1_6_im2gps3k [baseline] paper               0.030          0.140          0.320
+
+    llama_3_2_vision_im2gps3k [baseline] paper               0.070          0.270          0.520
+
+    qwen_vl_im2gps3k [baseline] paper               0.040          0.150          0.260
+
+    geoclip_im2gps3k [baseline] paper               0.130          0.320          0.670
+
+    georeasoner_im2gps3k [baseline] paper               0.040          0.150          0.260
+
+    planet_im2gps3k [baseline] paper               0.090          0.250          0.480
+
+    gpt4o_im2gps3k [baseline] paper               0.140          0.400          0.660
+
+    gpt4o_cot_im2gps3k [baseline] paper               0.140          0.450          0.690
+
+    geocot_im2gps3k [proposed] paper               0.150          0.460          0.740
+
+
+── Structure ──
+  import separation — OK (eval/ and data/ do not import from method/)
+  gitignored imports — OK (all eval/method/baseline imports resolve to tracked files)
+  eval/train ↔ eval/test independence — OK
+  shared/ references — OK (no shared/ paths in committed code)
+
+All checks passed.
+==========================================
+Validation complete - Wed Apr 15 07:09:37 EDT 2026
+==========================================
