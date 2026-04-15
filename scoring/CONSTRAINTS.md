@@ -23,6 +23,7 @@ No external geolocation datasets may be used to train or validate the method. Te
 ## Evaluation Protocol
 - Evaluate at three granularity levels: city, country, continent
 - Use both classification metrics (accuracy, recall, F1) and distance metrics (1km, 25km, 750km thresholds)
+- Report inference-time and generated-token overhead for the same prediction files when timing information is available
 - Report results on the same test set as the reproduction for fair comparison
 
 ## Compliance Checklist
@@ -30,4 +31,5 @@ No external geolocation datasets may be used to train or validate the method. Te
 - [ ] Evaluation uses the same test set as the reproduction
 - [ ] All three granularity levels (city/country/continent) are reported
 - [ ] Both classification and distance metrics are reported
+- [ ] Inference-time overhead is reported or explicitly marked unavailable
 - [ ] GeoCoT structured prompting is the method being improved

@@ -18,4 +18,15 @@ off-the-shelf Vision Language Models.
 
 from .prompt_template import GEO_COT_SYSTEM_PROMPT, GEO_COT_USER_PROMPT
 
+
+class GeoCoTEngine:
+    """Small wrapper that applies the paper's GeoCoT prompt to a VLM client."""
+
+    def __init__(self, vlm_client):
+        self.vlm_client = vlm_client
+
+    def predict(self, image_path: str) -> str:
+        return self.vlm_client.predict(image_path, GEO_COT_USER_PROMPT)
+
+
 __all__ = ["GEO_COT_SYSTEM_PROMPT", "GEO_COT_USER_PROMPT", "GeoCoTEngine"]

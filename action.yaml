@@ -1,8 +1,8 @@
 # IMPORTANT: Once you set action to 'submit' or 'done', STOP immediately.
 # Do NOT sleep, poll, or wait for jobs. The system reads this file
 # only after your turn ends. Sleeping blocks the entire pipeline.
-action: pending
-gpus: 1
-test: false
+action: submit
+gpus: 0
+test: true
 milestone: core_claim
-notes: ""
+notes: "CPU validation job for expanded GeoCoT scoring: rerun evaluator on existing prediction artifacts and validate workspace structure."

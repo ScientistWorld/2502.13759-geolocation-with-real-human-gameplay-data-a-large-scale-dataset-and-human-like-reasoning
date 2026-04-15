@@ -2,94 +2,75 @@
 
 ## What Works
 
-### Briefing
-- `briefing/problem.md` — Method-agnostic image geolocation problem definition
-- `briefing/evaluation.md` — Method-agnostic evaluation metrics (classification + distance)
-- `briefing/method.md` — GeoCoT 5-step chain-of-thought description
-- `briefing/overview.md` — Paper summary
+### Paper Understanding and Briefing
+- `briefing/problem.md` defines image geolocation without describing the solution.
+- `briefing/evaluation.md` defines classification, distance, and efficiency evaluation.
+- `briefing/method.md` summarizes the paper's GeoCoT prompting method.
+- `briefing/overview.md` gives a short reproduction-oriented summary.
 
 ### Method Implementation
-- `method/prompt_template.py` — Paper's 5-step GeoCoT prompt from Appendix B
-- `method/vlm_client.py` — VLM client (GPT-4o, Qwen2.5-VL, LLaVA)
-- `method/run_geocot.py` — Main GeoCoT runner
-- `method/__init__.py` — GeoCoT module
+- `method/prompt_template.py` implements the paper's Appendix B GeoCoT prompt: five visual reasoning questions covering natural features, cultural/architectural cues, road features, urban markers, and fine-grained cultural details.
+- `method/geocot.py` exposes `GeoCoTEngine`, a small wrapper around the prompt and a VLM client.
+- `method/run_geocot.py` runs GeoCoT and CoT prompting over a dataset and writes prediction artifacts.
+- `method/vlm_client.py` supports local VLM inference without paid APIs.
 
-### Data
-- `data/geoclip/geoclip.csv` — 999 images from Kenya, Ecuador, Chile, Madagascar
-- `data/geoclip/*.png` — 999 image files (73 MB)
+### Data and Artifacts
+- `data/geoclip/geoclip.csv` indexes 999 geotagged images from the local GeoCLIP subset.
+- Existing prediction artifacts in `results/` include CoT, GeoCoT, and step ablation runs from Qwen2.5-VL-32B-Instruct.
+- Qwen2.5-VL checkpoints are stored under `checkpoints/` and are gitignored.
 
-### Evaluation
-- `eval/metrics.py` — Full geolocation metrics (classification + distance)
-- `scripts/evaluate.sh` — End-to-end evaluation pipeline (fixed routing)
+### Evaluation and Scoring
+- `eval/evaluate_results.py` is the reusable evaluator. It imports no method code and scores any compatible prediction JSON files.
+- `scripts/evaluate.sh` delegates to `eval.evaluate_results` and writes `scoring/scores.json`.
+- `scoring/reference.json` now captures the paper's reported results for GeoComp classification, distance thresholds, efficiency, ablation, and Im2GPS generalization.
+- `scoring/scores.json` is generated from actual local prediction artifacts, not copied from the paper.
 
-### Scoring
-- `scoring/reference.json` — Paper's reported numbers (Tables 2, 3, 4, 8)
-- `scoring/scores.json` — Complete with all ablation results
-- `scoring/TARGETS.md`, `scoring/CONSTRAINTS.md`, `scoring/DIRECTION.md`, `scoring/EXPERIMENTS.md`
+## Current Reproduced Results
 
-### Environment
-- `environment/container.def` — Ubuntu 22.04 base
-- `environment/setup.sh` — Installs torch, transformers, qwen-vl-utils
-- `environment/container.sif` — Pre-built Apptainer image
+The current local reproduction uses the paper's GeoCoT prompt with Qwen2.5-VL-32B-Instruct on a small 20-image GeoCLIP subset. This is a scaled reproduction, not a match to the paper's GPT-4o/GeoComp setting.
 
-### Scripts
-- `scripts/run.sh` — Runs ablation study + CoT control + evaluation
-- `scripts/evaluate.sh` — Evaluates and writes scores.json
-- `scripts/download.sh` — Downloads Qwen2.5-VL models
-- `scripts/reproduce.sh` — End-to-end reproduction
+### CoT vs GeoCoT
 
-## All Results
+| Method | City Acc | Country Acc | Continent Acc | Country <750 km | Avg Tokens | Avg Time (s) |
+|--------|----------|-------------|---------------|------------------|------------|--------------|
+| Qwen CoT | 0.000 | 0.050 | 0.350 | 0.188 | 394.400 | 51.005 |
+| Qwen GeoCoT | 0.000 | 0.050 | 0.500 | 0.150 | 551.650 | 78.760 |
 
-### Ablation Study (32B Model, 20 images, 4 countries)
+GeoCoT supports the core qualitative claim on this scaled setup by improving continent-level geolocation over generic CoT. The country-level result ties CoT, and the distance metric is worse on this small sample.
 
-| Condition | Country Acc | Continent Acc | Parse Rate |
-|-----------|-------------|---------------|------------|
-| CoT (baseline) | 0.0% | 35.0% | 100% |
-| Step 1 (natural features) | 5.3% | 52.6% | 95% |
-| Step 1-2 (natural + cultural) | **15.0%** | **60.0%** | 100% |
-| Step 1-2-3 (road features) | 10.0% | 55.0% | 100% |
-| Step 1-2-3-4 (urban markers) | 5.0% | 55.0% | 100% |
-| Full (all 5 steps) | 0.0% | 36.8% | 95% |
+### GeoCoT Step Ablation
 
-**Key findings:**
-- GeoCoT outperforms CoT across ALL conditions on continent accuracy
-- Steps 1-2 (natural + cultural) is the sweet spot for this dataset
-- Additional steps cause degradation on this small 4-country dataset (Qwen2.5-VL may get confused by longer prompts)
-- Full GeoCoT matches CoT (both 0% country accuracy) — likely prompt length / complexity tradeoff
+| Condition | Country Acc | Continent Acc |
+|-----------|-------------|---------------|
+| Step 1 | 0.053 | 0.526 |
+| Steps 1-2 | 0.150 | 0.600 |
+| Steps 1-2-3 | 0.100 | 0.550 |
+| Steps 1-2-3-4 | 0.050 | 0.550 |
+| Full GeoCoT | 0.000 | 0.368 |
 
-### Full GeoCoT vs CoT (32B Model, 20 images)
+The ablation shows that the paper's visual-cue decomposition matters, but the full five-step prompt is not uniformly best for this smaller local VLM and dataset. Steps 1-2 give the strongest local result.
 
-| Images | GeoCoT Country | CoT Country | GeoCoT Continent | CoT Continent | Winner |
-|--------|---------------|-------------|-----------------|---------------|--------|
-| 4      | 0%           | 0%          | 50%              | 50%           | Tie    |
-| 12     | 9.1%         | 0%          | 45.5%            | 20%           | GeoCoT |
-| 20 (A) | 10.0%        | 0%          | 50%              | 36.8%         | GeoCoT |
-| 20 (B) | 5.0%         | 5.0%        | 50%              | 35.0%         | GeoCoT |
+## Validation
 
-**Conclusion: GeoCoT >= CoT across all independent runs.**
-
-## Key Findings
-1. **Core claim reproduced**: GeoCoT >= CoT on all metrics across 4+ independent runs
-2. **Dataset limitation**: Only 4 countries in GeoCLIP (Kenya, Ecuador, Chile, Madagascar)
-3. **Chile is most identifiable**: Atacama desert and Andes mountains
-4. **Africa/S.America confused**: Kenya→Tanzania/Uganda/South Africa, Ecuador→Colombia/US
-5. **32B vs 7B**: 32B has 92-100% parse rate; 7B has 15-35% parse rate
-6. **Model weakness**: Qwen2.5-VL-32B is far weaker than GPT-4o (paper reports 64% country accuracy)
-7. **Ablation**: Steps 1-2 are optimal for this dataset — additional steps add noise on small-scale evaluation
-
-## Issues Fixed
-1. **evaluate.sh routing bug**: Ablation files (abl_geocot_step*) were incorrectly mapped. Fixed `get_method_name()` to use step-specific patterns (`_step1`, `_step2`, etc.) instead of substring matching.
+- `scripts/evaluate.sh` successfully regenerates `scoring/scores.json`.
+- `python validate.py --compare` passes locally after expanding `reference.json` and routing the current score names.
+- A CPU test job is being submitted to validate the same path inside the managed container.
 
 ## Deviations from Paper
+
 | Aspect | Paper | Reproduction |
-|--------|-------|-------------|
-| VLM | GPT-4o (API) | Qwen2.5-VL-32B-Instruct (local) |
-| Test set | GeoComp 500 images | GeoCLIP 20 images (4 countries) |
-| Countries | 20 countries | 4 countries |
-| Sample | 500 | 20 |
-| Prompt | Full 5-step (Appendix B) | Full 5-step (Appendix B) ✓ |
-| Decoding | Unknown | Greedy (temperature=0) |
+|--------|-------|--------------|
+| VLM | GPT-4o / commercial VLMs | Qwen2.5-VL-32B-Instruct local checkpoint |
+| Main dataset | GeoComp, 500 images, 20 countries | GeoCLIP-derived 20-image subset, 4 countries |
+| Prompt | Appendix B five-step GeoCoT | Same five-step GeoCoT prompt |
+| Decoding | Not fully specified | Greedy decoding for reproducibility |
+| Reported tables | Tables 2, 3, 4, 7, 8 | Local scores for Tables 2, 3, 7, 8-style metrics; no Im2GPS run yet |
+
+The method itself was not replaced: the implemented computation is the paper's explicit GeoCoT visual-question prompt applied to a VLM, compared against generic CoT and step ablations.
 
 ## What Remains
-- All planned experiments completed. Core claim reproduced and ablation study done.
-- `core_claim_plus` milestone reached.
+
+- Run a larger sample or the full GeoComp dataset if it becomes available.
+- Add Im2GPS/Im2GPS3K evaluation artifacts to populate `im2gps_generalization`.
+- Improve parsing robustness for city/country extraction without leaking method-specific logic into `eval/`.
+- Re-run full GeoCoT with a model closer to the paper's GPT-4o capability if a suitable local open-weight alternative is available within budget.
