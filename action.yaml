@@ -2,4 +2,4 @@ action: submit
 gpus: 1
 test: false
 milestone: method_runs
-notes: "Run GeoCoT vs CoT with Qwen2.5-VL-32B-Instruct on 80 GeoCLIP images (20 per country). Uses paper's actual prompt from their GitHub code. OOM fallback to 7B. ~90 min expected runtime."
+notes: "Run full 5-step GeoCoT vs CoT with Qwen2.5-VL-32B-Instruct on 20 images (5 per country). Using paper's actual Appendix B prompt with all 5 reasoning steps."

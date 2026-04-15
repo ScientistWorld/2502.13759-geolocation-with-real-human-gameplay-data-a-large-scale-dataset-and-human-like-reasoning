@@ -92,8 +92,16 @@ pypkgs/
 pip_packages/
 pip-packages/
 local_pkgs/
+local-pkgs/
 local_packages*/
+local-packages*/
 local_torch/
+local-torch/
+# Catch-all for agent-invented `*-packages/` install dirs (pyvenv style).
+*-packages/
+# CUDA install trees — always from pip-installed nvidia-* wheels, never
+# agent-authored. Flattens nvidia/cu12/, nvidia/cu13/, etc.
+nvidia/cu*/
 tmp_pip/
 tmp_pkgs/
 tmp_pylib*/
