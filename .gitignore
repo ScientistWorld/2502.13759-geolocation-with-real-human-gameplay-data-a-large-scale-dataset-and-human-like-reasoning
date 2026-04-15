@@ -186,7 +186,6 @@ Thumbs.db
 core.*
 # Auto-added by swarm
 environment/overlay.img
-data/
 jobs/
 tmp/
 protocol.md
