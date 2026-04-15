@@ -1,1 +1,1 @@
-"""Visible train-slice evaluation for the GeoCoT benchmark."""
+"""Visible train-slice evaluation for the geolocation benchmark."""

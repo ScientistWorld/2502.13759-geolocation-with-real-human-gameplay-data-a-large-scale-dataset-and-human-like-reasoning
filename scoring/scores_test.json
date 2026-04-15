@@ -123,7 +123,7 @@
         }
       }
     },
-    "ablation_geocot_steps": {
+    "ablation_explanation_scaffolds": {
       "description": "Ablation from Table 8: cumulative effect of adding GeoCoT reasoning stages, measured with accuracy, recall, and F1 at city/country/continent levels.",
       "weight": 0.15,
       "primary_metric": "country_accuracy",
@@ -222,26 +222,6 @@
           "continent_f1": 0.5
         }
       }
-    },
-    "im2gps_generalization": {
-      "description": "Generalization to Im2GPS and Im2GPS3K from Table 4, using distance-threshold accuracy on traditional image geolocation benchmarks.",
-      "weight": 0.1,
-      "primary_metric": "city_25km",
-      "metrics": {
-        "street_1km": {
-          "higher_is_better": true,
-          "coefficient": 1.0
-        },
-        "city_25km": {
-          "higher_is_better": true,
-          "coefficient": 1.0
-        },
-        "country_750km": {
-          "higher_is_better": true,
-          "coefficient": 0.8
-        }
-      },
-      "results": {}
     }
   }
 }

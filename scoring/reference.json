@@ -329,7 +329,7 @@
         }
       }
     },
-    "ablation_geocot_steps": {
+    "ablation_explanation_scaffolds": {
       "description": "Ablation from Table 8: cumulative effect of adding GeoCoT reasoning stages, measured with accuracy, recall, and F1 at city/country/continent levels.",
       "weight": 0.15,
       "primary_metric": "country_accuracy",

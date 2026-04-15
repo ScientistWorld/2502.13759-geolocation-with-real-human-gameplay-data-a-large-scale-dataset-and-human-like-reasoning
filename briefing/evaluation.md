@@ -1,7 +1,5 @@
 # Evaluation
 
-How success is measured. Describe only the metrics, targets, and evaluation procedure — do NOT describe the paper's method or how they achieved these results. Think of this as a general evaluation protocol for other scientists trying to solve the same problem.
-
 ## Metrics
 
 Performance is measured at three levels of geographical granularity:
@@ -16,7 +14,7 @@ Performance is measured at three levels of geographical granularity:
    - **City-level (25km)**: fraction of predictions within 25km of ground truth
    - **Country-level (750km)**: fraction of predictions within 750km of ground truth
 
-3. **Reasoning quality metrics** (for methods that produce textual reasoning):
+3. **Reasoning quality metrics** (for systems that produce textual explanations):
    - **GPTScore**: similarity between generated reasoning and ground-truth reasoning
    - **Completeness of Extraction (CE)**: whether all key clues in ground truth are covered (0-5 scale)
    - **Accuracy of Extraction (AE)**: correctness of identified attributes (0-5 scale)
@@ -30,26 +28,14 @@ Performance is measured at three levels of geographical granularity:
 
 ## Baselines and Targets
 
-The paper evaluates several baseline approaches:
-- **LLaVA-1.6**: general-purpose vision-language model
-- **Llama-3.2-Vision**: general-purpose vision-language model
-- **Qwen-VL**: general-purpose vision-language model
-- **GeoCLIP**: CLIP-inspired geolocation-specific model
-- **GeoReasoner**: reasoning-based geolocation method using LVLMs
-- **Kimi-latest**: closed-source vision-language model
-- **Kimi-latest(CoT)**: Kimi with standard chain-of-thought prompting
-- **GPT-4o**: closed-source vision-language model
-- **GPT-4o(CoT)**: GPT-4o with standard chain-of-thought prompting
+Reference results for prior systems and the reproduced system are stored in `scoring/reference.json`. The primary benchmark target is to improve fine-grained geolocation without relying solely on a single metric: city, country, and continent classification metrics should be considered alongside distance-threshold accuracy and inference overhead.
 
-Target performance (paper's reported results on GeoComp test set with 500 images):
-- GPT-4o(CoT) achieves ~0.094 city accuracy, 0.623 country accuracy, 0.819 continent accuracy
-- GPT-4o achieves ~0.045 street accuracy, 0.147 city accuracy, 0.678 country accuracy
-- On Im2GPS3K, GPT-4o(CoT) achieves ~0.14 street, 0.45 city, 0.69 country accuracy
+For the main 500-image benchmark, strong reference systems reach roughly 0.09-0.12 city accuracy, 0.62-0.64 country accuracy, and 0.82-0.86 continent accuracy. Distance-threshold reference results are substantially lower for strict thresholds, with street-level accuracy below 0.10 and city-level accuracy below 0.20.
 
 ## Evaluation Protocol
 
 1. **Test set**: 500 geo-tagged locations selected via stratified sampling across continents (20 mainstream countries, 6 continents). Each image has ground-truth continent, country, and city labels, plus GPS coordinates.
-2. **Model input**: Each model receives the image and produces either a direct location prediction or a reasoning chain followed by a location prediction.
+2. **Model input**: Each system receives the image and produces a parseable location prediction. Systems may also emit textual explanations.
 3. **For classification metrics**: Parse the model's city/country/continent prediction and compare against ground truth.
 4. **For distance metrics**: Convert city/country predictions to GPS coordinates (using the center of the predicted city/country) and compute haversine distance to ground truth.
 5. **Statistical significance**: Use two-tailed paired t-test with p-value < 0.05 to determine significant improvements over baselines.

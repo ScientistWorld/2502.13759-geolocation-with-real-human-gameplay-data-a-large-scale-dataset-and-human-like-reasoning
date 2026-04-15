@@ -4,4 +4,5 @@
 action: done
 gpus: 0
 test: false
-notes: "10/10 held-out GeoComp image split; train/test scores generated from saved predictions; qwen_geocot country 0.10/0.00, continent 0.50/0.50, 750km 0.20/0.10."
+milestone: core_claim_plus
+notes: "Final verification passed after documentation and evaluator cleanup; gym is usable at core_claim_plus with scaled-data limitations."

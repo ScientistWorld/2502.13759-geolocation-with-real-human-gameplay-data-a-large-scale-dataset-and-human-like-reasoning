@@ -1,16 +1,16 @@
 # Scientist Constraints
 
 ## Model
-The scientist must use a Vision Language Model (VLM) for geolocation. The contribution of the paper is the GeoCoT prompting strategy, not the model architecture. Scientists may:
+The scientist must use a Vision Language Model (VLM) for geolocation. The benchmark is intended to compare inference-time visual reasoning strategies rather than model training. Scientists may:
 - Use any VLM (open-source or API-based) that can process images and text
 - Use different VLMs for different experiments
-- Improve the prompting strategy, prompt engineering, or reasoning framework
+- Improve the text interface, explanation scaffold, parsing, or post-processing around a fixed VLM
 
 Scientists must NOT:
-- Fine-tune or train the VLM on geolocation data (the paper's method requires no training)
+- Fine-tune or train the VLM on geolocation data for the primary comparison
 - Use a VLM specifically trained on geolocation data for the primary comparison (use general-purpose VLMs)
 
-**Rationale**: GeoCoT is a prompting strategy. Its value is in showing that structured reasoning improves performance over generic prompting. Fine-tuning would bypass this contribution.
+**Rationale**: The paper's claim is about improving geolocation through inference-time reasoning with existing VLM capabilities. Fine-tuning would change the comparison into a training-data benchmark.
 
 ## Data
 The scientist must use the provided test set format. For the GeoComp experiment, use:
@@ -32,4 +32,4 @@ No external geolocation datasets may be used to train or validate the method. Te
 - [ ] All three granularity levels (city/country/continent) are reported
 - [ ] Both classification and distance metrics are reported
 - [ ] Inference-time overhead is reported or explicitly marked unavailable
-- [ ] GeoCoT structured prompting is the method being improved
+- [ ] The method stays within inference-time image reasoning rather than supervised geolocation training

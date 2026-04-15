@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Evaluate GeoCoT prediction files and write scoring/scores.json."""
+"""Evaluate geolocation prediction files and write scoring/scores.json."""
 
 from __future__ import annotations
 
@@ -202,10 +202,10 @@ def method_name(prediction_stem: str) -> str:
 
 def route_experiment(experiment: str, prediction_stem: str) -> bool:
     pred = prediction_stem.lower()
-    is_ablation = ("abl_geocot_step" in pred or "abl_geocot_full" in pred) and "geocot" in pred
-    is_main = not pred.startswith("abl_") and ("cot_" in pred or "geocot_" in pred)
-    if experiment == "ablation_geocot_steps":
-        return is_ablation
+    is_ablation = pred.startswith("abl_")
+    is_main = not is_ablation
+    if experiment == "ablation_explanation_scaffolds":
+        return is_ablation and method_name(prediction_stem) != "qwen_cot"
     if experiment in {"geocomp_classification", "geocomp_distance", "geocomp_efficiency"}:
         return is_main
     return False
@@ -259,7 +259,8 @@ def evaluate(results_dir: Path, reference_path: Path, scores_path: Path) -> dict
             entry = {key: metrics[key] for key in ref_metrics if key in metrics}
             if entry:
                 exp_copy["results"][method_name(pred_name)] = entry
-        scores["experiments"][exp_name] = exp_copy
+        if exp_copy["results"]:
+            scores["experiments"][exp_name] = exp_copy
 
     scores_path.write_text(json.dumps(scores, indent=2) + "\n")
     print(f"\nScores saved to {scores_path}")

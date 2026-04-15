@@ -11,8 +11,5 @@ Tests distance-based geolocation accuracy: the fraction of predictions that fall
 ## geocomp_efficiency
 Measures the inference-time cost of producing geolocation reasoning. This guards against trivial improvements that only work by generating much longer outputs or using substantially more inference time.
 
-## im2gps_generalization
-Tests whether the prompting strategy generalizes to a different dataset (Im2GPS/Im2GPS3K). Measures distance-based accuracy on this held-out dataset to evaluate robustness across geographic distribution shifts.
-
-## ablation_geocot_steps
-Tests the contribution of individual reasoning steps by progressively adding them. Compares performance with 1 step, 2 steps, 3 steps, and all 5 steps to determine whether each additional step provides incremental benefit.
+## ablation_explanation_scaffolds
+Tests whether adding more structured explanation stages changes geolocation performance. This diagnostic helps distinguish real improvements in visual localization from gains that only appear in the main aggregate metrics.

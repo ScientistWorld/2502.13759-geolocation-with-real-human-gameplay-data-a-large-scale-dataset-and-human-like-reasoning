@@ -10,7 +10,7 @@ mkdir -p scoring results
 
 RESULTS_DIR="${1:-/home/user/results}"
 
-echo "=== GeoCoT Test-Slice Evaluation ==="
+echo "=== Geolocation Test-Slice Evaluation ==="
 echo "Evaluating predictions from: $RESULTS_DIR"
 
 python3 -m eval.test.evaluate_results \
