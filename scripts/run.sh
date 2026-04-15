@@ -1,11 +1,10 @@
 #!/bin/bash
 # GeoCoT Complete Evaluation - Single GPU job
 #
-# Runs remaining ablation steps (step4, full) plus abl_cot control on existing sample.
-# Also runs geocot_32B vs cot_32B on full dataset (20 images).
-# Then evaluates all results via evaluate.sh
+# Runs remaining ablation steps (step4, full) plus geocot_32B vs cot_32B on sample.
+# Evaluates all results via evaluate.sh
 #
-# Expected time: ~2-3 hours on H100 with 32B model.
+# Expected time: ~1.5 hours on H100 with 32B model.
 
 set -e
 
@@ -21,28 +20,6 @@ echo "=========================================="
 # Source setup
 if [ -f "/home/user/environment/setup.sh" ]; then
     source /home/user/environment/setup.sh
-fi
-
-# =============================================================================
-# Find Model (prefer 32B)
-# =============================================================================
-MODEL_PATH=""
-MODEL_SIZE=""
-for dir in "/home/user/checkpoints/Qwen2.5-VL-32B-Instruct" \
-            "/home/user/shared/models/Qwen2.5-VL-32B-Instruct" \
-            "/home/user/checkpoints/Qwen2.5-VL-7B-Instruct" \
-            "/home/user/shared/models/Qwen2.5-VL-7B-Instruct"; do
-    if [ -d "$dir" ] && [ -f "$dir/config.json" ]; then
-        MODEL_PATH="$dir"
-        MODEL_SIZE="32B" if echo "$dir" | grep -q "32B"; then MODEL_SIZE="7B"; fi
-        echo "Found model: $MODEL_PATH ($MODEL_SIZE)"
-        break
-    fi
-done
-
-if [ -z "$MODEL_PATH" ]; then
-    echo "ERROR: No Qwen2.5-VL model found!"
-    exit 1
 fi
 
 python3 << 'PYEOF'
@@ -78,7 +55,7 @@ model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
 print(f"Model loaded.", flush=True)
 
 # =================================================================
-# PROMPTS - Paper's 5-step GeoCoT from Appendix B (cumulative)
+# PROMPTS
 # =================================================================
 
 Q_PROMPTS = {
@@ -132,8 +109,7 @@ ALL_COUNTRIES = {
     "jamaica":"Jamaica","bolivia":"Bolivia","paraguay":"Paraguay","uruguay":"Uruguay",
     "venezuela":"Venezuela","california":"United States","nevada":"United States",
     "florida":"United States","texas":"United States","new york":"United States",
-    "washington":"United States","scotland":"United Kingdom","england":"United Kingdom",
-    "oman":"Oman",
+    "washington":"United States","scotland":"United Kingdom","england":"United Kingdom","oman":"Oman",
 }
 
 CONTINENT_MAP = {
@@ -256,7 +232,7 @@ def run_inference(data_rows, prompt, method_name, output_path, max_new_tokens):
     return results
 
 
-# Load ablation dataset
+# Load sample dataset (create if missing)
 abl_data = []
 csv_path = '/home/user/data/geoclip/sample_abl.csv'
 if os.path.exists(csv_path):
@@ -265,7 +241,6 @@ if os.path.exists(csv_path):
             abl_data.append(row)
     print(f"Ablation dataset: {len(abl_data)} images", flush=True)
 else:
-    # Recreate sample if missing
     import random
     from collections import defaultdict
     random.seed(42)
@@ -297,32 +272,30 @@ else:
     abl_data = samples
     print(f"Recreated ablation dataset: {len(abl_data)} images", flush=True)
 
-# =============================================================================
-# Run remaining ablation conditions
-# =============================================================================
-ABLATION_CONDITIONS = [
-    ("abl_cot", COT_PROMPT, 1024),
+# =================================================================
+# Conditions to run (skip existing)
+# =================================================================
+CONDITIONS = [
     ("abl_geocot_step4", PROMPTS["step4"], 1536),
     ("abl_geocot_full", PROMPTS["step5"], 2048),
 ]
 
-for cond_name, prompt, tokens in ABLATION_CONDITIONS:
+for cond_name, prompt, tokens in CONDITIONS:
     out_path = f"/home/user/results/{cond_name}_predictions.json"
     if os.path.exists(out_path):
         print(f"SKIP {cond_name}: already exists", flush=True)
         continue
     run_inference(abl_data, prompt, cond_name, out_path, tokens)
 
-print("\n=== All inference complete ===", flush=True)
-
 # Clear GPU memory
 del model
 torch.cuda.empty_cache()
+print("\n=== All inference complete ===", flush=True)
 PYEOF
 
-# =============================================================================
+# =================================================================
 # Evaluate results
-# =============================================================================
+# =================================================================
 echo ""
 echo "=== Evaluating All Results ==="
 bash /home/user/scripts/evaluate.sh /home/user/results

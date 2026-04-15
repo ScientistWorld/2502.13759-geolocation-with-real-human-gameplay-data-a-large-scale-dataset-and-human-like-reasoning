@@ -2,4 +2,4 @@ action: submit
 gpus: 1
 test: false
 milestone: core_claim_plus
-notes: "Complete ablation: run step4 + full GeoCoT + CoT control on 20 images, then full evaluation. Fixed evaluate.sh routing bug that misrouted ablation files."
+notes: "Run remaining ablation: step4 + full GeoCoT (20 images, 32B). Then evaluate all results with fixed routing."

@@ -101,7 +101,17 @@
         }
       },
       "results": {
-        "qwen_geocot": {
+        "geocot_step1": {
+          "city_accuracy": 0.0,
+          "country_accuracy": 0.0526,
+          "continent_accuracy": 0.5263
+        },
+        "geocot_step1_2": {
+          "city_accuracy": 0.0,
+          "country_accuracy": 0.15,
+          "continent_accuracy": 0.6
+        },
+        "geocot_step1_2_3": {
           "city_accuracy": 0.0,
           "country_accuracy": 0.1,
           "continent_accuracy": 0.55
