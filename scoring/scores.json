@@ -22,14 +22,12 @@
         "qwen_cot": {
           "city_accuracy": 0.0,
           "country_accuracy": 0.05,
-          "continent_accuracy": 0.35,
-          "type": "baseline"
+          "continent_accuracy": 0.35
         },
         "qwen_geocot": {
           "city_accuracy": 0.0,
           "country_accuracy": 0.05,
-          "continent_accuracy": 0.5,
-          "type": "proposed"
+          "continent_accuracy": 0.5
         }
       }
     },
@@ -55,14 +53,12 @@
         "qwen_cot": {
           "street_1km": 0.0,
           "city_25km": 0.0,
-          "country_750km": 0.1875,
-          "type": "baseline"
+          "country_750km": 0.1875
         },
         "qwen_geocot": {
           "street_1km": 0.0,
           "city_25km": 0.0,
-          "country_750km": 0.15,
-          "type": "proposed"
+          "country_750km": 0.15
         }
       }
     },
@@ -84,20 +80,7 @@
           "coefficient": 0.8
         }
       },
-      "results": {
-        "qwen_cot": {
-          "street_1km": 0.0,
-          "city_25km": 0.0,
-          "country_750km": 0.1875,
-          "type": "baseline"
-        },
-        "qwen_geocot": {
-          "street_1km": 0.0,
-          "city_25km": 0.0,
-          "country_750km": 0.15,
-          "type": "proposed"
-        }
-      }
+      "results": {}
     },
     "ablation_geocot_steps": {
       "description": "Ablation study on GeoCoT reasoning steps (Table 8 from paper). Cumulative effect of reasoning steps on GeoComp dataset.",
@@ -117,20 +100,7 @@
           "coefficient": 0.6
         }
       },
-      "results": {
-        "qwen_cot": {
-          "city_accuracy": 0.0,
-          "country_accuracy": 0.05,
-          "continent_accuracy": 0.35,
-          "type": "baseline"
-        },
-        "qwen_geocot": {
-          "city_accuracy": 0.0,
-          "country_accuracy": 0.05,
-          "continent_accuracy": 0.5,
-          "type": "proposed"
-        }
-      }
+      "results": {}
     }
   }
 }

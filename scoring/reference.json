@@ -5,19 +5,75 @@
       "weight": 0.35,
       "primary_metric": "country_accuracy",
       "metrics": {
-        "city_accuracy": {"higher_is_better": true, "coefficient": 1.0},
-        "country_accuracy": {"higher_is_better": true, "coefficient": 0.8},
-        "continent_accuracy": {"higher_is_better": true, "coefficient": 0.6}
+        "city_accuracy": {
+          "higher_is_better": true,
+          "coefficient": 1.0
+        },
+        "country_accuracy": {
+          "higher_is_better": true,
+          "coefficient": 0.8
+        },
+        "continent_accuracy": {
+          "higher_is_better": true,
+          "coefficient": 0.6
+        }
       },
       "results": {
-        "llava_1_6": {"type": "baseline", "city_accuracy": 0.002, "country_accuracy": 0.041, "continent_accuracy": 0.175},
-        "llama_3_2_vision": {"type": "baseline", "city_accuracy": 0.081, "country_accuracy": 0.630, "continent_accuracy": 0.866},
-        "qwen_vl": {"type": "baseline", "city_accuracy": 0.016, "country_accuracy": 0.069, "continent_accuracy": 0.130},
-        "geoclip": {"type": "baseline", "city_accuracy": 0.018, "country_accuracy": 0.550, "continent_accuracy": 0.872},
-        "georeasoner": {"type": "baseline", "city_accuracy": 0.018, "country_accuracy": 0.092, "continent_accuracy": 0.208},
-        "gpt4o": {"type": "baseline", "city_accuracy": 0.092, "country_accuracy": 0.615, "continent_accuracy": 0.807},
-        "gpt4o_cot": {"type": "baseline", "city_accuracy": 0.094, "country_accuracy": 0.623, "continent_accuracy": 0.819},
-        "geocot": {"type": "proposed", "city_accuracy": 0.118, "country_accuracy": 0.640, "continent_accuracy": 0.862}
+        "llava_1_6": {
+          "type": "baseline",
+          "city_accuracy": 0.002,
+          "country_accuracy": 0.041,
+          "continent_accuracy": 0.175
+        },
+        "llama_3_2_vision": {
+          "type": "baseline",
+          "city_accuracy": 0.081,
+          "country_accuracy": 0.63,
+          "continent_accuracy": 0.866
+        },
+        "qwen_vl": {
+          "type": "baseline",
+          "city_accuracy": 0.016,
+          "country_accuracy": 0.069,
+          "continent_accuracy": 0.13
+        },
+        "geoclip": {
+          "type": "baseline",
+          "city_accuracy": 0.018,
+          "country_accuracy": 0.55,
+          "continent_accuracy": 0.872
+        },
+        "georeasoner": {
+          "type": "baseline",
+          "city_accuracy": 0.018,
+          "country_accuracy": 0.092,
+          "continent_accuracy": 0.208
+        },
+        "gpt4o": {
+          "type": "baseline",
+          "city_accuracy": 0.092,
+          "country_accuracy": 0.615,
+          "continent_accuracy": 0.807
+        },
+        "gpt4o_cot": {
+          "type": "baseline",
+          "city_accuracy": 0.094,
+          "country_accuracy": 0.623,
+          "continent_accuracy": 0.819
+        },
+        "geocot": {
+          "type": "proposed",
+          "city_accuracy": 0.118,
+          "country_accuracy": 0.64,
+          "continent_accuracy": 0.862
+        },
+        "qwen_cot": {
+          "type": "baseline"
+        },
+        "qwen_geocot": {
+          "type": "proposed",
+          "country_accuracy": 0.0
+        }
       }
     },
     "geocomp_distance": {
@@ -25,19 +81,75 @@
       "weight": 0.35,
       "primary_metric": "city_25km",
       "metrics": {
-        "street_1km": {"higher_is_better": true, "coefficient": 1.0},
-        "city_25km": {"higher_is_better": true, "coefficient": 1.0},
-        "country_750km": {"higher_is_better": true, "coefficient": 0.8}
+        "street_1km": {
+          "higher_is_better": true,
+          "coefficient": 1.0
+        },
+        "city_25km": {
+          "higher_is_better": true,
+          "coefficient": 1.0
+        },
+        "country_750km": {
+          "higher_is_better": true,
+          "coefficient": 0.8
+        }
       },
       "results": {
-        "llava_1_6": {"type": "baseline", "street_1km": 0.006, "city_25km": 0.020, "country_750km": 0.082},
-        "llama_3_2_vision": {"type": "baseline", "street_1km": 0.018, "city_25km": 0.104, "country_750km": 0.638},
-        "qwen_vl": {"type": "baseline", "street_1km": 0.004, "city_25km": 0.014, "country_750km": 0.090},
-        "geoclip": {"type": "baseline", "street_1km": 0.035, "city_25km": 0.077, "country_750km": 0.625},
-        "georeasoner": {"type": "baseline", "street_1km": 0.010, "city_25km": 0.020, "country_750km": 0.128},
-        "gpt4o": {"type": "baseline", "street_1km": 0.045, "city_25km": 0.147, "country_750km": 0.678},
-        "gpt4o_cot": {"type": "baseline", "street_1km": 0.047, "city_25km": 0.151, "country_750km": 0.701},
-        "geocot": {"type": "proposed", "street_1km": 0.073, "city_25km": 0.157, "country_750km": 0.711}
+        "llava_1_6": {
+          "type": "baseline",
+          "street_1km": 0.006,
+          "city_25km": 0.02,
+          "country_750km": 0.082
+        },
+        "llama_3_2_vision": {
+          "type": "baseline",
+          "street_1km": 0.018,
+          "city_25km": 0.104,
+          "country_750km": 0.638
+        },
+        "qwen_vl": {
+          "type": "baseline",
+          "street_1km": 0.004,
+          "city_25km": 0.014,
+          "country_750km": 0.09
+        },
+        "geoclip": {
+          "type": "baseline",
+          "street_1km": 0.035,
+          "city_25km": 0.077,
+          "country_750km": 0.625
+        },
+        "georeasoner": {
+          "type": "baseline",
+          "street_1km": 0.01,
+          "city_25km": 0.02,
+          "country_750km": 0.128
+        },
+        "gpt4o": {
+          "type": "baseline",
+          "street_1km": 0.045,
+          "city_25km": 0.147,
+          "country_750km": 0.678
+        },
+        "gpt4o_cot": {
+          "type": "baseline",
+          "street_1km": 0.047,
+          "city_25km": 0.151,
+          "country_750km": 0.701
+        },
+        "geocot": {
+          "type": "proposed",
+          "street_1km": 0.073,
+          "city_25km": 0.157,
+          "country_750km": 0.711
+        },
+        "qwen_cot": {
+          "type": "baseline"
+        },
+        "qwen_geocot": {
+          "type": "proposed",
+          "city_25km": 0.0
+        }
       }
     },
     "im2gps_generalization": {
@@ -45,14 +157,38 @@
       "weight": 0.2,
       "primary_metric": "city_25km",
       "metrics": {
-        "street_1km": {"higher_is_better": true, "coefficient": 1.0},
-        "city_25km": {"higher_is_better": true, "coefficient": 1.0},
-        "country_750km": {"higher_is_better": true, "coefficient": 0.8}
+        "street_1km": {
+          "higher_is_better": true,
+          "coefficient": 1.0
+        },
+        "city_25km": {
+          "higher_is_better": true,
+          "coefficient": 1.0
+        },
+        "country_750km": {
+          "higher_is_better": true,
+          "coefficient": 0.8
+        }
       },
       "results": {
-        "gpt4o_im2gps": {"type": "baseline", "street_1km": 0.13, "city_25km": 0.47, "country_750km": 0.74},
-        "gpt4o_cot_im2gps": {"type": "baseline", "street_1km": 0.16, "city_25km": 0.49, "country_750km": 0.77},
-        "geocot_im2gps": {"type": "proposed", "street_1km": 0.22, "city_25km": 0.55, "country_750km": 0.83}
+        "gpt4o_im2gps": {
+          "type": "baseline",
+          "street_1km": 0.13,
+          "city_25km": 0.47,
+          "country_750km": 0.74
+        },
+        "gpt4o_cot_im2gps": {
+          "type": "baseline",
+          "street_1km": 0.16,
+          "city_25km": 0.49,
+          "country_750km": 0.77
+        },
+        "geocot_im2gps": {
+          "type": "proposed",
+          "street_1km": 0.22,
+          "city_25km": 0.55,
+          "country_750km": 0.83
+        }
       }
     },
     "ablation_geocot_steps": {
@@ -60,16 +196,50 @@
       "weight": 0.1,
       "primary_metric": "country_accuracy",
       "metrics": {
-        "city_accuracy": {"higher_is_better": true, "coefficient": 1.0},
-        "country_accuracy": {"higher_is_better": true, "coefficient": 0.8},
-        "continent_accuracy": {"higher_is_better": true, "coefficient": 0.6}
+        "city_accuracy": {
+          "higher_is_better": true,
+          "coefficient": 1.0
+        },
+        "country_accuracy": {
+          "higher_is_better": true,
+          "coefficient": 0.8
+        },
+        "continent_accuracy": {
+          "higher_is_better": true,
+          "coefficient": 0.6
+        }
       },
       "results": {
-        "geocot_step1": {"type": "proposed", "city_accuracy": 0.113, "country_accuracy": 0.551, "continent_accuracy": 0.776},
-        "geocot_step1_2": {"type": "proposed", "city_accuracy": 0.112, "country_accuracy": 0.571, "continent_accuracy": 0.795},
-        "geocot_step1_2_3": {"type": "proposed", "city_accuracy": 0.114, "country_accuracy": 0.592, "continent_accuracy": 0.816},
-        "geocot_step1_2_3_4": {"type": "proposed", "city_accuracy": 0.112, "country_accuracy": 0.604, "continent_accuracy": 0.824},
-        "geocot_full": {"type": "proposed", "city_accuracy": 0.118, "country_accuracy": 0.640, "continent_accuracy": 0.862}
+        "geocot_step1": {
+          "type": "proposed",
+          "city_accuracy": 0.113,
+          "country_accuracy": 0.551,
+          "continent_accuracy": 0.776
+        },
+        "geocot_step1_2": {
+          "type": "proposed",
+          "city_accuracy": 0.112,
+          "country_accuracy": 0.571,
+          "continent_accuracy": 0.795
+        },
+        "geocot_step1_2_3": {
+          "type": "proposed",
+          "city_accuracy": 0.114,
+          "country_accuracy": 0.592,
+          "continent_accuracy": 0.816
+        },
+        "geocot_step1_2_3_4": {
+          "type": "proposed",
+          "city_accuracy": 0.112,
+          "country_accuracy": 0.604,
+          "continent_accuracy": 0.824
+        },
+        "geocot_full": {
+          "type": "proposed",
+          "city_accuracy": 0.118,
+          "country_accuracy": 0.64,
+          "continent_accuracy": 0.862
+        }
       }
     }
   }

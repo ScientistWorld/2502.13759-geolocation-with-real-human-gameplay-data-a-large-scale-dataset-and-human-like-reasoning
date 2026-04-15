@@ -228,6 +228,14 @@ for exp_name, exp_data in reference.get("experiments", {}).items():
 
     ref_metrics = list(exp_data.get("metrics", {}).keys())
 
+    # Only add reproduced results to experiments where our method names are valid
+    # qwen_cot/qwen_geocot are only comparable to geocomp_classification/geocomp_distance
+    # ablation_geocot_steps has paper-specific step ablation methods
+    # im2gps_generalization has paper-specific benchmark methods
+    if exp_name not in ("geocomp_classification", "geocomp_distance"):
+        scores["experiments"][exp_name] = exp_copy
+        continue
+
     # Add reproduced results (NOT reference/paper results - those stay in reference.json)
     for pred_name, metrics in all_results.items():
         method_name = get_method_name(pred_name)
@@ -236,9 +244,10 @@ for exp_name, exp_data in reference.get("experiments", {}).items():
             if key in metrics:
                 entry[key] = metrics[key]
         if entry:
-            # Determine type based on method
-            entry["type"] = "proposed" if "geocot" in method_name else "baseline"
-            exp_copy["results"][method_name] = entry
+            # Only include numeric metric values (no 'type' or other metadata)
+            # Validator requires all fields to be numeric
+            numeric_entry = {k: v for k, v in entry.items() if isinstance(v, (int, float))}
+            exp_copy["results"][method_name] = numeric_entry
 
     scores["experiments"][exp_name] = exp_copy
 
