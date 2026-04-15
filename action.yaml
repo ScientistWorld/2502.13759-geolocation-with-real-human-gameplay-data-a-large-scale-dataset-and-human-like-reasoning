@@ -1,8 +1,8 @@
 # IMPORTANT: Once you set action to 'submit' or 'done', STOP immediately.
 # Do NOT sleep, poll, or wait for jobs. The system reads this file
 # only after your turn ends. Sleeping blocks the entire pipeline.
-action: submit
+action: done
 gpus: 0
-test: true
+test: false
 milestone: core_claim_plus
-notes: "CPU validation of the corrected evaluator, regenerated scores, and final package contract after scorer/download cleanup."
+notes: "Final verification complete: scoring contract corrected, docs updated, scripts checked, and core_claim_plus remains justified."
