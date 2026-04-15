@@ -1,0 +1,104 @@
+[hive] This stdout log is managed by Hive.
+[hive] job_id: 557d99c6
+[hive] host: della-k15g2
+[hive] node_id: 81c051a4883a6226c5a629755ef37db63f649ff563456a23e386cd7a
+[hive] user: nexus/tl0463 (remote)
+[hive] resource: pli-1
+[hive] gpus: 1
+[hive] cpus: 1
+[hive] workdir: /home/tl0463
+[hive] timeout_sec: 3600
+[hive] started_at: 2026-04-15 00:02:24 EDT
+[hive] command: apptainer exec --nv --containall --cleanenv --env HF_HOME=/home/user/shared/hf_cache --env TRANSFORMERS_CACHE=/home/user/shared/hf_cache --env HF_DATASETS_CACHE=/home/user/shared/hf_cache/datasets --env TORCH_HOME=/home/user/shared/hf_cache/torch --bind /home/tl0463/scratch/AgentWorkspaces/workspaces/2502.13759:/home/user --overlay /home/tl0463/scratch/AgentWorkspaces/workspaces/2502.13759/environment/overlay.img:ro --bind /home/tl0463/scratch/AgentWorkspaces/shared/datasets:/home/user/shared/datasets:ro --bind /home/tl0463/scratch/AgentWorkspaces/shared/models:/home/user/shared/models:ro --bind /home/tl0463/scratch/AgentWorkspaces/shared/hf_cache:/home/user/shared/hf_cache /home/tl0463/scratch/AgentWorkspaces/workspaces/2502.13759/environment/container.sif bash -c 'cd /home/user && bash /home/user/scripts/run.sh'
+==========================================
+GeoCoT Ablation + Generalization - Wed Apr 15 00:02:24 EDT 2026
+==========================================
+
+=== Environment Setup ===
+=== Setting up GeoCoT environment (runtime) ===
+Found existing installation: huggingface_hub 1.10.1
+Uninstalling huggingface_hub-1.10.1:
+Installing required packages...
+=== Runtime environment setup complete ===
+Using Python: /usr/bin/python3
+Python 3.10.12
+
+=== Finding VLM Model ===
+Found model: /home/user/checkpoints/Qwen2.5-VL-32B-Instruct (32B)
+
+=== Creating Sample (4 countries, 5 images each) ===
+  kenya: 5/492
+  ecuador: 5/296
+  chile: 5/179
+  madagascar: 5/32
+Total: 20 images
+
+=== Loading Model ===
+CUDA: True, GPU: NVIDIA H100 80GB HBM3
+GPU memory: 85.0 GB
+Model: /home/user/checkpoints/Qwen2.5-VL-32B-Instruct (32B)
+Loaded 32B in 72.8s
+Ablation dataset: 20 images
+
+--- abl_cot (max_new_tokens=1024) ---
+  [1/20] kenya -> Tanzania [MISS] (47s)
+  [2/20] kenya -> Uganda [MISS] (18s)
+  [3/20] kenya -> South Africa [MISS] (19s)
+  [4/20] kenya -> Tanzania [MISS] (17s)
+  [5/20] kenya -> Tanzania [MISS] (17s)
+  [6/20] ecuador -> the most likely continent would be **Latin America**. The specific features align well with many cities in Central or South America [MISS] (16s)
+  [7/20] ecuador -> Australia [MISS] (22s)
+  [8/20] ecuador -> Costa Rica [MISS] (17s)
+  [9/20] ecuador -> Colombia [MISS] (17s)
+  [10/20] ecuador -> Colombia [MISS] (17s)
+  [11/20] chile -> United States [MISS] (22s)
+  [12/20] chile -> United States [MISS] (16s)
+  [13/20] chile -> South Africa [MISS] (24s)
+  [14/20] chile -> Russia [MISS] (14s)
+  [15/20] chile -> including the Lascar Volcano [MISS] (19s)
+  [16/20] madagascar -> Jamaica [MISS] (16s)
+  [17/20] madagascar -> United States [MISS] (28s)
+  [18/20] madagascar -> Mexico [MISS] (18s)
+  [19/20] madagascar -> South Africa [MISS] (21s)
+  [20/20] madagascar -> the location is most likely in a coastal area with a dry or semi-arid climate. Such regions can be found in several parts of the world [MISS] (23s)
+  abl_cot DONE: 20/20 valid
+
+--- abl_geocot_step1 (max_new_tokens=1024) ---
+  [1/20] kenya -> South Africa [MISS] (17s)
+  [2/20] kenya -> None [MISS] (24s)
+  [3/20] kenya -> South Africa [MISS] (16s)
+  [4/20] kenya -> Tanzania [MISS] (21s)
+  [5/20] kenya -> Tanzania [MISS] (16s)
+  [6/20] ecuador -> 1. **Architectural Style**: The buildings have a simple [MISS] (16s)
+  [7/20] ecuador -> consisting mainly of grasslands and scattered trees [MISS] (18s)
+  [8/20] ecuador -> Indonesia [MISS] (17s)
+  [9/20] ecuador -> Ecuador [OK] (14s)
+  [10/20] ecuador -> Guatemala [MISS] (26s)
+  [11/20] chile -> distant mountains, and arid conditions strongly suggests the **Atacama Desert** in **Chile** [MISS] (16s)
+  [12/20] chile -> 1. **Architecture**: The houses have a simple [MISS] (18s)
+  [13/20] chile -> Spain [MISS] (13s)
+  [14/20] chile -> Russia [MISS] (20s)
+  [15/20] chile -> such as parts of South America [MISS] (16s)
+  [16/20] madagascar -> Tanzania [MISS] (18s)
+  [17/20] madagascar -> United States [MISS] (16s)
+  [18/20] madagascar -> Mexico [MISS] (18s)
+  [19/20] madagascar -> South Africa [MISS] (21s)
+  [20/20] madagascar -> Morocco [MISS] (17s)
+  abl_geocot_step1 DONE: 19/20 valid
+
+--- abl_geocot_step2 (max_new_tokens=1024) ---
+  [1/20] kenya -> Indonesia [MISS] (25s)
+  [2/20] kenya -> Kenya [OK] (22s)
+  [3/20] kenya -> South Africa [MISS] (22s)
+  [4/20] kenya -> South Africa [MISS] (23s)
+  [5/20] kenya -> Tanzania [MISS] (22s)
+  [6/20] ecuador -> Colombia [MISS] (24s)
+  [7/20] ecuador -> United States [MISS] (21s)
+  [8/20] ecuador -> Indonesia [MISS] (24s)
+  [9/20] ecuador -> Colombia [MISS] (23s)
+  [10/20] ecuador -> Guatemala [MISS] (21s)
+  [11/20] chile -> Chile [OK] (18s)
+  [12/20] chile -> United States [MISS] (21s)
+  [13/20] chile -> South Africa [MISS] (20s)
+  [14/20] chile -> Russia [MISS] (20s)
+  [15/20] chile -> Chile [OK] (22s)
