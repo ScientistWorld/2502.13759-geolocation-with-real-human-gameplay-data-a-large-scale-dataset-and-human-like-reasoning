@@ -354,9 +354,11 @@ for r in data_rows:
     countries[r['country']] = countries.get(r['country'], 0) + 1
 print(f"Dataset: {len(data_rows)} images, Countries: {countries}", flush=True)
 
-# Token limits - conservative for fast completion
-geocot_tokens = 512
-cot_tokens = 256
+# Token limits - must be generous for 5-step GeoCoT to produce parseable output
+# Previous runs with 512 tokens had poor parsing (6-14/40 valid). The 5-step prompt
+# produces long responses; need 1024+ tokens for the model to finish the location paragraph.
+geocot_tokens = 1024
+cot_tokens = 512
 
 # Run CoT baseline FIRST (faster, ensures baseline results)
 run_inference(data_rows, COT_PROMPT, f"CoT_{MODEL_SIZE}",
