@@ -211,21 +211,27 @@ scores = {"experiments": {}}
 # Map prediction file names to score method names
 def get_method_name(pred_name):
     n = pred_name.lower()
-    # Ablation study results go to ablation_geocot_steps
-    if "abl_geocot_step1_" in n and "step2" not in n and "step3" not in n and "step4" not in n and "full" not in n:
+    # Ablation study: files named abl_geocot_step{N}_predictions.json
+    # pred_name is stripped: "abl_geocot_step1" (no .json suffix)
+    # Map to paper's cumulative step names
+    if "_step1" in n and "_step2" not in n:
         return "geocot_step1"
-    elif "abl_geocot_step2_" in n and "step3" not in n and "step4" not in n and "full" not in n:
+    elif "_step2" in n and "_step3" not in n:
         return "geocot_step1_2"
-    elif "abl_geocot_step3_" in n and "step4" not in n and "full" not in n:
+    elif "_step3" in n and "_step4" not in n:
         return "geocot_step1_2_3"
-    elif "abl_geocot_step4_" in n and "full" not in n:
+    elif "_step4" in n and "_step5" not in n and "_full" not in n:
         return "geocot_step1_2_3_4"
-    elif "abl_geocot_full_" in n or "abl_geocot_step5_" in n:
+    elif "_step5" in n or "_full" in n:
         return "geocot_full"
-    # Standard results: qwen_cot and qwen_geocot for geocomp experiments
-    elif "geocot" in n:
+    # Standard results: non-ablation files named cot_*.json or geocot_*.json
+    # Check geocot BEFORE cot since "geocot" contains "cot"
+    elif "_predictions" not in n and "geocot" in n:
         return "qwen_geocot"
-    elif "cot" in n:
+    elif "_predictions" not in n and "cot" in n and "geocot" not in n:
+        return "qwen_cot"
+    # Ablation CoT control: abl_cot goes to qwen_cot (not to ablation)
+    elif n.startswith("abl_cot"):
         return "qwen_cot"
     return pred_name
 
@@ -249,10 +255,12 @@ for exp_name, exp_data in reference.get("experiments", {}).items():
         pred_lower = pred_name.lower()
 
         # Determine experiment routing
-        is_ablation_pred = ("abl_geocot_step" in pred_lower or
-                           "abl_geocot_full" in pred_lower)
-        is_repro_pred = (pred_lower.startswith("cot_") or
-                         pred_lower.startswith("geocot_"))
+        # Ablation predictions: abl_geocot_step{N} (where N=1,2,3,4,5 or "full")
+        is_ablation_pred = (("abl_geocot_step" in pred_lower or "abl_geocot_full" in pred_lower)
+                            and "geocot" in pred_lower)
+        # Non-ablation: cot_*.json or geocot_*.json (no "abl_" prefix)
+        is_repro_pred = (not pred_lower.startswith("abl_") and
+                         ("cot_" in pred_lower or "geocot_" in pred_lower))
 
         # Skip predictions that don't belong to this experiment
         if exp_name == "ablation_geocot_steps":

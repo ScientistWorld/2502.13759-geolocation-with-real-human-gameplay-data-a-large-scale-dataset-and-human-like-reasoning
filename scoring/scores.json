@@ -100,7 +100,13 @@
           "coefficient": 0.6
         }
       },
-      "results": {}
+      "results": {
+        "qwen_geocot": {
+          "city_accuracy": 0.0,
+          "country_accuracy": 0.1,
+          "continent_accuracy": 0.55
+        }
+      }
     }
   }
 }

@@ -1,5 +1,5 @@
 action: submit
 gpus: 1
 test: false
-milestone: core_claim
-notes: "Running ablation study: 6 conditions (CoT + 5 cumulative GeoCoT steps) on 20 images with 32B model. Tests contribution of each reasoning step."
+milestone: core_claim_plus
+notes: "Complete ablation: run step4 + full GeoCoT + CoT control on 20 images, then full evaluation. Fixed evaluate.sh routing bug that misrouted ablation files."
