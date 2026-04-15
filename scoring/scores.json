@@ -21,13 +21,13 @@
       "results": {
         "qwen_cot": {
           "city_accuracy": 0.0,
-          "country_accuracy": 0.0,
-          "continent_accuracy": 0.3684,
+          "country_accuracy": 0.05,
+          "continent_accuracy": 0.35,
           "type": "baseline"
         },
         "qwen_geocot": {
           "city_accuracy": 0.0,
-          "country_accuracy": 0.1,
+          "country_accuracy": 0.05,
           "continent_accuracy": 0.5,
           "type": "proposed"
         }
@@ -55,7 +55,7 @@
         "qwen_cot": {
           "street_1km": 0.0,
           "city_25km": 0.0,
-          "country_750km": 0.125,
+          "country_750km": 0.1875,
           "type": "baseline"
         },
         "qwen_geocot": {
@@ -88,7 +88,7 @@
         "qwen_cot": {
           "street_1km": 0.0,
           "city_25km": 0.0,
-          "country_750km": 0.125,
+          "country_750km": 0.1875,
           "type": "baseline"
         },
         "qwen_geocot": {
@@ -120,13 +120,13 @@
       "results": {
         "qwen_cot": {
           "city_accuracy": 0.0,
-          "country_accuracy": 0.0,
-          "continent_accuracy": 0.3684,
+          "country_accuracy": 0.05,
+          "continent_accuracy": 0.35,
           "type": "baseline"
         },
         "qwen_geocot": {
           "city_accuracy": 0.0,
-          "country_accuracy": 0.1,
+          "country_accuracy": 0.05,
           "continent_accuracy": 0.5,
           "type": "proposed"
         }
