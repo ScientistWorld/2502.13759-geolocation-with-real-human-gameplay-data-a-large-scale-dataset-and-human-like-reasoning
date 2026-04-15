@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import re
 from pathlib import Path
 from typing import Any
 
@@ -88,15 +89,37 @@ def normalize_country(value: Any) -> str | None:
         "new york": "united states",
         "washington": "united states",
     }
-    return aliases.get(country, country)
+    country = aliases.get(country, country)
+    if country in COUNTRY_COORDS:
+        return country
+
+    # Model outputs are often free-form phrases rather than clean labels, e.g.
+    # "likely Kenya" or "possibly **South Africa**". Extract a known country
+    # mention before falling back to the raw normalized string.
+    cleaned = re.sub(r"[*_`]", " ", country)
+    for alias, canonical in sorted(aliases.items(), key=lambda item: -len(item[0])):
+        if re.search(rf"\b{re.escape(alias)}\b", cleaned):
+            return canonical
+    for known in sorted(COUNTRY_COORDS, key=len, reverse=True):
+        if re.search(rf"\b{re.escape(known)}\b", cleaned):
+            return known
+    return country
 
 
 def normalize_continent(value: Any) -> str | None:
     if not value:
         return None
     continent = str(value).strip().lower()
+    continent = re.sub(r"[*_`]", " ", continent)
+    if "north america" in continent:
+        return "north america"
+    if "south america" in continent or "latin america" in continent:
+        return "south america"
     if "australia" in continent or "oceania" in continent:
         return "oceania"
+    for known in ["africa", "asia", "europe"]:
+        if re.search(rf"\b{known}\b", continent):
+            return known
     return continent
 
 
@@ -224,8 +247,8 @@ def evaluate(results_dir: Path, reference_path: Path, scores_path: Path) -> dict
             print(f"  Warning: unexpected format in {path}")
             continue
         valid = [pred for pred in predictions if pred.get("predicted_country") is not None]
-        valid_gt = [pred for pred in valid if pred.get("ground_truth_country") is not None]
-        print(f"  {len(valid)}/{len(predictions)} valid, {len(valid_gt)} with ground truth")
+        valid_gt = [pred for pred in predictions if pred.get("ground_truth_country") is not None]
+        print(f"  {len(valid)}/{len(predictions)} with parsed country, {len(valid_gt)} with ground truth")
         if valid_gt:
             metrics = compute_metrics(valid_gt)
             all_results[pred_name] = metrics

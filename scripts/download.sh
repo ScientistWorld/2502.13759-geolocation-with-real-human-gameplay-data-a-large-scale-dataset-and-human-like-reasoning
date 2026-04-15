@@ -7,7 +7,7 @@
 # Downloads:
 # - Qwen2.5-VL-7B-Instruct: ~14 GB (VLM model)
 # - Qwen2.5-VL-32B-Instruct: ~65 GB (optional, stronger VLM)
-# - GeoCLIP dataset: already in data/geoclip/ (included in repo)
+# - GeoCLIP-derived evaluation sample: tracked in data/geoclip/ and verified below
 #
 # Must be run on a node with internet access before compute jobs.
 
@@ -62,7 +62,25 @@ print('7B model download complete.')
 fi
 
 # =============================================================================
-# 2. Verify downloads
+# 2. Verify tracked evaluation sample
+# =============================================================================
+echo ""
+echo "=== Verifying Tracked Evaluation Sample ==="
+
+if [ ! -f "/home/user/data/geoclip/geoclip.csv" ]; then
+    echo "ERROR: data/geoclip/geoclip.csv is missing. The GeoCLIP-derived sample is tracked in git and should be present after cloning this workspace."
+    exit 1
+fi
+
+if ! find /home/user/data/geoclip -maxdepth 1 -name '*.png' -print -quit | grep -q .; then
+    echo "ERROR: data/geoclip contains no PNG images. The tracked evaluation sample is incomplete."
+    exit 1
+fi
+
+echo "GeoCLIP-derived sample: $(find /home/user/data/geoclip -maxdepth 1 -name '*.png' | wc -l) images"
+
+# =============================================================================
+# 3. Verify downloads
 # =============================================================================
 echo ""
 echo "=== Verifying Downloads ==="

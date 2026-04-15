@@ -22,6 +22,7 @@
 
 ### Evaluation and Scoring
 - `eval/evaluate_results.py` is the reusable evaluator. It imports no method code and scores any compatible prediction JSON files.
+- The evaluator counts every prediction with ground-truth labels in the denominator and normalizes free-form country/continent phrases before comparison.
 - `scripts/evaluate.sh` delegates to `eval.evaluate_results` and writes `scoring/scores.json`.
 - `scoring/reference.json` now captures the paper's reported results for GeoComp classification, distance thresholds, efficiency, ablation, and Im2GPS generalization.
 - `scoring/scores.json` is generated from actual local prediction artifacts, not copied from the paper.
@@ -43,20 +44,21 @@ GeoCoT supports the core qualitative claim on this scaled setup by improving con
 
 | Condition | Country Acc | Continent Acc |
 |-----------|-------------|---------------|
-| Step 1 | 0.053 | 0.526 |
+| Step 1 | 0.100 | 0.500 |
 | Steps 1-2 | 0.150 | 0.600 |
 | Steps 1-2-3 | 0.100 | 0.550 |
 | Steps 1-2-3-4 | 0.050 | 0.550 |
-| Full GeoCoT | 0.000 | 0.368 |
+| Full GeoCoT | 0.050 | 0.450 |
 
 The ablation shows that the paper's visual-cue decomposition matters, but the full five-step prompt is not uniformly best for this smaller local VLM and dataset. Steps 1-2 give the strongest local result.
 
 ## Validation
 
-- `scripts/evaluate.sh` successfully regenerates `scoring/scores.json`.
-- `python validate.py --compare` passes locally after expanding `reference.json` and routing the current score names.
+- `scripts/evaluate.sh` successfully regenerates `scoring/scores.json` with the corrected denominator and free-form label normalization.
+- `python validate.py --compare` passes locally after the scoring correction.
 - Audit fixes passed lightweight checks: Python compilation, shell syntax checks, parser smoke tests, and `validate.py --compare`.
 - CPU test job `e762ae95-bec` passed inside the managed container with exit code 0. It regenerated scores, ran `python validate.py --compare`, and confirmed import separation plus portable path checks.
+- `scripts/download.sh` verifies the tracked GeoCLIP-derived sample and downloads Qwen checkpoints into portable workspace paths.
 
 ## Deviations from Paper
 

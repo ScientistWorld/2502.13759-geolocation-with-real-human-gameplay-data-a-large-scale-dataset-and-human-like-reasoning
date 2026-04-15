@@ -24,5 +24,11 @@
 - Container validation confirmed import separation and no committed `shared/` path dependencies.
 - Restored `core_claim_plus` because the package now includes the core CoT-vs-GeoCoT comparison plus multiple GeoCoT step ablation settings. The result remains scaled: GeoCoT improves continent-level accuracy over CoT, while country/distance metrics are weak on the 20-image substitute sample.
 
+### [2026-04-15 12:30] - core_claim_plus
+- Corrected `eval/evaluate_results.py` so all ground-truth examples count in metric denominators, including unparsed predictions.
+- Added method-agnostic normalization for free-form country and continent phrases, then regenerated `scoring/scores.json`.
+- Revalidated locally with `python validate.py --compare`; the scaled core result remains GeoCoT 0.500 vs CoT 0.350 continent accuracy, with country accuracy tied and distance metrics weak.
+- Clarified `scripts/download.sh` handling of the tracked GeoCLIP-derived evaluation sample.
+
 ## Stop Justification
 - Completed at milestone `core_claim_plus`.
