@@ -1,0 +1,52 @@
+[hive] This stdout log is managed by Hive.
+[hive] job_id: 6653f2f3
+[hive] host: della-k18g2
+[hive] node_id: 6e8be06e5e9be54aa75c1e6815a8f6404ed777eff596580336020c4c
+[hive] user: nexus/tl0463 (remote)
+[hive] resource: pli-2
+[hive] gpus: 1
+[hive] cpus: 1
+[hive] workdir: /home/tl0463
+[hive] timeout_sec: 3600
+[hive] started_at: 2026-04-15 06:02:33 EDT
+[hive] command: apptainer exec --nv --containall --cleanenv --env HF_HOME=/home/user/shared/hf_cache --env TRANSFORMERS_CACHE=/home/user/shared/hf_cache --env HF_DATASETS_CACHE=/home/user/shared/hf_cache/datasets --env TORCH_HOME=/home/user/shared/hf_cache/torch --bind /home/tl0463/scratch/AgentWorkspaces/workspaces/2502.13759:/home/user --overlay /home/tl0463/scratch/AgentWorkspaces/workspaces/2502.13759/environment/overlay.img:ro --bind /home/tl0463/scratch/AgentWorkspaces/shared/datasets:/home/user/shared/datasets:ro --bind /home/tl0463/scratch/AgentWorkspaces/shared/models:/home/user/shared/models:ro --bind /home/tl0463/scratch/AgentWorkspaces/shared/hf_cache:/home/user/shared/hf_cache /home/tl0463/scratch/AgentWorkspaces/workspaces/2502.13759/environment/container.sif bash -c 'cd /home/user && bash /home/user/scripts/run.sh'
+==========================================
+GeoCoT Complete Evaluation - Wed Apr 15 06:02:34 EDT 2026
+==========================================
+=== Setting up GeoCoT environment (runtime) ===
+Found existing installation: huggingface_hub 1.10.1
+Uninstalling huggingface_hub-1.10.1:
+Installing required packages...
+=== Runtime environment setup complete ===
+CUDA: True, GPU: NVIDIA H100 80GB HBM3
+Model: /home/user/checkpoints/Qwen2.5-VL-32B-Instruct
+Model loaded.
+Ablation dataset: 20 images
+
+--- abl_geocot_step4 (max_new_tokens=1536) ---
+  [1/20] kenya -> South Africa [MISS] (89s)
+  [2/20] kenya -> South Africa [MISS] (48s)
+  [3/20] kenya -> South Africa [MISS] (57s)
+  [4/20] kenya -> Tanzania [MISS] (51s)
+  [5/20] kenya -> Tanzania [MISS] (44s)
+  [6/20] ecuador -> Colombia [MISS] (58s)
+  [7/20] ecuador -> Colombia [MISS] (53s)
+  [8/20] ecuador -> Colombia [MISS] (52s)
+  [9/20] ecuador -> Colombia [MISS] (53s)
+  [10/20] ecuador -> Guatemala [MISS] (50s)
+  [11/20] chile -> Chile [OK] (50s)
+  [12/20] chile -> possibly in North America [MISS] (46s)
+  [13/20] chile -> Spain, Portugal, Italy) [MISS] (47s)
+  [14/20] chile -> Japan [MISS] (49s)
+  [15/20] chile -> Argentina [MISS] (57s)
+  [16/20] madagascar -> ** A tropical coastal area in the **Caribbean** [MISS] (36s)
+  [17/20] madagascar -> including temperate or subtropical coastal areas in Europe [MISS] (29s)
+  [18/20] madagascar -> Bolivia [MISS] (37s)
+  [19/20] madagascar -> Australia [MISS] (32s)
+  [20/20] madagascar -> Morocco [MISS] (36s)
+  abl_geocot_step4 DONE: 20/20 valid
+
+--- abl_geocot_full (max_new_tokens=2048) ---
+  [1/20] kenya -> possibly **South Africa** [MISS] (35s)
+  [2/20] kenya -> South Africa [MISS] (35s)
+  [3/20] kenya -> South Africa [MISS] (36s)
