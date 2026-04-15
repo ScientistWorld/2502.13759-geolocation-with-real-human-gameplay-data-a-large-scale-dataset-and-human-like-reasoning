@@ -1,5 +1,3 @@
-action: submit
-gpus: 1
-test: false
+action: done
 milestone: core_claim_plus
-notes: "Run remaining ablation: step4 + full GeoCoT (20 images, 32B). Then evaluate all results with fixed routing."
+notes: "Core claim reproduced: GeoCoT >= CoT across all metrics. Full ablation study complete (6 conditions). Environment packaged."
