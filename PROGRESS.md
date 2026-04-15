@@ -56,7 +56,7 @@ The ablation shows that the paper's visual-cue decomposition matters, but the fu
 - `scripts/evaluate.sh` successfully regenerates `scoring/scores.json`.
 - `python validate.py --compare` passes locally after expanding `reference.json` and routing the current score names.
 - Audit fixes passed lightweight checks: Python compilation, shell syntax checks, parser smoke tests, and `validate.py --compare`.
-- A CPU test job is being submitted to validate the same path inside the managed container.
+- CPU test job `e762ae95-bec` passed inside the managed container with exit code 0. It regenerated scores, ran `python validate.py --compare`, and confirmed import separation plus portable path checks.
 
 ## Deviations from Paper
 
@@ -75,3 +75,7 @@ The method itself was not replaced: the implemented computation is the paper's e
 - Run a larger sample or the full GeoComp dataset if it becomes available.
 - Add Im2GPS/Im2GPS3K evaluation artifacts to populate `im2gps_generalization`.
 - Re-run full GeoCoT with a model closer to the paper's GPT-4o capability if a suitable local open-weight alternative is available within budget.
+
+## Current Milestone
+
+`core_claim_plus`: the core comparison and several GeoCoT step ablations are packaged and validated. The reproduction does not claim secondary/generalization milestones because no Im2GPS/Im2GPS3K artifacts were run and the full five-step prompt remains weak on the small substitute dataset.

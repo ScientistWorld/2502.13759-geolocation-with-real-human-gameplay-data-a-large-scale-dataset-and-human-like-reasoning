@@ -1,8 +1,8 @@
 # IMPORTANT: Once you set action to 'submit' or 'done', STOP immediately.
 # Do NOT sleep, poll, or wait for jobs. The system reads this file
 # only after your turn ends. Sleeping blocks the entire pipeline.
-action: submit
+action: done
 gpus: 0
 test: true
-milestone: core_claim
-notes: "CPU validation job after continuation audit fixes: rerun evaluator on existing GeoCoT artifacts and validate workspace structure/portability."
+milestone: core_claim_plus
+notes: "Managed CPU validation passed after continuation audit fixes. Core GeoCoT comparison and step ablations are packaged, scored, and documented."
