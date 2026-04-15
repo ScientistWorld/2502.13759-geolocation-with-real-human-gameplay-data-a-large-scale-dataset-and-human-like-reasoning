@@ -1,0 +1,46 @@
+[hive] This stdout log is managed by Hive.
+[hive] job_id: f3d6755a
+[hive] host: della-k16g3
+[hive] node_id: 8222970c08d60cb19702b974d1224316fcdfea8bbb729b0b51c3711b
+[hive] user: nexus/tl0463 (remote)
+[hive] resource: pli
+[hive] gpus: 1
+[hive] cpus: 1
+[hive] workdir: /home/tl0463
+[hive] timeout_sec: 3600
+[hive] started_at: 2026-04-14 23:02:55 EDT
+[hive] command: apptainer exec --nv --containall --cleanenv --env HF_HOME=/home/user/shared/hf_cache --env TRANSFORMERS_CACHE=/home/user/shared/hf_cache --env HF_DATASETS_CACHE=/home/user/shared/hf_cache/datasets --env TORCH_HOME=/home/user/shared/hf_cache/torch --bind /home/tl0463/scratch/AgentWorkspaces/workspaces/2502.13759:/home/user --overlay /home/tl0463/scratch/AgentWorkspaces/workspaces/2502.13759/environment/overlay.img:ro --bind /home/tl0463/scratch/AgentWorkspaces/shared/datasets:/home/user/shared/datasets:ro --bind /home/tl0463/scratch/AgentWorkspaces/shared/models:/home/user/shared/models:ro --bind /home/tl0463/scratch/AgentWorkspaces/shared/hf_cache:/home/user/shared/hf_cache /home/tl0463/scratch/AgentWorkspaces/workspaces/2502.13759/environment/container.sif bash -c 'cd /home/user && bash /home/user/scripts/run.sh'
+==========================================
+GeoCoT Reproduction - Tue Apr 14 23:02:55 EDT 2026
+==========================================
+
+=== Environment Setup ===
+=== Setting up GeoCoT environment (runtime) ===
+Found existing installation: huggingface_hub 1.10.1
+Uninstalling huggingface_hub-1.10.1:
+Installing required packages...
+=== Runtime environment setup complete ===
+Using Python: /usr/bin/python3
+Python 3.10.12
+
+=== Finding VLM Model ===
+Found model: /home/user/checkpoints/Qwen2.5-VL-32B-Instruct (32B)
+
+=== Creating Sample (2 countries, 2 images each) ===
+  kenya: 5/492
+  ecuador: 5/296
+  chile: 5/179
+  madagascar: 5/32
+Total: 20 images, missing: 0
+
+=== Loading Model and Running Inference ===
+CUDA: True, GPU: NVIDIA H100 80GB HBM3
+GPU memory: 85.0 GB
+Model: /home/user/checkpoints/Qwen2.5-VL-32B-Instruct (32B)
+Loaded 32B in 39.3s, GPU mem: 15.6 GB
+Dataset: 20 images, Countries: {'kenya': 5, 'ecuador': 5, 'chile': 5, 'madagascar': 5}
+
+--- CoT_32B (max_new_tokens=1024) ---
+  [1/20] kenya -> Tanzania [MISS] (97s)
+  [2/20] kenya -> Uganda [MISS] (31s)
+  [3/20] kenya -> South Africa [MISS] (53s)
