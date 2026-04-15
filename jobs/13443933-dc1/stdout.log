@@ -1,0 +1,66 @@
+[hive] This stdout log is managed by Hive.
+[hive] job_id: 9c546851
+[hive] host: della-k16g3
+[hive] node_id: 8222970c08d60cb19702b974d1224316fcdfea8bbb729b0b51c3711b
+[hive] user: nexus/tl0463 (remote)
+[hive] resource: pli
+[hive] gpus: 1
+[hive] cpus: 1
+[hive] workdir: /home/tl0463
+[hive] timeout_sec: 3600
+[hive] started_at: 2026-04-14 22:06:47 EDT
+[hive] command: apptainer exec --nv --containall --cleanenv --env HF_HOME=/home/user/shared/hf_cache --env TRANSFORMERS_CACHE=/home/user/shared/hf_cache --env HF_DATASETS_CACHE=/home/user/shared/hf_cache/datasets --env TORCH_HOME=/home/user/shared/hf_cache/torch --bind /home/tl0463/scratch/AgentWorkspaces/workspaces/2502.13759:/home/user --overlay /home/tl0463/scratch/AgentWorkspaces/workspaces/2502.13759/environment/overlay.img:ro --bind /home/tl0463/scratch/AgentWorkspaces/shared/datasets:/home/user/shared/datasets:ro --bind /home/tl0463/scratch/AgentWorkspaces/shared/models:/home/user/shared/models:ro --bind /home/tl0463/scratch/AgentWorkspaces/shared/hf_cache:/home/user/shared/hf_cache /home/tl0463/scratch/AgentWorkspaces/workspaces/2502.13759/environment/container.sif bash -c 'cd /home/user && bash /home/user/scripts/run.sh'
+==========================================
+GeoCoT Reproduction - Tue Apr 14 22:06:48 EDT 2026
+==========================================
+
+=== Environment Setup ===
+=== Setting up GeoCoT environment (runtime) ===
+Found existing installation: huggingface_hub 1.10.1
+Uninstalling huggingface_hub-1.10.1:
+Installing required packages...
+=== Runtime environment setup complete ===
+Using Python: /usr/bin/python3
+Python 3.10.12
+
+=== Finding VLM Model ===
+Found model: /home/user/checkpoints/Qwen2.5-VL-32B-Instruct (32B)
+
+=== Creating Sample (2 countries, 2 images each) ===
+  kenya: 5/492
+  ecuador: 5/296
+  chile: 5/179
+  madagascar: 5/32
+Total: 20 images, missing: 0
+
+=== Loading Model and Running Inference ===
+CUDA: True, GPU: NVIDIA H100 80GB HBM3
+GPU memory: 85.0 GB
+Model: /home/user/checkpoints/Qwen2.5-VL-32B-Instruct (32B)
+Loaded 32B in 70.9s, GPU mem: 15.6 GB
+Dataset: 20 images, Countries: {'kenya': 5, 'ecuador': 5, 'chile': 5, 'madagascar': 5}
+
+--- CoT_32B (max_new_tokens=1024) ---
+  [1/20] kenya -> Tanzania [MISS] (98s)
+  [2/20] kenya -> South Africa [MISS] (50s)
+  [3/20] kenya -> South Africa [MISS] (84s)
+  [4/20] kenya -> Kenya [OK] (49s)
+  [5/20] kenya -> where such roads and simple infrastructure are common. The specific features do not pinpoint a precise location [MISS] (46s)
+  [6/20] ecuador -> Southeast Asia [MISS] (41s)
+  [7/20] ecuador -> United States [MISS] (39s)
+  [8/20] ecuador -> Germany [MISS] (40s)
+  [9/20] ecuador -> Colombia [MISS] (40s)
+  [10/20] ecuador -> Colombia [MISS] (55s)
+  [11/20] chile -> Russia [MISS] (48s)
+  [12/20] chile -> United States [MISS] (39s)
+  [13/20] chile -> United States [MISS] (52s)
+  [14/20] chile -> United States [MISS] (53s)
+  [15/20] chile -> and mountainous terrain [MISS] (42s)
+  [16/20] madagascar -> Indonesia [MISS] (52s)
+  [17/20] madagascar -> San Pedro [MISS] (35s)
+  [18/20] madagascar -> United States [MISS] (43s)
+  [19/20] madagascar -> Mexico [MISS] (46s)
+  [20/20] madagascar -> South Africa [MISS] (66s)
+  CoT_32B DONE: 20/20 valid
+
+--- GeoCoT_32B (max_new_tokens=2048) ---
