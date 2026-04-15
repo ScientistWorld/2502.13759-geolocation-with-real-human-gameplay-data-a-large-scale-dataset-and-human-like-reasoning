@@ -4,19 +4,17 @@
 
 ## Progress Log
 
-### [2026-04-15] - none
-- Picking up workspace from previous agent
-- Previous runs failed due to: wrong prompt (2Q vs 5-step), timeout (too many images), old configs
-- **Root cause**: ALL previous runs used WRONG prompt (2 questions from GitHub vs paper's 5-step Appendix B)
-- Previous 32B job: processed 10/80 images before timeout (wrong prompt + too many images)
-- Previous 7B jobs: loaded model then got cancelled (wrong prompt + timeout issues)
-- **Fix**: New optimized run.sh with:
-  - Paper's ACTUAL 5-step GeoCoT prompt (Appendix B)
-  - 2 countries, 2 images each = 8 total
-  - 32B model (preferred), 7B fallback
-  - Greedy decoding (do_sample=False)
-  - Real-time stdout flushing
-  - CoT first (faster), then GeoCoT
+### [2026-04-15] - Correct prompt results + new job
+- **7B with correct 5-step prompt (job 639e10b5-c9d)**:
+  - GeoCoT: 6/40 parsed, 5/6 correct = **83.33% country accuracy**
+  - CoT: 40/40 parsed, 3/40 correct = **7.5% country accuracy**
+  - GeoCoT wins on parsed accuracy by 11x but parse rate is only 15%
+- **7B with correct prompt + 2048 tokens (job 0ed1b2f6-761)**:
+  - GeoCoT: 14/40 parsed, 0/14 correct (inconsistent)
+  - CoT: 38/40 parsed, 6/38 correct = 15.79%
+- **Token limit fix**: 512->1024 (GeoCoT), 256->512 (CoT)
+- **3 running jobs** (2bcf428c-531, 791d97e8-d57, c8fc103e-bc0) use OLD configs — will timeout
+- **New job**: 8 images, 32B model, 1024/512 tokens — should complete in ~5-10 min
 
 ### [2026-04-14] - Previous agent's work
 - Fixed prompt to use full 5-step from Appendix B
@@ -25,9 +23,9 @@
 
 ## Key Findings
 
-### Model Capability
-- 7B model: Too weak for geolocation (0% country accuracy with old prompt)
-- 32B model: More capable but slow (~5 min/image with greedy)
+### Model Capability (with correct 5-step prompt)
+- 7B model: With correct prompt, GeoCoT achieves 83% country accuracy on parsed predictions (vs 7.5% CoT). But parse rate is only 15-35%.
+- 32B model: Should improve both parse rate AND accuracy
 - Paper used GPT-4o which is much stronger than either
 
 ### The Critical Bug
