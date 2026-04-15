@@ -1,11 +1,11 @@
 #!/bin/bash
 # Evaluation script — the standard way to evaluate work in this environment.
 #
-# This script evaluates predictions from GeoCoT or baseline methods.
-# Uses Python's built-in modules to avoid external dependency issues.
+# Evaluates predictions from GeoCoT or baseline methods.
+# Computes classification metrics (accuracy/recall/F1 at city/country/continent level)
+# and distance metrics (1km/25km/750km thresholds).
 #
-# OUTPUT CONTRACT: This script writes scoring/scores.json containing
-# actual reproduced metrics from running inference on predictions.
+# OUTPUT CONTRACT: writes scoring/scores.json with actual reproduced metrics.
 #
 # Usage:
 #   ./evaluate.sh                                      # evaluate results/ directory
@@ -51,11 +51,34 @@ COUNTRY_COORDS = {
     "japan": (36.2048, 138.2529), "india": (20.5937, 78.9629),
     "russia": (61.5240, 105.3188), "mexico": (23.6345, -102.5528),
     "thailand": (15.8700, 100.9925), "indonesia": (-0.7893, 113.9213),
-    "saudi arabia": (24.7136, 46.6753), "oman": (21.4735, 55.9754),
-    "turkey": (38.9637, 35.2433), "south korea": (35.9078, 127.7669),
-    "italy": (41.8719, 12.5674), "spain": (40.4637, -3.7492),
-    "finland": (61.9241, 25.7482), "new zealand": (-40.9006, 174.8860),
-    "uganda": (1.3733, 32.2903),
+    "saudi arabia": (24.7136, 46.6753), "turkey": (38.9637, 35.2433),
+    "south korea": (35.9078, 127.7669), "italy": (41.8719, 12.5674),
+    "spain": (40.4637, -3.7492), "finland": (61.9241, 25.7482),
+    "new zealand": (-40.9006, 174.8860), "uganda": (1.3733, 32.2903),
+    "portugal": (39.3999, -8.2245), "greece": (39.0742, 21.8243),
+    "netherlands": (52.1326, 5.2913), "belgium": (50.5039, 4.4699),
+    "switzerland": (46.8182, 8.2275), "austria": (47.5162, 14.5501),
+    "poland": (51.9194, 19.1451), "sweden": (60.1282, 18.6435),
+    "norway": (60.4720, 8.4689), "denmark": (56.2639, 9.5018),
+    "ireland": (53.1424, -7.6921), "ukraine": (48.3794, 31.1656),
+    "romania": (45.9432, 24.9668), "hungary": (47.1625, 19.5033),
+    "czech republic": (49.8175, 15.4730), "croatia": (45.1000, 15.2000),
+    "tanzania": (-6.3690, 34.8888), "ethiopia": (9.1450, 40.4897),
+    "ghana": (7.9465, -1.0232), "morocco": (31.7917, -7.0926),
+    "algeria": (28.0339, 1.6596), "bolivia": (-16.2902, -63.5887),
+    "paraguay": (-23.4425, -58.4438), "uruguay": (-32.5228, -55.7658),
+    "venezuela": (6.4238, -66.5897), "guyana": (4.8604, -58.9302),
+    "panama": (8.5380, -80.7821), "costa rica": (9.7489, -83.7534),
+    "guatemala": (15.7835, -90.2308), "cuba": (21.5218, -77.7812),
+    "jamaica": (18.1096, -77.2975), "philippines": (12.8797, 121.7740),
+    "malaysia": (4.2105, 101.9758), "vietnam": (14.0583, 108.2772),
+    "pakistan": (30.3753, 69.3451), "iran": (32.4279, 53.6880),
+    "iraq": (33.3152, 44.3661), "israel": (31.0461, 34.8516),
+    "jordan": (30.5852, 36.2384), "sri lanka": (7.8731, 80.7718),
+    "bangladesh": (23.6850, 90.3563), "nepal": (28.3949, 84.1240),
+    "cambodia": (12.5657, 104.9910), "myanmar": (21.9162, 95.9560),
+    "singapore": (1.3521, 103.8198), "taiwan": (23.6978, 120.9605),
+    "hong kong": (22.3193, 114.1694),
 }
 
 def reverse_geocode(country):
@@ -69,11 +92,14 @@ def normalize_country(c):
     if not c: return None
     c = c.strip().lower()
     aliases = {
-        "usa": "united states", "us": "united states",
+        "usa": "united states", "us": "united states", "u.s.": "united states",
         "uk": "united kingdom", "british": "united kingdom",
-        "american": "united states", "california": "united states",
-        "nevada": "united states", "florida": "united states",
-        "scotland": "united kingdom",
+        "england": "united kingdom", "scotland": "united kingdom",
+        "wales": "united kingdom", "holland": "netherlands",
+        "deutschland": "germany", "brasil": "brazil",
+        "california": "united states", "nevada": "united states",
+        "florida": "united states", "texas": "united states",
+        "new york": "united states", "washington": "united states",
     }
     return aliases.get(c, c)
 
@@ -86,7 +112,6 @@ def normalize_continent(c):
 
 def compute_metrics(predictions):
     """Compute all geolocation metrics from predictions."""
-    # Enrich with GPS coordinates
     for p in predictions:
         if p.get('predicted_lat') is None:
             lat, lon = reverse_geocode(p.get('predicted_country'))
@@ -166,39 +191,31 @@ for name, filepath in sorted(pred_files.items()):
         print(f"  {len(valid_preds)}/{len(predictions)} valid, {len(valid_gt)} with ground truth")
 
         if valid_gt:
-            metrics = compute_metrics(valid_gt)
-            all_results[name] = metrics
+            m = compute_metrics(valid_gt)
+            all_results[name] = m
             for key in ['city_accuracy', 'country_accuracy', 'continent_accuracy',
                         'street_1km', 'city_25km', 'country_750km']:
-                if key in metrics:
-                    print(f"  {key}: {metrics[key]:.4f}")
+                if key in m:
+                    print(f"  {key}: {m[key]:.4f}")
     except Exception as e:
         print(f"  Error: {e}")
         import traceback
         traceback.print_exc()
 
-# Load reference for structure
+# Build scores.json from reference structure + reproduced results
 with open('/home/user/scoring/reference.json') as f:
     reference = json.load(f)
 
-# Build scores.json with reproduction results
 scores = {"experiments": {}}
 
-# Detect model size from prediction names
-METHOD_MAP = {}
-for n in all_results.keys():
-    if "geocot" in n.lower():
-        if "32b" in n.lower():
-            METHOD_MAP[n] = "qwen32b_geocot"
-        else:
-            METHOD_MAP[n] = "qwen_geocot"
-    elif "cot" in n.lower():
-        if "32b" in n.lower():
-            METHOD_MAP[n] = "qwen32b_cot"
-        else:
-            METHOD_MAP[n] = "qwen_cot"
-    else:
-        METHOD_MAP[n] = n
+# Map prediction file names to score method names
+def get_method_name(pred_name):
+    n = pred_name.lower()
+    if "geocot" in n:
+        return "qwen_geocot"  # Our reproduction of GeoCoT
+    elif "cot" in n:
+        return "qwen_cot"     # Our reproduction of CoT baseline
+    return pred_name
 
 for exp_name, exp_data in reference.get("experiments", {}).items():
     exp_copy = {
@@ -209,28 +226,19 @@ for exp_name, exp_data in reference.get("experiments", {}).items():
         "results": {}
     }
 
-    ref_results = exp_data.get("results", {})
     ref_metrics = list(exp_data.get("metrics", {}).keys())
 
-    # Copy reference (paper) results
-    for method_name, method_data in ref_results.items():
-        entry = {}
-        for key, val in method_data.items():
-            if key == "type": continue
-            entry[key] = val
-        exp_copy["results"][method_name] = entry
-
-    # Add/update reproduced results
+    # Add reproduced results (NOT reference/paper results - those stay in reference.json)
     for pred_name, metrics in all_results.items():
-        method_name = METHOD_MAP.get(pred_name, pred_name)
-        # Add to classification and distance experiments
-        if exp_name in ["geocomp_classification", "geocomp_distance"]:
-            entry = {}
-            for key in ref_metrics:
-                if key in metrics:
-                    entry[key] = metrics[key]
-            if entry:
-                exp_copy["results"][method_name] = entry
+        method_name = get_method_name(pred_name)
+        entry = {}
+        for key in ref_metrics:
+            if key in metrics:
+                entry[key] = metrics[key]
+        if entry:
+            # Determine type based on method
+            entry["type"] = "proposed" if "geocot" in method_name else "baseline"
+            exp_copy["results"][method_name] = entry
 
     scores["experiments"][exp_name] = exp_copy
 
