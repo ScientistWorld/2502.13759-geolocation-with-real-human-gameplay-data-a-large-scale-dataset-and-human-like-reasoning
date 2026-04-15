@@ -1,0 +1,125 @@
+[hive] This stdout log is managed by Hive.
+[hive] job_id: 9998dd7b
+[hive] host: della-k17g2
+[hive] node_id: 6202f7c97cc7d6b883de17982f1630e879c4fd0e5a0b0456aa0b26a0
+[hive] user: nexus/tl0463 (remote)
+[hive] resource: pli-1
+[hive] gpus: 1
+[hive] cpus: 1
+[hive] workdir: /home/tl0463
+[hive] timeout_sec: 3600
+[hive] started_at: 2026-04-14 21:12:53 EDT
+[hive] command: apptainer exec --nv --containall --cleanenv --env HF_HOME=/home/user/shared/hf_cache --env TRANSFORMERS_CACHE=/home/user/shared/hf_cache --env HF_DATASETS_CACHE=/home/user/shared/hf_cache/datasets --env TORCH_HOME=/home/user/shared/hf_cache/torch --bind /home/tl0463/scratch/AgentWorkspaces/workspaces/2502.13759:/home/user --overlay /home/tl0463/scratch/AgentWorkspaces/workspaces/2502.13759/environment/overlay.img:ro --bind /home/tl0463/scratch/AgentWorkspaces/shared/datasets:/home/user/shared/datasets:ro --bind /home/tl0463/scratch/AgentWorkspaces/shared/models:/home/user/shared/models:ro --bind /home/tl0463/scratch/AgentWorkspaces/shared/hf_cache:/home/user/shared/hf_cache /home/tl0463/scratch/AgentWorkspaces/workspaces/2502.13759/environment/container.sif bash -c 'cd /home/user && bash /home/user/scripts/run.sh'
+==========================================
+GeoCoT Reproduction - Tue Apr 14 21:12:53 EDT 2026
+==========================================
+
+=== Environment Setup ===
+=== Setting up GeoCoT environment (runtime) ===
+Found existing installation: huggingface_hub 1.10.1
+Uninstalling huggingface_hub-1.10.1:
+Installing required packages...
+=== Runtime environment setup complete ===
+Using Python: /usr/bin/python3
+Python 3.10.12
+
+=== Finding VLM Model ===
+Found model: /home/user/checkpoints/Qwen2.5-VL-32B-Instruct (32B)
+
+=== Creating Sample (2 countries, 2 images each) ===
+  kenya: 3/492
+  ecuador: 3/296
+  chile: 3/179
+  madagascar: 3/32
+Total: 12 images, missing: 0
+
+=== Loading Model and Running Inference ===
+CUDA: True, GPU: NVIDIA H100 80GB HBM3
+GPU memory: 85.0 GB
+Model: /home/user/checkpoints/Qwen2.5-VL-32B-Instruct (32B)
+Loaded 32B in 75.0s, GPU mem: 66.9 GB
+Dataset: 12 images, Countries: {'kenya': 3, 'ecuador': 3, 'chile': 3, 'madagascar': 3}
+
+--- CoT_32B (max_new_tokens=512) ---
+  [1/12] kenya -> Tanzania [MISS] (44s)
+  [2/12] kenya -> Botswana [MISS] (20s)
+  [3/12] kenya -> Tanzania [MISS] (18s)
+  [4/12] ecuador -> Colombia [MISS] (17s)
+  [5/12] ecuador -> or parts of Africa could fit this description. However [MISS] (20s)
+  [6/12] ecuador -> winding roads [MISS] (18s)
+  [7/12] chile -> United States [MISS] (20s)
+  [8/12] chile -> United States [MISS] (20s)
+  [9/12] chile -> United States [MISS] (20s)
+  ERROR -22.235746383666992_43.23691940307617_madagascar_1.png: local variable 'city' referenced before assignment
+  [10/12] madagascar -> None [MISS] (0s)
+  ERROR -20.29313468933105_44.277626037597656_madagascar_3.png: local variable 'continent' referenced before assignment
+  [11/12] madagascar -> None [MISS] (0s)
+  [12/12] madagascar -> Argentina [MISS] (18s)
+  CoT_32B DONE: 10/12 valid
+
+--- GeoCoT_32B (max_new_tokens=1024) ---
+  [1/12] kenya -> Tanzania [MISS] (53s)
+  [2/12] kenya -> South Africa [MISS] (27s)
+  [3/12] kenya -> Tanzania [MISS] (35s)
+  [4/12] ecuador -> United States [MISS] (29s)
+  [5/12] ecuador -> Colombia [MISS] (31s)
+  [6/12] ecuador -> Jamaica [MISS] (30s)
+  [7/12] chile -> Russia [MISS] (30s)
+  [8/12] chile -> Chile [OK] (25s)
+  [9/12] chile -> United States [MISS] (33s)
+  [10/12] madagascar -> Morocco [MISS] (31s)
+  ERROR -20.29313468933105_44.277626037597656_madagascar_3.png: local variable 'continent' referenced before assignment
+  [11/12] madagascar -> None [MISS] (0s)
+  [12/12] madagascar -> Argentina [MISS] (33s)
+  GeoCoT_32B DONE: 11/12 valid
+
+=== All Inference Complete ===
+
+=== Evaluating Results ===
+=== GeoCoT Evaluation ===
+Evaluating predictions from: /home/user/results
+Found prediction files: ['cot_32B', 'geocot_32B']
+
+Evaluating: cot_32B
+  10/12 valid, 10 with ground truth
+  city_accuracy: 0.0000
+  country_accuracy: 0.0000
+  continent_accuracy: 0.2000
+  street_1km: 0.0000
+  city_25km: 0.0000
+  country_750km: 0.2857
+
+Evaluating: geocot_32B
+  11/12 valid, 11 with ground truth
+  city_accuracy: 0.0000
+  country_accuracy: 0.0909
+  continent_accuracy: 0.4545
+  street_1km: 0.0000
+  city_25km: 0.0000
+  country_750km: 0.2727
+
+Scores saved to /home/user/scoring/scores.json
+
+=== Summary ===
+
+geocomp_classification:
+  qwen_cot: country_accuracy=0.0000
+  qwen_geocot: country_accuracy=0.0909
+
+geocomp_distance:
+  qwen_cot: city_25km=0.0000
+  qwen_geocot: city_25km=0.0000
+
+im2gps_generalization:
+  qwen_cot: city_25km=0.0000
+  qwen_geocot: city_25km=0.0000
+
+ablation_geocot_steps:
+  qwen_cot: country_accuracy=0.0000
+  qwen_geocot: country_accuracy=0.0909
+
+=== Evaluation Complete ===
+
+==========================================
+Run complete - Tue Apr 14 21:25:29 EDT 2026
+==========================================
