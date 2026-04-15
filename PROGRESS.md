@@ -13,6 +13,7 @@
 - `method/geocot.py` exposes `GeoCoTEngine`, a small wrapper around the prompt and a VLM client.
 - `method/run_geocot.py` runs GeoCoT and CoT prompting over a dataset and writes prediction artifacts.
 - `method/vlm_client.py` supports local VLM inference without paid APIs.
+- Model lookup now uses portable workspace paths (`data/downloads/` and `checkpoints/`) rather than non-portable `shared/` references.
 
 ### Data and Artifacts
 - `data/geoclip/geoclip.csv` indexes 999 geotagged images from the local GeoCLIP subset.
@@ -54,6 +55,7 @@ The ablation shows that the paper's visual-cue decomposition matters, but the fu
 
 - `scripts/evaluate.sh` successfully regenerates `scoring/scores.json`.
 - `python validate.py --compare` passes locally after expanding `reference.json` and routing the current score names.
+- Audit fixes passed lightweight checks: Python compilation, shell syntax checks, parser smoke tests, and `validate.py --compare`.
 - A CPU test job is being submitted to validate the same path inside the managed container.
 
 ## Deviations from Paper
@@ -72,5 +74,4 @@ The method itself was not replaced: the implemented computation is the paper's e
 
 - Run a larger sample or the full GeoComp dataset if it becomes available.
 - Add Im2GPS/Im2GPS3K evaluation artifacts to populate `im2gps_generalization`.
-- Improve parsing robustness for city/country extraction without leaking method-specific logic into `eval/`.
 - Re-run full GeoCoT with a model closer to the paper's GPT-4o capability if a suitable local open-weight alternative is available within budget.

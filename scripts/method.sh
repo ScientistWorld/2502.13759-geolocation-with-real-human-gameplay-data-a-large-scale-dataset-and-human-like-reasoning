@@ -14,10 +14,13 @@ mkdir -p "$RESULTS_DIR"
 echo "=== Running GeoCoT Method ==="
 
 # Determine which VLM to use
-if [ -d "/home/user/shared/models/Qwen2.5-VL-7B-Instruct" ]; then
+if [ -d "/home/user/data/downloads/Qwen2.5-VL-32B-Instruct" ] || \
+   [ -d "/home/user/data/downloads/Qwen2.5-VL-7B-Instruct" ] || \
+   [ -d "/home/user/checkpoints/Qwen2.5-VL-32B-Instruct" ] || \
+   [ -d "/home/user/checkpoints/Qwen2.5-VL-7B-Instruct" ]; then
     VLM_TYPE="qwen_vl"
     MODEL_NAME="Qwen2.5-VL"
-elif [ -d "/home/user/shared/models/llava-hf/llava-1.5-7b-hf" ]; then
+elif [ -d "/home/user/data/downloads/llava-hf/llava-1.5-7b-hf" ]; then
     VLM_TYPE="llava"
     MODEL_NAME="LLaVA"
 else

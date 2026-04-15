@@ -50,9 +50,9 @@ echo "=== Finding VLM Model ==="
 MODEL_PATH=""
 MODEL_SIZE=""
 for dir in "/home/user/checkpoints/Qwen2.5-VL-32B-Instruct" \
-            "/home/user/shared/models/Qwen2.5-VL-32B-Instruct" \
+            "/home/user/data/downloads/Qwen2.5-VL-32B-Instruct" \
             "/home/user/checkpoints/Qwen2.5-VL-7B-Instruct" \
-            "/home/user/shared/models/Qwen2.5-VL-7B-Instruct"; do
+            "/home/user/data/downloads/Qwen2.5-VL-7B-Instruct"; do
     if [ -d "$dir" ] && [ -f "$dir/config.json" ]; then
         MODEL_PATH="$dir"
         if echo "$dir" | grep -q "32B"; then
@@ -142,9 +142,9 @@ if torch.cuda.is_available():
 MODEL_PATH = ""
 MODEL_SIZE = ""
 for d in ['/home/user/checkpoints/Qwen2.5-VL-32B-Instruct',
-           '/home/user/shared/models/Qwen2.5-VL-32B-Instruct',
+           '/home/user/data/downloads/Qwen2.5-VL-32B-Instruct',
            '/home/user/checkpoints/Qwen2.5-VL-7B-Instruct',
-           '/home/user/shared/models/Qwen2.5-VL-7B-Instruct']:
+           '/home/user/data/downloads/Qwen2.5-VL-7B-Instruct']:
     if os.path.isdir(d) and os.path.exists(os.path.join(d, 'config.json')):
         MODEL_PATH = d
         MODEL_SIZE = "32B" if "32B" in d else "7B"

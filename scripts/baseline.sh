@@ -24,7 +24,9 @@ fi
 # Find model
 MODEL_PATH=""
 for dir in "/home/user/checkpoints/Qwen2.5-VL-7B-Instruct" \
-            "/home/user/shared/models/Qwen2.5-VL-7B-Instruct"; do
+            "/home/user/checkpoints/Qwen2.5-VL-32B-Instruct" \
+            "/home/user/data/downloads/Qwen2.5-VL-7B-Instruct" \
+            "/home/user/data/downloads/Qwen2.5-VL-32B-Instruct"; do
     if [ -d "$dir" ] && [ -f "$dir/model.safetensors.index.json" ]; then
         MODEL_PATH="$dir"
         break
@@ -42,8 +44,8 @@ echo "Model: $MODEL_PATH"
 python3 << 'PYEOF'
 import os, csv, json, re, time
 import torch
-os.environ['HF_HOME'] = '/home/user/shared/models/hf'
-os.environ['TRANSFORMERS_CACHE'] = '/home/user/shared/models/hf'
+os.environ['HF_HOME'] = '/home/user/data/downloads/hf_cache'
+os.environ['TRANSFORMERS_CACHE'] = '/home/user/data/downloads/hf_cache'
 os.environ['HF_HUB_OFFLINE'] = '1'
 
 from transformers import Qwen2_5_VLForConditionalGeneration, Qwen2_5_VLProcessor
@@ -52,7 +54,9 @@ from qwen_vl_utils import process_vision_info
 # Find model
 MODEL_PATH = ""
 for d in ['/home/user/checkpoints/Qwen2.5-VL-7B-Instruct',
-           '/home/user/shared/models/Qwen2.5-VL-7B-Instruct']:
+           '/home/user/checkpoints/Qwen2.5-VL-32B-Instruct',
+           '/home/user/data/downloads/Qwen2.5-VL-7B-Instruct',
+           '/home/user/data/downloads/Qwen2.5-VL-32B-Instruct']:
     if os.path.isdir(d) and os.path.exists(os.path.join(d, 'model.safetensors.index.json')):
         MODEL_PATH = d
         break

@@ -12,6 +12,7 @@ parses the model's location predictions, and saves results.
 import argparse
 import json
 import os
+import re
 import sys
 from pathlib import Path
 from typing import Dict, List, Optional
@@ -22,6 +23,55 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from method.prompt_template import GEO_COT_USER_PROMPT, build_baseline_prompt
 from method.vlm_client import get_vlm_client
+
+
+COUNTRY_TO_CONTINENT = {
+    "kenya": ("Kenya", "Africa"),
+    "madagascar": ("Madagascar", "Africa"),
+    "ecuador": ("Ecuador", "South America"),
+    "chile": ("Chile", "South America"),
+    "brazil": ("Brazil", "South America"),
+    "argentina": ("Argentina", "South America"),
+    "peru": ("Peru", "South America"),
+    "colombia": ("Colombia", "South America"),
+    "united states": ("United States", "North America"),
+    "usa": ("United States", "North America"),
+    "us": ("United States", "North America"),
+    "canada": ("Canada", "North America"),
+    "mexico": ("Mexico", "North America"),
+    "germany": ("Germany", "Europe"),
+    "france": ("France", "Europe"),
+    "united kingdom": ("United Kingdom", "Europe"),
+    "uk": ("United Kingdom", "Europe"),
+    "england": ("United Kingdom", "Europe"),
+    "spain": ("Spain", "Europe"),
+    "italy": ("Italy", "Europe"),
+    "japan": ("Japan", "Asia"),
+    "china": ("China", "Asia"),
+    "india": ("India", "Asia"),
+    "russia": ("Russia", "Europe"),
+    "south korea": ("South Korea", "Asia"),
+    "thailand": ("Thailand", "Asia"),
+    "australia": ("Australia", "Oceania"),
+    "south africa": ("South Africa", "Africa"),
+    "egypt": ("Egypt", "Africa"),
+    "nigeria": ("Nigeria", "Africa"),
+    "turkey": ("Turkey", "Asia"),
+    "indonesia": ("Indonesia", "Asia"),
+    "uganda": ("Uganda", "Africa"),
+    "tanzania": ("Tanzania", "Africa"),
+    "morocco": ("Morocco", "Africa"),
+}
+
+CONTINENTS = {
+    "africa": "Africa",
+    "asia": "Asia",
+    "europe": "Europe",
+    "north america": "North America",
+    "south america": "South America",
+    "oceania": "Oceania",
+    "australia": "Oceania",
+}
 
 
 def parse_location_prediction(text: str) -> Dict[str, Optional[str]]:
@@ -36,13 +86,16 @@ def parse_location_prediction(text: str) -> Dict[str, Optional[str]]:
     """
     result = {"city": None, "country": None, "continent": None, "raw_prediction": text}
 
-    # Try to find "Location: ..." pattern
-    import re
+    if not text:
+        return result
+
+    # Try explicit "Location: City, Country, Continent" style outputs first.
     patterns = [
         r"Location:\s*(.+?),\s*(.+?),\s*(.+?)(?:\n|$)",
         r"location:\s*(.+?),\s*(.+?),\s*(.+?)(?:\n|$)",
         r"Location\s*(?:is\s*)?:\s*(.+?),\s*(.+?),\s*(.+?)(?:\n|$)",
         r"Predicted\s*Location:\s*(.+?),\s*(.+?),\s*(.+?)(?:\n|$)",
+        r"(?:taken|located)\s+in\s+(.+?),\s*(.+?),\s*(Africa|Asia|Europe|North America|South America|Oceania)",
     ]
 
     for pattern in patterns:
@@ -52,6 +105,21 @@ def parse_location_prediction(text: str) -> Dict[str, Optional[str]]:
             result["country"] = match.group(2).strip()
             result["continent"] = match.group(3).strip()
             return result
+
+    # GeoCoT often returns a paragraph rather than a strict label. Fall back to
+    # country and continent mentions so the reusable runner can score real VLM
+    # responses without requiring method-specific evaluation code.
+    text_lower = text.lower()
+    for key, (country, continent) in sorted(COUNTRY_TO_CONTINENT.items(), key=lambda item: -len(item[0])):
+        if re.search(rf"\b{re.escape(key)}\b", text_lower):
+            result["country"] = country
+            result["continent"] = continent
+            break
+    if result["continent"] is None:
+        for key, continent in CONTINENTS.items():
+            if re.search(rf"\b{re.escape(key)}\b", text_lower):
+                result["continent"] = continent
+                break
 
     return result
 

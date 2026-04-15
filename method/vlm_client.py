@@ -94,21 +94,23 @@ class QwenVLClient(VLMClient):
                 f"Install: pip install qwen-vl-utils transformers. Error: {e}"
             )
 
-        # Default to shared models directory
+        # Default to workspace-local model directories. scripts/download.sh
+        # populates data/downloads/ on a fresh clone; checkpoints/ is accepted
+        # for resumed runs that already produced or staged model artifacts.
         if model_path is None:
-            # Check common locations
             for candidate in [
+                "/home/user/data/downloads/Qwen2.5-VL-32B-Instruct",
+                "/home/user/data/downloads/Qwen2.5-VL-7B-Instruct",
                 "/home/user/checkpoints/Qwen2.5-VL-7B-Instruct",
-                "/home/user/shared/models/Qwen2.5-VL-7B-Instruct",
-                "/home/user/Qwen/Qwen2.5-VL-7B-Instruct",
-                os.path.join(os.path.dirname(__file__), "..", "Qwen2.5-VL-7B-Instruct"),
-                "/home/user/shared/models/Qwen/Qwen2.5-VL-7B-Instruct",
+                "/home/user/checkpoints/Qwen2.5-VL-32B-Instruct",
             ]:
-                if os.path.isdir(candidate):
+                if os.path.isdir(candidate) and os.path.exists(os.path.join(candidate, "config.json")):
                     model_path = candidate
                     break
             if model_path is None:
-                model_path = "Qwen/Qwen2.5-VL-7B-Instruct"  # fallback: try HF download
+                raise FileNotFoundError(
+                    "No local Qwen2.5-VL checkpoint found. Run scripts/download.sh before compute jobs."
+                )
 
         self.model_path = model_path
         import torch as _torch
@@ -169,8 +171,8 @@ class LLaVAClient(VLMClient):
         import os as _os
 
         # Set HF cache before imports
-        _os.environ.setdefault("HF_HOME", "/home/user/shared/models/hf")
-        _os.environ.setdefault("TRANSFORMERS_CACHE", "/home/user/shared/models/hf")
+        _os.environ.setdefault("HF_HOME", "/home/user/data/downloads/hf_cache")
+        _os.environ.setdefault("TRANSFORMERS_CACHE", "/home/user/data/downloads/hf_cache")
         _os.environ.setdefault("HF_HUB_OFFLINE", "1")
 
         # Add package paths (try multiple locations)
@@ -180,23 +182,24 @@ class LLaVAClient(VLMClient):
         for _pylib in ['/pylib', '/dev/shm/pylib']:
             if os.path.isdir(_pylib) and _pylib not in _sys.path:
                 _sys.path.insert(0, _pylib)
-        _sys.path.insert(0, '/home/user/shared/models/llava_repo')
+        _sys.path.insert(0, '/home/user/data/downloads/llava_repo')
 
         import torch
 
-        # Default to shared models directory
+        # Default to workspace-local model directories.
         if model_path is None:
             for candidate in [
                 "/dev/shm/llava-v1.5-7b-config",
-                "/home/user/shared/models/llava-v1.5-7b",
-                "/home/user/shared/models/llava-hf/llava-1.5-7b-hf",
-                os.path.join(os.path.dirname(__file__), "..", "llava-v1.5-7b"),
+                "/home/user/data/downloads/llava-v1.5-7b",
+                "/home/user/data/downloads/llava-hf/llava-1.5-7b-hf",
             ]:
                 if os.path.isdir(candidate):
                     model_path = candidate
                     break
             if model_path is None:
-                model_path = "llava-hf/llava-1.5-7b-hf"
+                raise FileNotFoundError(
+                    "No local LLaVA checkpoint found. Add it under data/downloads before compute jobs."
+                )
 
         self.model_path = model_path
         self.device = device if torch.cuda.is_available() else "cpu"
@@ -210,7 +213,7 @@ class LLaVAClient(VLMClient):
         _original_clipconfig = CLIPVisionConfig.from_pretrained
         def _patched_clipconfig(cls, pretrained_model_name_or_path, **kwargs):
             name_map = {
-                "openai/clip-vit-large-patch14-336": "/home/user/shared/models/clip-vit-large-patch14-336",
+                "openai/clip-vit-large-patch14-336": "/home/user/data/downloads/clip-vit-large-patch14-336",
             }
             if pretrained_model_name_or_path in name_map:
                 pretrained_model_name_or_path = name_map[pretrained_model_name_or_path]
@@ -221,7 +224,7 @@ class LLaVAClient(VLMClient):
         _original_clipmodel = CLIPModel.from_pretrained
         def _patched_clipmodel(cls, pretrained_model_name_or_path, **kwargs):
             name_map = {
-                "openai/clip-vit-large-patch14-336": "/home/user/shared/models/clip-vit-large-patch14-336",
+                "openai/clip-vit-large-patch14-336": "/home/user/data/downloads/clip-vit-large-patch14-336",
             }
             if pretrained_model_name_or_path in name_map:
                 pretrained_model_name_or_path = name_map[pretrained_model_name_or_path]

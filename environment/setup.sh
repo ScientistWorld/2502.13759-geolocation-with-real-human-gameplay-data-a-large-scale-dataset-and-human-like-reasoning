@@ -13,9 +13,9 @@ pip uninstall -y huggingface_hub 2>/dev/null || true
 rm -rf /root/.local/lib/python3.10/site-packages/huggingface_hub* 2>/dev/null || true
 rm -rf /root/.local/lib/python3.10/site-packages/transformers* 2>/dev/null || true
 
-# Set HuggingFace cache to shared location
-export HF_HOME="/home/user/shared/models/hf"
-export TRANSFORMERS_CACHE="/home/user/shared/models/hf"
+# Set HuggingFace cache inside the portable workspace downloads directory.
+export HF_HOME="/home/user/data/downloads/hf_cache"
+export TRANSFORMERS_CACHE="/home/user/data/downloads/hf_cache"
 export HF_HUB_OFFLINE="1"
 
 # Install all required packages in one command (overlay persists them).

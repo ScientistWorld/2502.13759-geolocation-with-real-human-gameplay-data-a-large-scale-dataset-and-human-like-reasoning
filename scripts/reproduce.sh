@@ -21,9 +21,10 @@ echo "=== GeoCoT Full Reproduction ==="
 echo "Step 1: Ensuring data is available..."
 bash scripts/download.sh
 
-# Step 2: Run inference and evaluation (all in one script)
+# Step 2: Run inference and evaluation. The ablation script is resumable and
+# skips prediction files that already exist.
 echo "Step 2: Running GeoCoT + CoT inference and evaluation..."
-bash scripts/run.sh
+bash scripts/run_ablation.sh
 
 echo ""
 echo "=== Reproduction Complete ==="

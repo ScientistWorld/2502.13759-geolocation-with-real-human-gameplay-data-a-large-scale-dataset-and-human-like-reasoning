@@ -5,4 +5,4 @@ action: submit
 gpus: 0
 test: true
 milestone: core_claim
-notes: "CPU validation job for expanded GeoCoT scoring: rerun evaluator on existing prediction artifacts and validate workspace structure."
+notes: "CPU validation job after continuation audit fixes: rerun evaluator on existing GeoCoT artifacts and validate workspace structure/portability."
