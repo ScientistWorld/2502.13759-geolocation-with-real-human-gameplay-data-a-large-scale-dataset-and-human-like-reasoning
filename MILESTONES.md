@@ -25,4 +25,4 @@
 - Restored `core_claim_plus` because the package now includes the core CoT-vs-GeoCoT comparison plus multiple GeoCoT step ablation settings. The result remains scaled: GeoCoT improves continent-level accuracy over CoT, while country/distance metrics are weak on the 20-image substitute sample.
 
 ## Stop Justification
-- Completed at milestone `core_claim_plus`. Higher milestones would require additional benchmark coverage such as Im2GPS/Im2GPS3K or a larger GeoComp-style run, which is not currently available in the packaged artifacts.
+- Completed at milestone `core_claim_plus`.
