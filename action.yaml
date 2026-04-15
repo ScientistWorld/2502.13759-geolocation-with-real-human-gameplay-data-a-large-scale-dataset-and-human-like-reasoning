@@ -3,6 +3,5 @@
 # only after your turn ends. Sleeping blocks the entire pipeline.
 action: done
 gpus: 0
-test: true
-milestone: core_claim_plus
-notes: "Packaging audit passed: download.sh has real Qwen fetches, paths are portable, and validation succeeds."
+test: false
+notes: "10/10 held-out GeoComp image split; train/test scores generated from saved predictions; qwen_geocot country 0.10/0.00, continent 0.50/0.50, 750km 0.20/0.10."

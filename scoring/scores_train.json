@@ -1,0 +1,247 @@
+{
+  "experiments": {
+    "geocomp_classification": {
+      "description": "GeoComp classification results from Table 2: city/country/continent accuracy, recall, and F1 on the 500-image GeoComp test set.",
+      "weight": 0.3,
+      "primary_metric": "country_accuracy",
+      "metrics": {
+        "city_accuracy": {
+          "higher_is_better": true,
+          "coefficient": 1.0
+        },
+        "city_recall": {
+          "higher_is_better": true,
+          "coefficient": 0.4
+        },
+        "city_f1": {
+          "higher_is_better": true,
+          "coefficient": 0.5
+        },
+        "country_accuracy": {
+          "higher_is_better": true,
+          "coefficient": 0.8
+        },
+        "country_recall": {
+          "higher_is_better": true,
+          "coefficient": 0.35
+        },
+        "country_f1": {
+          "higher_is_better": true,
+          "coefficient": 0.45
+        },
+        "continent_accuracy": {
+          "higher_is_better": true,
+          "coefficient": 0.6
+        },
+        "continent_recall": {
+          "higher_is_better": true,
+          "coefficient": 0.25
+        },
+        "continent_f1": {
+          "higher_is_better": true,
+          "coefficient": 0.3
+        }
+      },
+      "results": {
+        "qwen_cot": {
+          "city_accuracy": 0.0,
+          "city_recall": 0.0,
+          "city_f1": 0.0,
+          "country_accuracy": 0.0,
+          "country_recall": 0.0,
+          "country_f1": 0.0,
+          "continent_accuracy": 0.2,
+          "continent_recall": 0.2,
+          "continent_f1": 0.2222
+        },
+        "qwen_geocot": {
+          "city_accuracy": 0.0,
+          "city_recall": 0.0,
+          "city_f1": 0.0,
+          "country_accuracy": 0.1,
+          "country_recall": 0.1,
+          "country_f1": 0.1,
+          "continent_accuracy": 0.5,
+          "continent_recall": 0.5,
+          "continent_f1": 0.5263
+        }
+      }
+    },
+    "geocomp_distance": {
+      "description": "GeoComp distance-based accuracy from Table 3: fraction of predictions within 1km, 25km, and 750km of ground truth.",
+      "weight": 0.25,
+      "primary_metric": "city_25km",
+      "metrics": {
+        "street_1km": {
+          "higher_is_better": true,
+          "coefficient": 1.0
+        },
+        "city_25km": {
+          "higher_is_better": true,
+          "coefficient": 1.0
+        },
+        "country_750km": {
+          "higher_is_better": true,
+          "coefficient": 0.8
+        }
+      },
+      "results": {
+        "qwen_cot": {
+          "street_1km": 0.0,
+          "city_25km": 0.0,
+          "country_750km": 0.1429
+        },
+        "qwen_geocot": {
+          "street_1km": 0.0,
+          "city_25km": 0.0,
+          "country_750km": 0.2
+        }
+      }
+    },
+    "geocomp_efficiency": {
+      "description": "Inference efficiency constraint from Table 7: GeoCoT should improve reasoning while keeping latency and generated-token overhead modest relative to standard CoT.",
+      "weight": 0.2,
+      "primary_metric": "avg_inference_time_s",
+      "metrics": {
+        "avg_generated_tokens": {
+          "higher_is_better": false,
+          "coefficient": -0.2
+        },
+        "avg_inference_time_s": {
+          "higher_is_better": false,
+          "coefficient": -0.5
+        }
+      },
+      "results": {
+        "qwen_cot": {
+          "avg_generated_tokens": 384.6,
+          "avg_inference_time_s": 53.113
+        },
+        "qwen_geocot": {
+          "avg_generated_tokens": 555.9,
+          "avg_inference_time_s": 79.634
+        }
+      }
+    },
+    "ablation_geocot_steps": {
+      "description": "Ablation from Table 8: cumulative effect of adding GeoCoT reasoning stages, measured with accuracy, recall, and F1 at city/country/continent levels.",
+      "weight": 0.15,
+      "primary_metric": "country_accuracy",
+      "metrics": {
+        "city_accuracy": {
+          "higher_is_better": true,
+          "coefficient": 1.0
+        },
+        "city_recall": {
+          "higher_is_better": true,
+          "coefficient": 0.4
+        },
+        "city_f1": {
+          "higher_is_better": true,
+          "coefficient": 0.5
+        },
+        "country_accuracy": {
+          "higher_is_better": true,
+          "coefficient": 0.8
+        },
+        "country_recall": {
+          "higher_is_better": true,
+          "coefficient": 0.35
+        },
+        "country_f1": {
+          "higher_is_better": true,
+          "coefficient": 0.45
+        },
+        "continent_accuracy": {
+          "higher_is_better": true,
+          "coefficient": 0.6
+        },
+        "continent_recall": {
+          "higher_is_better": true,
+          "coefficient": 0.25
+        },
+        "continent_f1": {
+          "higher_is_better": true,
+          "coefficient": 0.3
+        }
+      },
+      "results": {
+        "geocot_full": {
+          "city_accuracy": 0.0,
+          "city_recall": 0.0,
+          "city_f1": 0.0,
+          "country_accuracy": 0.0,
+          "country_recall": 0.0,
+          "country_f1": 0.0,
+          "continent_accuracy": 0.3,
+          "continent_recall": 0.3,
+          "continent_f1": 0.3158
+        },
+        "geocot_step1": {
+          "city_accuracy": 0.0,
+          "city_recall": 0.0,
+          "city_f1": 0.0,
+          "country_accuracy": 0.0,
+          "country_recall": 0.0,
+          "country_f1": 0.0,
+          "continent_accuracy": 0.5,
+          "continent_recall": 0.5,
+          "continent_f1": 0.5
+        },
+        "geocot_step1_2": {
+          "city_accuracy": 0.0,
+          "city_recall": 0.0,
+          "city_f1": 0.0,
+          "country_accuracy": 0.1,
+          "country_recall": 0.1,
+          "country_f1": 0.1,
+          "continent_accuracy": 0.7,
+          "continent_recall": 0.7,
+          "continent_f1": 0.7368
+        },
+        "geocot_step1_2_3": {
+          "city_accuracy": 0.0,
+          "city_recall": 0.0,
+          "city_f1": 0.0,
+          "country_accuracy": 0.0,
+          "country_recall": 0.0,
+          "country_f1": 0.0,
+          "continent_accuracy": 0.5,
+          "continent_recall": 0.5,
+          "continent_f1": 0.5
+        },
+        "geocot_step1_2_3_4": {
+          "city_accuracy": 0.0,
+          "city_recall": 0.0,
+          "city_f1": 0.0,
+          "country_accuracy": 0.0,
+          "country_recall": 0.0,
+          "country_f1": 0.0,
+          "continent_accuracy": 0.6,
+          "continent_recall": 0.6,
+          "continent_f1": 0.6
+        }
+      }
+    },
+    "im2gps_generalization": {
+      "description": "Generalization to Im2GPS and Im2GPS3K from Table 4, using distance-threshold accuracy on traditional image geolocation benchmarks.",
+      "weight": 0.1,
+      "primary_metric": "city_25km",
+      "metrics": {
+        "street_1km": {
+          "higher_is_better": true,
+          "coefficient": 1.0
+        },
+        "city_25km": {
+          "higher_is_better": true,
+          "coefficient": 1.0
+        },
+        "country_750km": {
+          "higher_is_better": true,
+          "coefficient": 0.8
+        }
+      },
+      "results": {}
+    }
+  }
+}
