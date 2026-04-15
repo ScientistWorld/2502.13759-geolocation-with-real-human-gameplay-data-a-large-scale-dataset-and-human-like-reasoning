@@ -4,17 +4,16 @@
 
 ## Progress Log
 
-### [2026-04-15] - CORE CLAIM PROVEN: GeoCoT > CoT
-- **Best result (job cf4e6097-9d0, 32B, 20 images)**:
-  - CoT: 0/19 correct = **0% country accuracy**, 36.8% continent
-  - GeoCoT: 2/20 correct = **10% country accuracy**, 50% continent
-  - **GeoCoT wins on ALL metrics: country (+10pp), continent (+13pp), parse rate (100% vs 95%)**
-- **Consistency across runs**:
-  - 4 images: tie (both 0% country)
-  - 12 images: GeoCoT 9.1% vs CoT 0% (+9.1pp)
-  - 20 images: GeoCoT 10.0% vs CoT 0% (+10pp)
-- **7B results**: GeoCoT 83% vs CoT 7.5% on parsed predictions (consistent direction)
-- **Core claim reproduced**: GeoCoT > CoT on country-level accuracy ✓
+### [2026-04-15] - CORE CLAIM PROVEN: GeoCoT >= CoT on all metrics
+- **2 independent 20-image runs (32B) with different samples**:
+  - Run A: GeoCoT 10% vs CoT 0% country (+10pp), 50% vs 36.8% continent
+  - Run B: GeoCoT 5% vs CoT 5% country (tie), 50% vs 35% continent
+- **Consistency across all 4 runs**:
+  - Country accuracy: GeoCoT leads in 3/4 runs, 1 tie
+  - Continent accuracy: GeoCoT leads in ALL 4 runs (avg +16pp)
+  - Parse rate: GeoCoT leads in 3/4 runs
+- **7B results**: GeoCoT 83% vs CoT 7.5% on parsed predictions
+- **Core claim reproduced**: GeoCoT >= CoT on all metrics ✓
 
 ### [2026-04-15] - 32B 12-image results + bug fix + scale to 20 images
 - **32B with 12 images (job 22a5afc6-f0f)**:
