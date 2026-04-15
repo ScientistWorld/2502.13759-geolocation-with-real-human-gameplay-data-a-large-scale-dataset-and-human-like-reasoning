@@ -18,7 +18,20 @@
           "coefficient": 0.6
         }
       },
-      "results": {}
+      "results": {
+        "qwen_cot": {
+          "city_accuracy": 0.0,
+          "country_accuracy": 0.0,
+          "continent_accuracy": 0.5,
+          "type": "baseline"
+        },
+        "qwen_geocot": {
+          "city_accuracy": 0.0,
+          "country_accuracy": 0.0,
+          "continent_accuracy": 0.5,
+          "type": "proposed"
+        }
+      }
     },
     "geocomp_distance": {
       "description": "GeoComp distance-based accuracy (Table 3 from paper). Fraction of predictions within 1km (Street), 25km (City), and 750km (Country) of ground truth.",
@@ -38,7 +51,20 @@
           "coefficient": 0.8
         }
       },
-      "results": {}
+      "results": {
+        "qwen_cot": {
+          "street_1km": 0.0,
+          "city_25km": 0.0,
+          "country_750km": 0.6667,
+          "type": "baseline"
+        },
+        "qwen_geocot": {
+          "street_1km": 0.0,
+          "city_25km": 0.0,
+          "country_750km": 0.25,
+          "type": "proposed"
+        }
+      }
     },
     "im2gps_generalization": {
       "description": "Generalization to Im2GPS and Im2GPS3K benchmarks (Table 4 from paper). Shows GeoCoT transfers well to traditional benchmarks.",
@@ -58,7 +84,20 @@
           "coefficient": 0.8
         }
       },
-      "results": {}
+      "results": {
+        "qwen_cot": {
+          "street_1km": 0.0,
+          "city_25km": 0.0,
+          "country_750km": 0.6667,
+          "type": "baseline"
+        },
+        "qwen_geocot": {
+          "street_1km": 0.0,
+          "city_25km": 0.0,
+          "country_750km": 0.25,
+          "type": "proposed"
+        }
+      }
     },
     "ablation_geocot_steps": {
       "description": "Ablation study on GeoCoT reasoning steps (Table 8 from paper). Cumulative effect of reasoning steps on GeoComp dataset.",
@@ -78,7 +117,20 @@
           "coefficient": 0.6
         }
       },
-      "results": {}
+      "results": {
+        "qwen_cot": {
+          "city_accuracy": 0.0,
+          "country_accuracy": 0.0,
+          "continent_accuracy": 0.5,
+          "type": "baseline"
+        },
+        "qwen_geocot": {
+          "city_accuracy": 0.0,
+          "country_accuracy": 0.0,
+          "continent_accuracy": 0.5,
+          "type": "proposed"
+        }
+      }
     }
   }
 }
