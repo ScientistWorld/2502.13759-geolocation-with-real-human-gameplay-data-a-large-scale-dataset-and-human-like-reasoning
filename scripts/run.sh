@@ -83,9 +83,9 @@ by_country = defaultdict(list)
 for row in data:
     by_country[row['country']].append(row)
 
-# Take 2 countries with most images for best diversity
-TARGET_COUNTRIES = 2
-SAMPLES_PER_COUNTRY = 2
+# Take 4 countries with most images for better statistical power
+TARGET_COUNTRIES = 4
+SAMPLES_PER_COUNTRY = 3
 
 # Sort countries by number of samples (descending) to get most diverse
 sorted_countries = sorted(by_country.items(), key=lambda x: -len(x[1]))
