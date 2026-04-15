@@ -30,5 +30,10 @@
 - Revalidated locally with `python validate.py --compare`; the scaled core result remains GeoCoT 0.500 vs CoT 0.350 continent accuracy, with country accuracy tied and distance metrics weak.
 - Clarified `scripts/download.sh` handling of the tracked GeoCLIP-derived evaluation sample.
 
+### [2026-04-15 12:45] - core_claim_plus
+- Final verification found that the local sample lacks city labels, so the evaluator now omits unavailable city classification metrics rather than reporting artificial zeros.
+- Distance-threshold metrics now count missing predicted coordinates as failures when ground-truth coordinates are available.
+- Regenerated `scoring/scores.json`, `scoring/scores_train.json`, and `scoring/scores_test.json`; `python validate.py --compare` passes.
+
 ## Stop Justification
 - Completed at milestone `core_claim_plus`.

@@ -25,11 +25,12 @@ No external geolocation datasets may be used to train or validate the method. Te
 - Use both classification metrics (accuracy, recall, F1) and distance metrics (1km, 25km, 750km thresholds)
 - Report inference-time and generated-token overhead for the same prediction files when timing information is available
 - Report results on the same test set as the reproduction for fair comparison
+- Omit a metric only when the corresponding ground-truth field is absent from the evaluation slice; do not report unavailable labels as zero.
 
 ## Compliance Checklist
 - [ ] Method is prompting-based (no fine-tuning on geolocation data)
 - [ ] Evaluation uses the same test set as the reproduction
-- [ ] All three granularity levels (city/country/continent) are reported
+- [ ] All available ground-truth granularity levels are reported
 - [ ] Both classification and distance metrics are reported
 - [ ] Inference-time overhead is reported or explicitly marked unavailable
 - [ ] The method stays within inference-time image reasoning rather than supervised geolocation training

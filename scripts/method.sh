@@ -34,17 +34,13 @@ echo "Using VLM: $MODEL_NAME"
 # Find dataset
 if [ -f "/home/user/data/im2gps3k/im2gps3k.csv" ]; then
     DATASET="/home/user/data/im2gps3k/im2gps3k.csv"
+elif [ -f "/home/user/data/geoclip/geoclip.csv" ]; then
+    DATASET="/home/user/data/geoclip/geoclip.csv"
 elif [ -f "/home/user/data/sample_geolocation.csv" ]; then
     DATASET="/home/user/data/sample_geolocation.csv"
 else
-    echo "Creating sample dataset..."
-    python3 -c "
-import sys
-sys.path.insert(0, '/home/user')
-from data.loader import create_sample_dataset
-create_sample_dataset('/home/user/data', num_samples=50)
-"
-    DATASET="/home/user/data/sample_geolocation.csv"
+    echo "ERROR: no geolocation dataset CSV found under data/."
+    exit 1
 fi
 
 echo "Dataset: $DATASET"

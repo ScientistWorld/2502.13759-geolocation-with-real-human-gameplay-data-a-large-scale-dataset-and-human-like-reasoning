@@ -39,3 +39,5 @@ For the main 500-image benchmark, strong reference systems reach roughly 0.09-0.
 3. **For classification metrics**: Parse the model's city/country/continent prediction and compare against ground truth.
 4. **For distance metrics**: Convert city/country predictions to GPS coordinates (using the center of the predicted city/country) and compute haversine distance to ground truth.
 5. **Statistical significance**: Use two-tailed paired t-test with p-value < 0.05 to determine significant improvements over baselines.
+
+When a dataset slice lacks ground-truth labels for a granularity level, that level should be omitted from reproduced scores rather than reported as zero. Missing predictions on examples with available ground truth count as incorrect.

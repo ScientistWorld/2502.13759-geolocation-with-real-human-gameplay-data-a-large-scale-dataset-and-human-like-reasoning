@@ -4,6 +4,7 @@
 Geolocation accuracy at city, country, and continent levels on the main geolocation test set.
 - **Metric**: city_accuracy, city_recall, city_f1, country_accuracy, country_recall, country_f1, continent_accuracy, continent_recall, continent_f1 (higher is better)
 - **Reference target**: the proposed system in the paper reaches 0.118 city accuracy, 0.640 country accuracy, and 0.862 continent accuracy; the full recall/F1 values are encoded in `scoring/reference.json`.
+- **Local reproduction note**: the accessible 20-image sample does not include city labels, so reproduced `scores*.json` files report country and continent classification metrics only.
 
 ## Primary: geocomp_distance
 Distance-based accuracy: fraction of predictions within 1km (street), 25km (city), 750km (country).
@@ -16,6 +17,6 @@ Inference overhead should remain modest. A scientist should not win the benchmar
 - **Reference target**: the proposed system averages 173.28 generated tokens and 8.88 seconds per example, compared with 141.58 tokens and 7.57 seconds for a simpler explanatory baseline.
 
 ## Diagnostic: ablation_explanation_scaffolds
-Contribution of progressively richer explanation scaffolds.
-- **Metric**: city/country/continent accuracy, recall, and F1 (higher is better when all useful scaffolding is present)
+Contribution of controlled inference-time configuration variants.
+- **Metric**: available city/country/continent accuracy, recall, and F1 (higher is better)
 - **Reference target**: the full proposed configuration reaches 0.118 city accuracy on the paper's main test set.

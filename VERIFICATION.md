@@ -1,27 +1,27 @@
 # Verification Report
 
 ## Initial Assessment
-The workspace already claimed `core_claim_plus` and had a working GeoCoT reproduction package: method code, reusable evaluation scripts, scored prediction artifacts, train/test evaluation slices, and a prior managed-container validation job. The claimed milestone is justified because the implementation runs the paper's prompting algorithm directly and includes both the core CoT comparison and multiple step-ablation settings.
+The workspace started at `core_claim_plus` with a functioning GeoCoT reproduction: method code, saved prediction artifacts, reusable evaluation scripts, train/test slices, and prior validation. The claimed milestone remains justified because the implemented method runs the paper's actual inference-time geolocation prompting procedure and includes both the main CoT comparison and controlled ablation variants.
 
 ## Issues Found
-- Minor: method-agnostic documentation still contained template text and solution-specific naming that would leak the paper's method to from-scratch scientist agents.
-- Minor: `scripts/evaluate.sh` emitted an unreproduced reference-only experiment with an empty `results` block, which made the scored experiment set less clear.
-- Minor: evaluator routing was tied too closely to the reproduced method filenames for the main experiments, making it less reusable for future methods that produce compatible prediction files.
-- Minor: the ablation scorer temporarily included a control output that is not part of the paper-reported ablation reference table, causing validation to fail until the route was tightened.
-- Cosmetic: an untracked root-level core dump was present; tracked root-level container/system artifacts were left in place as existing system files.
+- Minor: reproduced classification scores reported city metrics as zero even though the accessible local sample has no city labels. That made unavailable ground truth look like model failure.
+- Minor: distance-threshold metrics excluded missing predicted coordinates from the denominator, which could inflate threshold accuracy for methods that fail to parse a location.
+- Minor: train/test slice evaluators duplicated older metric logic and did not share the corrected top-level scorer.
+- Minor: method-agnostic scoring documentation did not state how unavailable label levels are handled in the scaled local sample.
+- Cosmetic: tracked root-level container/system artifacts and unrelated dirty system files are present. They were not modified because they predate this verification and are outside the reproduction package.
 
 ## Fixes Applied
-- Rewrote `briefing/problem.md`, `briefing/evaluation.md`, and `scoring/EXPERIMENTS.md` to describe the problem and experiments without exposing the paper's algorithm.
-- Updated `scoring/TARGETS.md`, `scoring/CONSTRAINTS.md`, and `scoring/DIRECTION.md` to give future scientists precise, high-level guidance while avoiding internal method details.
-- Renamed the reproduced ablation experiment to `ablation_explanation_scaffolds` and synchronized the evaluator, reference file, scores files, and target documentation.
-- Changed the evaluator to omit experiments with no reproduced results and to score any non-ablation compatible prediction file in the main experiments.
-- Regenerated `scoring/scores.json`, `scoring/scores_train.json`, and `scoring/scores_test.json` through the evaluation scripts.
-- Moved the untracked root-level core dump into `tmp/root_artifacts/`.
+- Updated `eval/evaluate_results.py` so classification metrics are emitted only for label levels with ground truth, and missing predicted coordinates count as distance-threshold failures.
+- Updated `eval/train/evaluate_results.py` and `eval/test/evaluate_results.py` to use the shared top-level metric functions and denominator semantics.
+- Regenerated `scoring/scores.json`, `scoring/scores_train.json`, and `scoring/scores_test.json`; reproduced score metadata now lists only metrics actually present in each score file.
+- Clarified `briefing/evaluation.md`, `scoring/EXPERIMENTS.md`, `scoring/TARGETS.md`, `scoring/CONSTRAINTS.md`, `PROGRESS.md`, and `MILESTONES.md` to document the no-city-label local sample and corrected scoring contract.
+- Tightened `scripts/method.sh` and `scripts/reproduce.sh` so they use the tracked geolocation sample and do not attempt internet downloads inside the compute reproduction flow.
+- Verified both Hugging Face model download endpoints in `scripts/download.sh` resolve with HTTP 200, and confirmed `python validate.py --compare`, Python compilation, and shell syntax checks pass.
 
 ## Final Judgment
-The workspace is ready to serve as a research gym with clear limitations. Improve-mode agents can use the full GeoCoT implementation, prediction artifacts, and ablation setup. From-scratch agents can use the method-agnostic problem, data, and evaluation files without seeing the implementation details. The main limitation is scale: the reproduced run uses a small 20-image accessible sample, so the benchmark is useful for iteration but not a full-strength reproduction of the paper's full GeoComp and Im2GPS evaluation.
+The workspace is ready to serve as a research gym with a clear scale limitation. Improve-mode agents can build on the full method implementation and saved artifacts. From-scratch agents can use the problem, data, and evaluation interface without importing or reading method code. The benchmark is meaningful for iteration because baseline performance is far from saturated, but the reproduced sample is small and lacks city labels, so it is not a full-strength replacement for the paper's 500-image GeoComp evaluation.
 
 - Milestone: core_claim_plus
 - Ready for gym use: partial
 - Confidence: medium
-- Key limitation: scaled 20-image substitute sample with weak city/country/distance reproduction and no reproduced Im2GPS generalization run.
+- Key limitation: scaled 20-image GeoCLIP-derived sample with country/continent/GPS labels only and no reproduced Im2GPS generalization run.

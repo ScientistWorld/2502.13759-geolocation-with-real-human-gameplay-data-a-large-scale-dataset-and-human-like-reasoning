@@ -5,18 +5,6 @@
       "weight": 0.3,
       "primary_metric": "country_accuracy",
       "metrics": {
-        "city_accuracy": {
-          "higher_is_better": true,
-          "coefficient": 1.0
-        },
-        "city_recall": {
-          "higher_is_better": true,
-          "coefficient": 0.4
-        },
-        "city_f1": {
-          "higher_is_better": true,
-          "coefficient": 0.5
-        },
         "country_accuracy": {
           "higher_is_better": true,
           "coefficient": 0.8
@@ -44,9 +32,6 @@
       },
       "results": {
         "qwen_cot": {
-          "city_accuracy": 0.0,
-          "city_recall": 0.0,
-          "city_f1": 0.0,
           "country_accuracy": 0.1,
           "country_recall": 0.1,
           "country_f1": 0.1,
@@ -55,9 +40,6 @@
           "continent_f1": 0.5
         },
         "qwen_geocot": {
-          "city_accuracy": 0.0,
-          "city_recall": 0.0,
-          "city_f1": 0.0,
           "country_accuracy": 0.0,
           "country_recall": 0.0,
           "country_f1": 0.0,
@@ -89,7 +71,7 @@
         "qwen_cot": {
           "street_1km": 0.0,
           "city_25km": 0.0,
-          "country_750km": 0.2222
+          "country_750km": 0.2
         },
         "qwen_geocot": {
           "street_1km": 0.0,
@@ -128,18 +110,6 @@
       "weight": 0.15,
       "primary_metric": "country_accuracy",
       "metrics": {
-        "city_accuracy": {
-          "higher_is_better": true,
-          "coefficient": 1.0
-        },
-        "city_recall": {
-          "higher_is_better": true,
-          "coefficient": 0.4
-        },
-        "city_f1": {
-          "higher_is_better": true,
-          "coefficient": 0.5
-        },
         "country_accuracy": {
           "higher_is_better": true,
           "coefficient": 0.8
@@ -167,31 +137,22 @@
       },
       "results": {
         "geocot_full": {
-          "city_accuracy": 0.0,
-          "city_recall": 0.0,
-          "city_f1": 0.0,
           "country_accuracy": 0.0,
           "country_recall": 0.0,
           "country_f1": 0.0,
-          "continent_accuracy": 0.4444,
-          "continent_recall": 0.4444,
-          "continent_f1": 0.4444
+          "continent_accuracy": 0.5,
+          "continent_recall": 0.5,
+          "continent_f1": 0.5
         },
         "geocot_step1": {
-          "city_accuracy": 0.0,
-          "city_recall": 0.0,
-          "city_f1": 0.0,
-          "country_accuracy": 0.1111,
-          "country_recall": 0.1111,
-          "country_f1": 0.1111,
-          "continent_accuracy": 0.5556,
-          "continent_recall": 0.5556,
-          "continent_f1": 0.5556
+          "country_accuracy": 0.2,
+          "country_recall": 0.2,
+          "country_f1": 0.2105,
+          "continent_accuracy": 0.5,
+          "continent_recall": 0.5,
+          "continent_f1": 0.5263
         },
         "geocot_step1_2": {
-          "city_accuracy": 0.0,
-          "city_recall": 0.0,
-          "city_f1": 0.0,
           "country_accuracy": 0.2,
           "country_recall": 0.2,
           "country_f1": 0.2,
@@ -200,9 +161,6 @@
           "continent_f1": 0.5
         },
         "geocot_step1_2_3": {
-          "city_accuracy": 0.0,
-          "city_recall": 0.0,
-          "city_f1": 0.0,
           "country_accuracy": 0.2,
           "country_recall": 0.2,
           "country_f1": 0.2,
@@ -211,9 +169,6 @@
           "continent_f1": 0.6
         },
         "geocot_step1_2_3_4": {
-          "city_accuracy": 0.0,
-          "city_recall": 0.0,
-          "city_f1": 0.0,
           "country_accuracy": 0.1,
           "country_recall": 0.1,
           "country_f1": 0.1,

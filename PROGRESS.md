@@ -22,21 +22,21 @@
 
 ### Evaluation and Scoring
 - `eval/evaluate_results.py` is the reusable evaluator. It imports no method code and scores any compatible prediction JSON files.
-- The evaluator counts every prediction with ground-truth labels in the denominator and normalizes free-form country/continent phrases before comparison.
+- The evaluator counts every prediction with available ground truth in the denominator, normalizes free-form country/continent phrases before comparison, and omits label levels that are unavailable in the local sample.
 - `scripts/evaluate.sh` delegates to `eval.evaluate_results` and writes `scoring/scores.json`.
 - `scoring/reference.json` now captures the paper's reported results for GeoComp classification, distance thresholds, efficiency, ablation, and Im2GPS generalization.
 - `scoring/scores.json` is generated from actual local prediction artifacts, not copied from the paper.
 
 ## Current Reproduced Results
 
-The current local reproduction uses the paper's GeoCoT prompt with Qwen2.5-VL-32B-Instruct on a small 20-image GeoCLIP subset. This is a scaled reproduction, not a match to the paper's GPT-4o/GeoComp setting.
+The current local reproduction uses the paper's GeoCoT prompt with Qwen2.5-VL-32B-Instruct on a small 20-image GeoCLIP subset. This is a scaled reproduction, not a match to the paper's GPT-4o/GeoComp setting. The local sample has country, continent, and GPS ground truth but no city labels, so reproduced classification scores omit city metrics.
 
 ### CoT vs GeoCoT
 
-| Method | City Acc | Country Acc | Continent Acc | Country <750 km | Avg Tokens | Avg Time (s) |
-|--------|----------|-------------|---------------|------------------|------------|--------------|
-| Qwen CoT | 0.000 | 0.050 | 0.350 | 0.188 | 394.400 | 51.005 |
-| Qwen GeoCoT | 0.000 | 0.050 | 0.500 | 0.150 | 551.650 | 78.760 |
+| Method | Country Acc | Continent Acc | Country <750 km | Avg Tokens | Avg Time (s) |
+|--------|-------------|---------------|------------------|------------|--------------|
+| Qwen CoT | 0.050 | 0.350 | 0.150 | 394.400 | 51.005 |
+| Qwen GeoCoT | 0.050 | 0.500 | 0.150 | 551.650 | 78.760 |
 
 GeoCoT supports the core qualitative claim on this scaled setup by improving continent-level geolocation over generic CoT. The country-level result ties CoT, and the distance metric is worse on this small sample.
 
@@ -55,6 +55,7 @@ The ablation shows that the paper's visual-cue decomposition matters, but the fu
 ## Validation
 
 - `scripts/evaluate.sh` successfully regenerates `scoring/scores.json` with the corrected denominator and free-form label normalization.
+- `scripts/evaluate_train.sh` and `scripts/evaluate_test.sh` use the same shared metric semantics as the top-level evaluator.
 - `python validate.py --compare` passes locally after the scoring correction.
 - Audit fixes passed lightweight checks: Python compilation, shell syntax checks, parser smoke tests, and `validate.py --compare`.
 - CPU test job `e762ae95-bec` passed inside the managed container with exit code 0. It regenerated scores, ran `python validate.py --compare`, and confirmed import separation plus portable path checks.

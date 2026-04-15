@@ -225,6 +225,9 @@ def route_experiment(experiment: str, prediction_stem: str) -> bool:
     return False
 
 
+from eval.evaluate_results import compute_metrics, method_name, route_experiment
+
+
 def in_split(prediction: dict[str, Any]) -> bool:
     image_path = prediction.get("image_path")
     return bool(image_path) and Path(str(image_path)).name in SPLIT_IMAGE_BASENAMES
@@ -245,7 +248,7 @@ def evaluate(results_dir: Path, reference_path: Path, scores_path: Path) -> dict
             continue
         split_predictions = [pred for pred in predictions if in_split(pred)]
         valid = [pred for pred in split_predictions if pred.get("predicted_country") is not None]
-        valid_gt = [pred for pred in valid if pred.get("ground_truth_country") is not None]
+        valid_gt = [pred for pred in split_predictions if pred.get("ground_truth_country") is not None]
         print(f"  {len(split_predictions)} in split, {len(valid)} valid, {len(valid_gt)} with ground truth")
         if valid_gt:
             metrics = compute_metrics(valid_gt)
@@ -281,6 +284,12 @@ def evaluate(results_dir: Path, reference_path: Path, scores_path: Path) -> dict
             if entry:
                 exp_copy["results"][method_name(pred_name)] = entry
         if exp_copy["results"]:
+            measured_metrics = set()
+            for entry in exp_copy["results"].values():
+                measured_metrics.update(entry)
+            exp_copy["metrics"] = {
+                key: value for key, value in exp_data.get("metrics", {}).items() if key in measured_metrics
+            }
             scores["experiments"][exp_name] = exp_copy
 
     scores_path.write_text(json.dumps(scores, indent=2) + "\n")

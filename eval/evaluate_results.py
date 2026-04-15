@@ -147,10 +147,12 @@ def compute_metrics(predictions: list[dict[str, Any]]) -> dict[str, float]:
         tp = fp = fn = 0
         pred_key = f"predicted_{level}"
         gt_key = f"ground_truth_{level}"
+        level_total = 0
         for pred in predictions:
             gt_val = pred.get(gt_key)
             if not gt_val:
                 continue
+            level_total += 1
             pred_val = pred.get(pred_key)
             if not pred_val:
                 fn += 1
@@ -169,7 +171,9 @@ def compute_metrics(predictions: list[dict[str, Any]]) -> dict[str, float]:
             else:
                 fp += 1
                 fn += 1
-        accuracy = tp / total if total else 0.0
+        if not level_total:
+            continue
+        accuracy = tp / level_total
         recall = tp / (tp + fn) if (tp + fn) else 0.0
         precision = tp / (tp + fp) if (tp + fp) else 0.0
         f1 = 2 * precision * recall / (precision + recall) if (precision + recall) else 0.0
@@ -184,9 +188,11 @@ def compute_metrics(predictions: list[dict[str, Any]]) -> dict[str, float]:
             lon = pred.get("ground_truth_lon")
             pred_lat = pred.get("predicted_lat")
             pred_lon = pred.get("predicted_lon")
-            if lat is None or lon is None or pred_lat is None or pred_lon is None:
+            if lat is None or lon is None:
                 continue
             total_with_coords += 1
+            if pred_lat is None or pred_lon is None:
+                continue
             try:
                 if haversine(float(lat), float(lon), float(pred_lat), float(pred_lon)) <= threshold:
                     within += 1
@@ -283,6 +289,12 @@ def evaluate(results_dir: Path, reference_path: Path, scores_path: Path) -> dict
             if entry:
                 exp_copy["results"][method_name(pred_name)] = entry
         if exp_copy["results"]:
+            measured_metrics = set()
+            for entry in exp_copy["results"].values():
+                measured_metrics.update(entry)
+            exp_copy["metrics"] = {
+                key: value for key, value in exp_data.get("metrics", {}).items() if key in measured_metrics
+            }
             scores["experiments"][exp_name] = exp_copy
 
     scores_path.write_text(json.dumps(scores, indent=2) + "\n")
