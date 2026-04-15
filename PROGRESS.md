@@ -3,78 +3,86 @@
 ## What Works
 
 ### Briefing
-- `briefing/problem.md` — Describes the image geolocation problem (method-agnostic)
-- `briefing/evaluation.md` — Describes evaluation metrics (method-agnostic)
-- `briefing/method.md` — Describes GeoCoT 5-step chain-of-thought prompting
+- `briefing/problem.md` — Method-agnostic image geolocation problem definition
+- `briefing/evaluation.md` — Method-agnostic evaluation metrics (classification + distance)
+- `briefing/method.md` — GeoCoT 5-step chain-of-thought description
 - `briefing/overview.md` — Paper summary
 
 ### Method Implementation
-- `method/prompt_template.py` — GeoCoT 5-step prompting and standard CoT prompts
-- `method/vlm_client.py` — VLM client supporting GPT-4o (API), Qwen2.5-VL (local), LLaVA
-- `method/run_geocot.py` — Main script for running GeoCoT on datasets
+- `method/prompt_template.py` — Paper's 5-step GeoCoT prompt from Appendix B
+- `method/vlm_client.py` — VLM client (GPT-4o, Qwen2.5-VL, LLaVA)
+- `method/run_geocot.py` — Main GeoCoT runner
 - `method/__init__.py` — GeoCoT module
 
 ### Data
-- `data/loader.py` — Dataset loader
 - `data/geoclip/geoclip.csv` — 999 images from Kenya, Ecuador, Chile, Madagascar
-- `data/geoclip/*.png` — 999 image files
-- `data/reverse_geocode.py` — Reverse geocoding utility
+- `data/geoclip/*.png` — 999 image files (73 MB)
 
 ### Evaluation
 - `eval/metrics.py` — Full geolocation metrics (classification + distance)
-- `scripts/evaluate.sh` — End-to-end evaluation with scores.json output
+- `scripts/evaluate.sh` — End-to-end evaluation pipeline
 
 ### Scoring
 - `scoring/reference.json` — Paper's reported numbers (Tables 2, 3, 4, 8)
-- `scoring/scores.json` — Output file for reproduced numbers
+- `scoring/scores.json` — Reset to empty (will be populated by evaluate.sh)
 
 ### Environment
 - `environment/container.def` — Ubuntu 22.04 base
-- `environment/setup.sh` — Installs PyTorch, transformers, qwen-vl-utils
+- `environment/setup.sh` — Installs torch, transformers, qwen-vl-utils
 
 ### Scripts
-- `scripts/run.sh` — **FIXED**: Full 5-step GeoCoT prompt, 12 images, CoT first
-- `scripts/evaluate.sh` — **FIXED**: Clean separation of reference vs reproduced
+- `scripts/run.sh` — **Optimized**: 5-step GeoCoT, 8 images, 32B model
+- `scripts/evaluate.sh` — Evaluates and writes scores.json
 - `scripts/download.sh` — Downloads Qwen2.5-VL models
 - `scripts/reproduce.sh` — End-to-end reproduction
 
-## Results (Previous — with WRONG 2-question prompt)
+## Results (Previous Runs — ALL WRONG PROMPT)
 
-### 7B Model (Qwen2.5-VL-7B-Instruct) — 40 images
-| Method | Country Acc | Continent Acc | City 25km |
-|--------|------------|---------------|-----------|
-| CoT    | 0.075 (3/40) | 0.125 (5/40) | 0.25      |
-| GeoCoT | 0.000 (0/40) | 0.125 (5/40) | 0.00      |
+### Previous Bug: 2-question prompt vs 5-step
+All previous runs used `Q1: street elements + Q2: sidewalk patterns` instead of the paper's ACTUAL 5-step GeoCoT:
+1. Natural features / climate zone
+2. Cultural markers / language / architecture
+3. Road features / license plates
+4. Urban markers / street signs
+5. Sidewalk patterns / clothing
 
-### 32B Model (Qwen2.5-VL-32B-Instruct) — 10 images (cancelled)
+### 7B Results (40 images, wrong prompt)
+| Method | Country Acc | Continent Acc |
+|--------|-----------|---------------|
+| CoT    | 0.075     | 0.125         |
+| GeoCoT | 0.000     | 0.125         |
+
+### 32B Results (10 images, wrong prompt)
 | Method | Country Acc |
-|--------|------------|
-| GeoCoT | 0.000 (0/10) |
+|--------|-----------|
+| GeoCoT | 0.000     |
 
-**Note**: These results used the WRONG 2-question prompt. New job submitted with correct 5-step prompt.
+**Note**: These used the WRONG prompt. New job uses correct 5-step prompt.
 
 ## Current Job
-- **Model**: Qwen2.5-VL-32B-Instruct
-- **Sample**: 12 images (3 per country)
+- **Model**: Qwen2.5-VL-32B-Instruct (preferred), 7B fallback
+- **Sample**: 2 countries × 2 images = 8 total
 - **Prompt**: Full 5-step GeoCoT from Appendix B
-- **Order**: CoT first, then GeoCoT (to ensure baseline)
-- **Decoding**: Greedy (temperature=0)
-- **max_new_tokens**: 256 (CoT), 600 (GeoCoT)
+- **Order**: CoT first (faster), then GeoCoT
+- **Decoding**: Greedy (do_sample=False)
+- **Tokens**: 256 (CoT), 512 (GeoCoT)
+- **Expected time**: ~30-40 min (within 60-min timeout)
+
+## Core Claim
+Paper: GeoCoT > CoT on country-level accuracy (0.64 vs 0.623)
+- Reproduction: With correct prompt, does GeoCoT outperform CoT?
 
 ## Deviations from Paper
-
 | Aspect | Paper | Reproduction |
 |--------|-------|-------------|
 | VLM | GPT-4o (closed API) | Qwen2.5-VL-32B-Instruct (local) |
-| Test set | GeoComp 500 images (20 countries) | GeoCLIP 999 images (4 countries) |
-| Countries | 20 countries, 6 continents | 4 countries, 2 continents |
-| Sample size | 500 | 12 |
-| City labels | Ground truth per image | Reverse geocoded from lat/lon |
-
-GeoCoT method faithfully reproduced: same 5-step structured prompting with same questions and format from Appendix B.
+| Test set | GeoComp 500 images | GeoCLIP 8 images (2 countries) |
+| Countries | 20 countries | 2 countries |
+| Sample | 500 | 8 |
+| Prompt | Full 5-step (Appendix B) | Full 5-step (Appendix B) ✓ |
 
 ## Remaining
-1. **Await GPU job results** — CoT + GeoCoT with correct prompt
+1. **GPU job** — Submit optimized run and await results
 2. **Evaluate** — Verify GeoCoT > CoT (core claim)
-3. **Update scores.json** — With actual results
-4. **Consider additional experiments** if budget allows
+3. **Scores** — Update scores.json with results
+4. **Milestone** — Push to core_claim if results support claim
