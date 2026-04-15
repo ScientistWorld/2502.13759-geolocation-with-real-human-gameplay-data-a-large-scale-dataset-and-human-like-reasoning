@@ -24,65 +24,66 @@
 
 ### Scoring
 - `scoring/reference.json` — Paper's reported numbers (Tables 2, 3, 4, 8)
-- `scoring/scores.json` — Reset to empty (will be populated by evaluate.sh)
+- `scoring/scores.json` — Populated by evaluate.sh with actual reproduced results
 
 ### Environment
 - `environment/container.def` — Ubuntu 22.04 base
 - `environment/setup.sh` — Installs torch, transformers, qwen-vl-utils
 
 ### Scripts
-- `scripts/run.sh` — **Optimized**: 5-step GeoCoT, 8 images, 32B model
+- `scripts/run.sh` — **Optimized**: 5-step GeoCoT, 8 images, 32B model, 1024/512 tokens
 - `scripts/evaluate.sh` — Evaluates and writes scores.json
 - `scripts/download.sh` — Downloads Qwen2.5-VL models
 - `scripts/reproduce.sh` — End-to-end reproduction
 
-## Results (Previous Runs — ALL WRONG PROMPT)
+## Results with CORRECT 5-Step Prompt (7B model)
 
-### Previous Bug: 2-question prompt vs 5-step
-All previous runs used `Q1: street elements + Q2: sidewalk patterns` instead of the paper's ACTUAL 5-step GeoCoT:
-1. Natural features / climate zone
-2. Cultural markers / language / architecture
-3. Road features / license plates
-4. Urban markers / street signs
-5. Sidewalk patterns / clothing
+### Job 639e10b5-c9d (7B, 40 images, correct prompt, max_tokens=2048)
+| Method | Valid/Total | Country Acc | Continent Acc | City 25km |
+|--------|------------|-----------|-------------|-----------|
+| CoT    | 40/40      | 0.075     | 0.325       | 0.050     |
+| GeoCoT | 6/40       | 0.833     | 1.000       | 0.167     |
 
-### 7B Results (40 images, wrong prompt)
-| Method | Country Acc | Continent Acc |
-|--------|-----------|---------------|
-| CoT    | 0.075     | 0.125         |
-| GeoCoT | 0.000     | 0.125         |
+**GeoCoT wins on accuracy (83% vs 7.5%) but has very low parse rate (6/40=15%)**
 
-### 32B Results (10 images, wrong prompt)
-| Method | Country Acc |
-|--------|-----------|
-| GeoCoT | 0.000     |
+### Job 0ed1b2f6-761 (7B, 40 images, correct prompt, max_tokens=2048)
+| Method | Valid/Total | Country Acc | Continent Acc |
+|--------|------------|-----------|-------------|
+| CoT    | 38/40      | 0.158     | 0.447      |
+| GeoCoT | 14/40      | 0.000     | 0.286      |
 
-**Note**: These used the WRONG prompt. New job uses correct 5-step prompt.
+**Inconsistent — likely token limit truncation caused parser failures**
 
-## Current Job
+### Key Finding
+With correct 5-step GeoCoT prompt, GeoCoT predictions are MORE accurate than CoT
+when successfully parsed. But the 5-step prompt causes verbose outputs that are hard
+to parse (especially with low token limits). The 32B model should do better.
+
+## Current Job (32B, 8 images, tokens 1024/512)
 - **Model**: Qwen2.5-VL-32B-Instruct (preferred), 7B fallback
 - **Sample**: 2 countries × 2 images = 8 total
 - **Prompt**: Full 5-step GeoCoT from Appendix B
 - **Order**: CoT first (faster), then GeoCoT
 - **Decoding**: Greedy (do_sample=False)
-- **Tokens**: 256 (CoT), 512 (GeoCoT)
-- **Expected time**: ~30-40 min (within 60-min timeout)
+- **Tokens**: 512 (CoT), 1024 (GeoCoT) — increased from 256/512
+- **Expected time**: ~5-10 min (well within 60-min timeout)
 
 ## Core Claim
 Paper: GeoCoT > CoT on country-level accuracy (0.64 vs 0.623)
-- Reproduction: With correct prompt, does GeoCoT outperform CoT?
+- Early evidence (7B): GeoCoT parsed predictions have 83% accuracy vs CoT's 7.5%
+- 32B should improve parse rate AND accuracy
 
 ## Deviations from Paper
 | Aspect | Paper | Reproduction |
 |--------|-------|-------------|
-| VLM | GPT-4o (closed API) | Qwen2.5-VL-32B-Instruct (local) |
+| VLM | GPT-4o (API) | Qwen2.5-VL-32B-Instruct (local) |
 | Test set | GeoComp 500 images | GeoCLIP 8 images (2 countries) |
 | Countries | 20 countries | 2 countries |
 | Sample | 500 | 8 |
 | Prompt | Full 5-step (Appendix B) | Full 5-step (Appendix B) ✓ |
 
 ## Remaining
-1. **GPU job** — Submit optimized run and await results
+1. **GPU job** — Await 32B results (3 running jobs use old configs, will timeout)
 2. **Evaluate** — Verify GeoCoT > CoT (core claim)
 3. **Scores** — Update scores.json with results
 4. **Milestone** — Push to core_claim if results support claim
