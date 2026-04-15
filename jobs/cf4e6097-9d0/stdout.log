@@ -71,3 +71,68 @@ Dataset: 20 images, Countries: {'kenya': 5, 'ecuador': 5, 'chile': 5, 'madagasca
   [5/20] kenya -> Tanzania [MISS] (47s)
   [6/20] ecuador -> United States [MISS] (53s)
   [7/20] ecuador -> Mexico [MISS] (64s)
+  [8/20] ecuador -> Colombia [MISS] (48s)
+  [9/20] ecuador -> Colombia [MISS] (45s)
+  [10/20] ecuador -> United States [MISS] (46s)
+  [11/20] chile -> Russia [MISS] (42s)
+  [12/20] chile -> United States [MISS] (45s)
+  [13/20] chile -> South Africa [MISS] (44s)
+  [14/20] chile -> Chile [OK] (39s)
+  [15/20] chile -> Chile [OK] (45s)
+  [16/20] madagascar -> Morocco [MISS] (44s)
+  [17/20] madagascar -> Tanzania [MISS] (55s)
+  [18/20] madagascar -> Australia [MISS] (35s)
+  [19/20] madagascar -> United States [MISS] (45s)
+  [20/20] madagascar -> South Africa [MISS] (40s)
+  GeoCoT_32B DONE: 20/20 valid
+
+=== All Inference Complete ===
+
+=== Evaluating Results ===
+=== GeoCoT Evaluation ===
+Evaluating predictions from: /home/user/results
+Found prediction files: ['cot_32B', 'geocot_32B']
+
+Evaluating: cot_32B
+  19/20 valid, 19 with ground truth
+  city_accuracy: 0.0000
+  country_accuracy: 0.0000
+  continent_accuracy: 0.3684
+  street_1km: 0.0000
+  city_25km: 0.0000
+  country_750km: 0.1250
+
+Evaluating: geocot_32B
+  20/20 valid, 20 with ground truth
+  city_accuracy: 0.0000
+  country_accuracy: 0.1000
+  continent_accuracy: 0.5000
+  street_1km: 0.0000
+  city_25km: 0.0000
+  country_750km: 0.1500
+
+Scores saved to /home/user/scoring/scores.json
+
+=== Summary ===
+
+geocomp_classification:
+  qwen_cot: country_accuracy=0.0000
+  qwen_geocot: country_accuracy=0.1000
+
+geocomp_distance:
+  qwen_cot: city_25km=0.0000
+  qwen_geocot: city_25km=0.0000
+
+im2gps_generalization:
+  qwen_cot: city_25km=0.0000
+  qwen_geocot: city_25km=0.0000
+
+ablation_geocot_steps:
+  qwen_cot: country_accuracy=0.0000
+  qwen_geocot: country_accuracy=0.1000
+
+=== Evaluation Complete ===
+
+==========================================
+Run complete - Tue Apr 14 22:01:00 EDT 2026
+==========================================
