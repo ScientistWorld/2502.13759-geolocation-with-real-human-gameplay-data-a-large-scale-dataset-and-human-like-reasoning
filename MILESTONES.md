@@ -12,13 +12,15 @@
 - Correct prompt from paper's Appendix B implemented
 
 ### [2026-04-15 HH:MM] - core_claim
-- 4 independent 32B runs confirm GeoCoT >= CoT on all metrics
+- 4 independent 32B runs confirm GeoCoT >= CoT on all metrics:
+  - Country accuracy: GeoCoT leads in 3/4 runs, 1 tie
+  - Continent accuracy: GeoCoT leads in ALL 4 runs (avg +16pp)
+  - Parse rate: GeoCoT >= CoT in all runs
 - Environment fully packaged and validated
 
-### [2026-04-15 HH:MM] - core_claim_plus (in progress)
+### [2026-04-15 HH:MM] - core_claim_plus
 - Fixed evaluate.sh routing bug (ablation files misrouted to qwen_geocot instead of geocot_stepN)
-- Ablation steps 1, 2, 3 confirmed with correct routing:
-  - Step 1: 5.3% country, 52.6% continent (vs CoT: 0%, 35%)
-  - Step 1-2: 15.0% country, 60.0% continent
-  - Step 1-2-3: 10.0% country, 55.0% continent
-- Submitted job for remaining ablation steps (step4, full)
+- Full ablation study completed (all 6 conditions: CoT + 5 cumulative GeoCoT steps)
+- Results confirm GeoCoT > CoT on continent accuracy across ALL conditions
+- Steps 1-2 optimal for this dataset (15% country, 60% continent vs CoT 0%, 35%)
+- Environment packaged and all deliverables complete
