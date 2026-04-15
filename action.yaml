@@ -2,4 +2,4 @@ action: submit
 gpus: 1
 test: false
 milestone: core_claim
-notes: "CORE CLAIM ACHIEVED. 2 independent runs: GeoCoT >= CoT on all metrics. Validator passes."
+notes: "Running ablation study: 6 conditions (CoT + 5 cumulative GeoCoT steps) on 20 images with 32B model. Tests contribution of each reasoning step."

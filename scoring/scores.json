@@ -1,22 +1,13 @@
 {
   "experiments": {
     "geocomp_classification": {
-      "description": "GeoComp classification results (Table 2 from paper). City/Country/Continent level accuracy for geolocation prediction on the 500-image GeoComp test set.",
+      "description": "GeoComp classification results (Table 2 from paper). City/Country/Continent level accuracy for geolocation prediction on the GeoCLIP test set (4 countries, 20 images).",
       "weight": 0.35,
       "primary_metric": "country_accuracy",
       "metrics": {
-        "city_accuracy": {
-          "higher_is_better": true,
-          "coefficient": 1.0
-        },
-        "country_accuracy": {
-          "higher_is_better": true,
-          "coefficient": 0.8
-        },
-        "continent_accuracy": {
-          "higher_is_better": true,
-          "coefficient": 0.6
-        }
+        "city_accuracy": {"higher_is_better": true, "coefficient": 1.0},
+        "country_accuracy": {"higher_is_better": true, "coefficient": 0.8},
+        "continent_accuracy": {"higher_is_better": true, "coefficient": 0.6}
       },
       "results": {
         "qwen_cot": {
@@ -36,24 +27,15 @@
       "weight": 0.35,
       "primary_metric": "city_25km",
       "metrics": {
-        "street_1km": {
-          "higher_is_better": true,
-          "coefficient": 1.0
-        },
-        "city_25km": {
-          "higher_is_better": true,
-          "coefficient": 1.0
-        },
-        "country_750km": {
-          "higher_is_better": true,
-          "coefficient": 0.8
-        }
+        "street_1km": {"higher_is_better": true, "coefficient": 1.0},
+        "city_25km": {"higher_is_better": true, "coefficient": 1.0},
+        "country_750km": {"higher_is_better": true, "coefficient": 0.8}
       },
       "results": {
         "qwen_cot": {
           "street_1km": 0.0,
           "city_25km": 0.0,
-          "country_750km": 0.1875
+          "country_750km": 0.15
         },
         "qwen_geocot": {
           "street_1km": 0.0,
@@ -67,38 +49,20 @@
       "weight": 0.2,
       "primary_metric": "city_25km",
       "metrics": {
-        "street_1km": {
-          "higher_is_better": true,
-          "coefficient": 1.0
-        },
-        "city_25km": {
-          "higher_is_better": true,
-          "coefficient": 1.0
-        },
-        "country_750km": {
-          "higher_is_better": true,
-          "coefficient": 0.8
-        }
+        "street_1km": {"higher_is_better": true, "coefficient": 1.0},
+        "city_25km": {"higher_is_better": true, "coefficient": 1.0},
+        "country_750km": {"higher_is_better": true, "coefficient": 0.8}
       },
       "results": {}
     },
     "ablation_geocot_steps": {
-      "description": "Ablation study on GeoCoT reasoning steps (Table 8 from paper). Cumulative effect of reasoning steps on GeoComp dataset.",
+      "description": "Ablation study on GeoCoT reasoning steps (Table 8 from paper). Cumulative effect of reasoning steps on GeoCLIP dataset (4 countries, 20 images).",
       "weight": 0.1,
       "primary_metric": "country_accuracy",
       "metrics": {
-        "city_accuracy": {
-          "higher_is_better": true,
-          "coefficient": 1.0
-        },
-        "country_accuracy": {
-          "higher_is_better": true,
-          "coefficient": 0.8
-        },
-        "continent_accuracy": {
-          "higher_is_better": true,
-          "coefficient": 0.6
-        }
+        "city_accuracy": {"higher_is_better": true, "coefficient": 1.0},
+        "country_accuracy": {"higher_is_better": true, "coefficient": 0.8},
+        "continent_accuracy": {"higher_is_better": true, "coefficient": 0.6}
       },
       "results": {}
     }

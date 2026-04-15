@@ -211,10 +211,22 @@ scores = {"experiments": {}}
 # Map prediction file names to score method names
 def get_method_name(pred_name):
     n = pred_name.lower()
-    if "geocot" in n:
-        return "qwen_geocot"  # Our reproduction of GeoCoT
+    # Ablation study results go to ablation_geocot_steps
+    if "abl_geocot_step1_" in n and "step2" not in n and "step3" not in n and "step4" not in n and "full" not in n:
+        return "geocot_step1"
+    elif "abl_geocot_step2_" in n and "step3" not in n and "step4" not in n and "full" not in n:
+        return "geocot_step1_2"
+    elif "abl_geocot_step3_" in n and "step4" not in n and "full" not in n:
+        return "geocot_step1_2_3"
+    elif "abl_geocot_step4_" in n and "full" not in n:
+        return "geocot_step1_2_3_4"
+    elif "abl_geocot_full_" in n or "abl_geocot_step5_" in n:
+        return "geocot_full"
+    # Standard results: qwen_cot and qwen_geocot for geocomp experiments
+    elif "geocot" in n:
+        return "qwen_geocot"
     elif "cot" in n:
-        return "qwen_cot"     # Our reproduction of CoT baseline
+        return "qwen_cot"
     return pred_name
 
 for exp_name, exp_data in reference.get("experiments", {}).items():
@@ -228,26 +240,39 @@ for exp_name, exp_data in reference.get("experiments", {}).items():
 
     ref_metrics = list(exp_data.get("metrics", {}).keys())
 
-    # Only add reproduced results to experiments where our method names are valid
-    # qwen_cot/qwen_geocot are only comparable to geocomp_classification/geocomp_distance
-    # ablation_geocot_steps has paper-specific step ablation methods
-    # im2gps_generalization has paper-specific benchmark methods
-    if exp_name not in ("geocomp_classification", "geocomp_distance"):
-        scores["experiments"][exp_name] = exp_copy
-        continue
-
-    # Add reproduced results (NOT reference/paper results - those stay in reference.json)
+    # Route each prediction to the correct experiment:
+    # - ablation files (abl_geocot_step*, abl_geocot_full) -> ablation_geocot_steps
+    # - cot/geocot files (no abl_ prefix) -> geocomp_classification or geocomp_distance
+    # - all others -> unknown (skip)
     for pred_name, metrics in all_results.items():
         method_name = get_method_name(pred_name)
+        pred_lower = pred_name.lower()
+
+        # Determine experiment routing
+        is_ablation_pred = ("abl_geocot_step" in pred_lower or
+                           "abl_geocot_full" in pred_lower)
+        is_repro_pred = (pred_lower.startswith("cot_") or
+                         pred_lower.startswith("geocot_"))
+
+        # Skip predictions that don't belong to this experiment
+        if exp_name == "ablation_geocot_steps":
+            if not is_ablation_pred:
+                continue
+        elif exp_name in ("geocomp_classification", "geocomp_distance"):
+            if is_ablation_pred or not is_repro_pred:
+                continue
+        else:
+            continue  # Skip other experiments
+
+        # Build metric entry from this prediction
         entry = {}
         for key in ref_metrics:
             if key in metrics:
                 entry[key] = metrics[key]
         if entry:
-            # Only include numeric metric values (no 'type' or other metadata)
-            # Validator requires all fields to be numeric
             numeric_entry = {k: v for k, v in entry.items() if isinstance(v, (int, float))}
-            exp_copy["results"][method_name] = numeric_entry
+            if numeric_entry:
+                exp_copy["results"][method_name] = numeric_entry
 
     scores["experiments"][exp_name] = exp_copy
 
