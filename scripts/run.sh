@@ -85,7 +85,7 @@ for row in data:
 
 # Take 4 countries with most images for better statistical power
 TARGET_COUNTRIES = 4
-SAMPLES_PER_COUNTRY = 3
+SAMPLES_PER_COUNTRY = 5
 
 # Sort countries by number of samples (descending) to get most diverse
 sorted_countries = sorted(by_country.items(), key=lambda x: -len(x[1]))
@@ -255,6 +255,9 @@ def parse_location(text):
     m = re.search(r'[Ll]ocation:\s*(.+?)$', text, re.MULTILINE)
     if m:
         parts = [p.strip().rstrip('.') for p in m.group(1).split(',')]
+        city = None
+        country = None
+        continent = None
         if len(parts) >= 3:
             city = parts[0]
             c_lower = parts[-2].lower()
@@ -269,6 +272,8 @@ def parse_location(text):
         return city, country, continent
 
     # Strategy 4: Country + continent search (last third of text first)
+    country = None
+    continent = None
     conclusion = text[len(text)//2:]
     for ckey, cname in sorted(ALL_COUNTRIES.items(), key=lambda x: -len(x[0])):
         if ckey in conclusion.lower():
@@ -354,11 +359,9 @@ for r in data_rows:
     countries[r['country']] = countries.get(r['country'], 0) + 1
 print(f"Dataset: {len(data_rows)} images, Countries: {countries}", flush=True)
 
-# Token limits - must be generous for 5-step GeoCoT to produce parseable output
-# Previous runs with 512 tokens had poor parsing (6-14/40 valid). The 5-step prompt
-# produces long responses; need 1024+ tokens for the model to finish the location paragraph.
-geocot_tokens = 1024
-cot_tokens = 512
+# Token limits - generous for long 5-step GeoCoT responses + complete location paragraph
+geocot_tokens = 2048
+cot_tokens = 1024
 
 # Run CoT baseline FIRST (faster, ensures baseline results)
 run_inference(data_rows, COT_PROMPT, f"CoT_{MODEL_SIZE}",

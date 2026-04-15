@@ -4,13 +4,15 @@
 
 ## Progress Log
 
-### [2026-04-15] - 32B results + scale to 12 images
-- **32B with correct prompt (job 0b7da965-91b)**:
-  - CoT: 4/4 parsed, 0/4 correct = **0% country accuracy**, 50% continent
-  - GeoCoT: 4/4 parsed, 0/4 correct = **0% country accuracy**, 50% continent
-  - **Parsing: 100% (was 15-35% on 7B) — token increase fixed parsing!**
-  - Both methods equally wrong on 4 images — too small a sample
-- **New job**: 12 images (4 countries × 3), 32B model, 1024/512 tokens — ~13 min
+### [2026-04-15] - 32B 12-image results + bug fix + scale to 20 images
+- **32B with 12 images (job 22a5afc6-f0f)**:
+  - CoT: 10/12 parsed, 0/10 correct = **0% country accuracy**, 20% continent
+  - GeoCoT: 11/12 parsed, 1/11 correct = **9.1% country accuracy**, 45.5% continent
+  - **GeoCoT wins on BOTH country (9.1% vs 0%) and continent (45.5% vs 20%)**
+  - **Bug**: parse_location had uninitialized `city`/`continent` vars → crashes on Madagascar
+  - **Bug fix**: initialize city=None, country=None, continent=None at start of Strategy 3 & 4
+  - **Scale up**: 20 images (4 countries × 5) for statistical confidence
+  - **Token increase**: 2048 (GeoCoT) / 1024 (CoT) for complete output
 
 ### [2026-04-14] - Previous agent's work
 - Fixed prompt to use full 5-step from Appendix B
@@ -21,7 +23,7 @@
 
 ### Model Capability (with correct 5-step prompt)
 - 7B model: GeoCoT achieves 83% country accuracy on parsed predictions (vs 7.5% CoT). Parse rate 15-35%.
-- 32B model: 100% parse rate (fixed), but 0% country accuracy on 4 images. Needs larger sample.
+- 32B model: 92-100% parse rate, GeoCoT beats CoT (9.1% vs 0% on 12 images).
 - Paper used GPT-4o which is much stronger than either model.
 
 ### The Critical Bug

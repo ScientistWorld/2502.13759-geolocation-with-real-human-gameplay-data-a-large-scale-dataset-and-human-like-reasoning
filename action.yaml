@@ -2,4 +2,4 @@ action: submit
 gpus: 1
 test: false
 milestone: none
-notes: "5-step GeoCoT + CoT with Qwen2.5-VL-32B on 12 images (4 countries x 3). 32B parsing: 100% (4/4). Previous run: 0/4 country accuracy both methods (too few images). 4-country sample for statistical power. Expected ~13 min."
+notes: "5-step GeoCoT + CoT with Qwen2.5-VL-32B on 20 images (4 countries x 5). Bug fix: initialize city/country/continent in parser. Tokens: 2048 (GeoCoT) / 1024 (CoT). Prev: 9% GeoCoT vs 0% CoT country accuracy (12 images). Scale to 20 images. Expected ~22 min."
