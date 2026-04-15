@@ -101,6 +101,11 @@
         }
       },
       "results": {
+        "geocot_full": {
+          "city_accuracy": 0.0,
+          "country_accuracy": 0.0,
+          "continent_accuracy": 0.3684
+        },
         "geocot_step1": {
           "city_accuracy": 0.0,
           "country_accuracy": 0.0526,
@@ -114,6 +119,11 @@
         "geocot_step1_2_3": {
           "city_accuracy": 0.0,
           "country_accuracy": 0.1,
+          "continent_accuracy": 0.55
+        },
+        "geocot_step1_2_3_4": {
+          "city_accuracy": 0.0,
+          "country_accuracy": 0.05,
           "continent_accuracy": 0.55
         }
       }

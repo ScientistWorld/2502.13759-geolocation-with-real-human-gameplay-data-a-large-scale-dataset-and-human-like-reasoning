@@ -50,3 +50,127 @@ Ablation dataset: 20 images
   [1/20] kenya -> possibly **South Africa** [MISS] (35s)
   [2/20] kenya -> South Africa [MISS] (35s)
   [3/20] kenya -> South Africa [MISS] (36s)
+  [4/20] kenya -> Tanzania [MISS] (40s)
+  [5/20] kenya -> likely Kenya [MISS] (42s)
+  [6/20] ecuador -> Colombia [MISS] (41s)
+  [7/20] ecuador -> United States [MISS] (40s)
+  [8/20] ecuador -> Brazil [MISS] (45s)
+  [9/20] ecuador -> such as parts of North America [MISS] (52s)
+  [10/20] ecuador -> Tropical/Subtropical Urban Area [MISS] (112s)
+  [11/20] chile -> Bolivia [MISS] (80s)
+  [12/20] chile -> United States [MISS] (91s)
+  [13/20] chile -> Australia [MISS] (84s)
+  [14/20] chile -> architectural, or geographical markers, the exact location cannot be determined. It could potentially be in Europe [MISS] (75s)
+  [15/20] chile -> United States [MISS] (33s)
+  [16/20] madagascar -> Tanzania [MISS] (43s)
+  [17/20] madagascar -> Australia [MISS] (31s)
+  [18/20] madagascar -> Argentina [MISS] (38s)
+  [19/20] madagascar -> South Africa [MISS] (30s)
+  [20/20] madagascar -> None [MISS] (40s)
+  abl_geocot_full DONE: 19/20 valid
+
+=== All inference complete ===
+
+=== Evaluating All Results ===
+=== GeoCoT Evaluation ===
+Evaluating predictions from: /home/user/results
+Found prediction files: ['abl_cot', 'abl_geocot_full', 'abl_geocot_step1', 'abl_geocot_step2', 'abl_geocot_step3', 'abl_geocot_step4', 'cot_32B', 'geocot_32B']
+
+Evaluating: abl_cot
+  20/20 valid, 20 with ground truth
+  city_accuracy: 0.0000
+  country_accuracy: 0.0000
+  continent_accuracy: 0.3500
+  street_1km: 0.0000
+  city_25km: 0.0000
+  country_750km: 0.2941
+
+Evaluating: abl_geocot_full
+  19/20 valid, 19 with ground truth
+  city_accuracy: 0.0000
+  country_accuracy: 0.0000
+  continent_accuracy: 0.3684
+  street_1km: 0.0000
+  city_25km: 0.0000
+  country_750km: 0.1250
+
+Evaluating: abl_geocot_step1
+  19/20 valid, 19 with ground truth
+  city_accuracy: 0.0000
+  country_accuracy: 0.0526
+  continent_accuracy: 0.5263
+  street_1km: 0.0000
+  city_25km: 0.0000
+  country_750km: 0.2000
+
+Evaluating: abl_geocot_step2
+  20/20 valid, 20 with ground truth
+  city_accuracy: 0.0000
+  country_accuracy: 0.1500
+  continent_accuracy: 0.6000
+  street_1km: 0.0000
+  city_25km: 0.0500
+  country_750km: 0.1500
+
+Evaluating: abl_geocot_step3
+  20/20 valid, 20 with ground truth
+  city_accuracy: 0.0000
+  country_accuracy: 0.1000
+  continent_accuracy: 0.5500
+  street_1km: 0.0000
+  city_25km: 0.0500
+  country_750km: 0.2000
+
+Evaluating: abl_geocot_step4
+  20/20 valid, 20 with ground truth
+  city_accuracy: 0.0000
+  country_accuracy: 0.0500
+  continent_accuracy: 0.5500
+  street_1km: 0.0000
+  city_25km: 0.0000
+  country_750km: 0.1765
+
+Evaluating: cot_32B
+  20/20 valid, 20 with ground truth
+  city_accuracy: 0.0000
+  country_accuracy: 0.0500
+  continent_accuracy: 0.3500
+  street_1km: 0.0000
+  city_25km: 0.0000
+  country_750km: 0.1875
+
+Evaluating: geocot_32B
+  20/20 valid, 20 with ground truth
+  city_accuracy: 0.0000
+  country_accuracy: 0.0500
+  continent_accuracy: 0.5000
+  street_1km: 0.0000
+  city_25km: 0.0000
+  country_750km: 0.1500
+
+Scores saved to /home/user/scoring/scores.json
+
+=== Summary ===
+
+geocomp_classification:
+  qwen_cot: country_accuracy=0.0500
+  qwen_geocot: country_accuracy=0.0500
+
+geocomp_distance:
+  qwen_cot: city_25km=0.0000
+  qwen_geocot: city_25km=0.0000
+
+im2gps_generalization:
+
+ablation_geocot_steps:
+  geocot_full: country_accuracy=0.0000
+  geocot_step1: country_accuracy=0.0526
+  geocot_step1_2: country_accuracy=0.1500
+  geocot_step1_2_3: country_accuracy=0.1000
+  geocot_step1_2_3_4: country_accuracy=0.0500
+
+=== Evaluation Complete ===
+
+==========================================
+Complete evaluation - Wed Apr 15 06:37:29 EDT 2026
+==========================================
