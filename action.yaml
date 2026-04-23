@@ -5,4 +5,4 @@ action: submit
 gpus: 0
 test: false
 milestone: core_claim_plus
-notes: "Rebuild the container with OS packages only in %post, then rerun the train/test rescore on saved results artifacts."
+notes: "Evaluation-only submit: skip runtime pip installs, rebuild the container, and rerun train/test rescoring on saved JSON artifacts."
