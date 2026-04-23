@@ -1,8 +1,7 @@
 # IMPORTANT: Once you set action to 'submit' or 'done', STOP immediately.
 # Do NOT sleep, poll, or wait for jobs. The system reads this file
 # only after your turn ends. Sleeping blocks the entire pipeline.
-action: submit
+action: done
 gpus: 0
-test: false
 milestone: core_claim_plus
-notes: "Evaluation-only submit: skip runtime pip installs, rebuild the container, and rerun train/test rescoring on saved JSON artifacts."
+notes: "paired 10-image train/test split; 18 train metrics, 18 test metrics; meaningful train/test gaps now present in classification, efficiency, and median_error_km after adding continuous distance scoring; threshold distance metrics remain mostly saturated near zero on this frozen method."
