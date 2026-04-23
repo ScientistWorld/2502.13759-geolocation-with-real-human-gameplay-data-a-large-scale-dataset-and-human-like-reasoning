@@ -7,6 +7,10 @@ set -e
 echo "=== Setting up GeoCoT environment (runtime) ==="
 
 export UV_SYSTEM_PYTHON=1 UV_BREAK_SYSTEM_PACKAGES=1
+# The scheduler environment can inject invalid certificate paths from the host.
+# Clearing them avoids uv warnings during idempotent runtime installs.
+unset SSL_CERT_FILE
+unset SSL_CERT_DIR
 
 # Remove conflicting packages in user site-packages that shadow system installs.
 pip uninstall -y huggingface_hub 2>/dev/null || true
