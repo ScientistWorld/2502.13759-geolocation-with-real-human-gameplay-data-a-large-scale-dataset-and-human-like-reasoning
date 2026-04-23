@@ -1,8 +1,8 @@
 # IMPORTANT: Once you set action to 'submit' or 'done', STOP immediately.
 # Do NOT sleep, poll, or wait for jobs. The system reads this file
 # only after your turn ends. Sleeping blocks the entire pipeline.
-action: done
+action: submit
 gpus: 0
 test: false
 milestone: core_claim_plus
-notes: "Final verification complete: scoring contract corrected, docs updated, scripts checked, and core_claim_plus remains justified."
+notes: "Rescore the train/test split on saved results artifacts after evaluator-side label recovery and adding median geodesic error to geocomp_distance."

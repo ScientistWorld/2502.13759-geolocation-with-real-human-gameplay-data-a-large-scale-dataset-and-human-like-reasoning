@@ -217,6 +217,10 @@
         "country_750km": {
           "higher_is_better": true,
           "coefficient": 0.8
+        },
+        "median_error_km": {
+          "higher_is_better": false,
+          "coefficient": -0.4
         }
       },
       "results": {

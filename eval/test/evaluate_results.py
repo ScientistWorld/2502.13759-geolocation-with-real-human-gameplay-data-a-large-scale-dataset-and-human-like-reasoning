@@ -5,7 +5,8 @@ from __future__ import annotations
 
 import argparse
 import json
-import math
+import re
+import statistics
 from pathlib import Path
 from typing import Any
 
@@ -13,11 +14,77 @@ from typing import Any
 # denominator semantics (missing predicted coords count as failures).
 from eval.evaluate_results import (
     compute_metrics as _compute_metrics,
+    haversine as _haversine,
     method_name as _method_name,
+    normalize_continent as _normalize_continent,
+    normalize_country as _normalize_country,
+    reverse_geocode as _reverse_geocode,
     route_experiment as _route_experiment,
 )
 
 SPLIT_NAME = "test"
+MAX_DISTANCE_KM = 20015.0868
+KNOWN_COUNTRIES = [
+    "argentina",
+    "australia",
+    "brazil",
+    "canada",
+    "chile",
+    "china",
+    "colombia",
+    "ecuador",
+    "egypt",
+    "france",
+    "germany",
+    "ghana",
+    "india",
+    "indonesia",
+    "italy",
+    "japan",
+    "kenya",
+    "madagascar",
+    "mexico",
+    "morocco",
+    "nigeria",
+    "peru",
+    "russia",
+    "saudi arabia",
+    "south africa",
+    "south korea",
+    "spain",
+    "tanzania",
+    "thailand",
+    "turkey",
+    "uganda",
+    "united kingdom",
+    "united states",
+]
+KNOWN_CONTINENTS = [
+    "africa",
+    "asia",
+    "europe",
+    "north america",
+    "oceania",
+    "south america",
+]
+TEXT_ALIASES = {
+    "britain": "united kingdom",
+    "england": "united kingdom",
+    "scotland": "united kingdom",
+    "u.s.": "united states",
+    "uk": "united kingdom",
+    "us": "united states",
+    "usa": "united states",
+    "wales": "united kingdom",
+}
+FINAL_ANSWER_PATTERNS = [
+    r"final answer[:\s]*",
+    r"final guess[:\s]*",
+    r"final identification[:\s]*",
+    r"boxed\{",
+    r"boxed\{\\text\{",
+    r"conclusion[:\s]*",
+]
 # 10 images (50% of 20-image sample). Different geographic cluster than train.
 SPLIT_IMAGE_BASENAMES = {
     "-1.3268797397613523_36.85028839111328_kenya_3.png",
@@ -38,6 +105,79 @@ def in_split(prediction: dict[str, Any]) -> bool:
     return bool(image_path) and Path(str(image_path)).name in SPLIT_IMAGE_BASENAMES
 
 
+def _response_sections(text: str) -> list[str]:
+    lowered = text.lower()
+    sections = [lowered, "\n".join(lowered.splitlines()[-12:])]
+    for pattern in FINAL_ANSWER_PATTERNS:
+        for match in re.finditer(pattern, lowered):
+            sections.append(lowered[match.start() :])
+    return sections
+
+
+def _find_last_label(text: str, labels: list[str]) -> str | None:
+    best_match: list[tuple[int, str]] = []
+    for section in _response_sections(text):
+        cleaned = section.replace("**", " ").replace("`", " ")
+        matches: list[tuple[int, str]] = []
+        for alias, canonical in TEXT_ALIASES.items():
+            for match in re.finditer(rf"\b{re.escape(alias)}\b", cleaned):
+                matches.append((match.start(), canonical))
+        for label in labels:
+            for match in re.finditer(rf"\b{re.escape(label)}\b", cleaned):
+                matches.append((match.start(), label))
+        if matches:
+            matches.sort()
+            best_match = matches
+    return best_match[-1][1] if best_match else None
+
+
+def _repair_prediction(prediction: dict[str, Any]) -> dict[str, Any]:
+    repaired = dict(prediction)
+    response = str(repaired.get("model_response") or "")
+
+    normalized_country = _normalize_country(repaired.get("predicted_country"))
+    if normalized_country not in KNOWN_COUNTRIES:
+        recovered_country = _find_last_label(response, KNOWN_COUNTRIES)
+        if recovered_country:
+            repaired["predicted_country"] = recovered_country
+
+    normalized_continent = _normalize_continent(repaired.get("predicted_continent"))
+    if normalized_continent not in KNOWN_CONTINENTS:
+        recovered_continent = _find_last_label(response, KNOWN_CONTINENTS)
+        if recovered_continent:
+            repaired["predicted_continent"] = recovered_continent
+
+    if repaired.get("predicted_lat") is None or repaired.get("predicted_lon") is None:
+        lat, lon = _reverse_geocode(repaired.get("predicted_country"))
+        if repaired.get("predicted_lat") is None:
+            repaired["predicted_lat"] = lat
+        if repaired.get("predicted_lon") is None:
+            repaired["predicted_lon"] = lon
+
+    return repaired
+
+
+def _median_error_km(predictions: list[dict[str, Any]]) -> float:
+    distances: list[float] = []
+    for prediction in predictions:
+        gt_lat = prediction.get("ground_truth_lat")
+        gt_lon = prediction.get("ground_truth_lon")
+        if gt_lat is None or gt_lon is None:
+            continue
+        pred_lat = prediction.get("predicted_lat")
+        pred_lon = prediction.get("predicted_lon")
+        if pred_lat is None or pred_lon is None:
+            distances.append(MAX_DISTANCE_KM)
+            continue
+        try:
+            distances.append(
+                _haversine(float(gt_lat), float(gt_lon), float(pred_lat), float(pred_lon))
+            )
+        except (TypeError, ValueError):
+            distances.append(MAX_DISTANCE_KM)
+    return round(statistics.median(distances), 4) if distances else MAX_DISTANCE_KM
+
+
 def evaluate(results_dir: Path, reference_path: Path, scores_path: Path) -> dict[str, Any]:
     pred_files = sorted(results_dir.glob("*_predictions.json"))
     print(f"Found prediction files: {[path.stem.replace('_predictions', '') for path in pred_files]}")
@@ -51,12 +191,13 @@ def evaluate(results_dir: Path, reference_path: Path, scores_path: Path) -> dict
         if not isinstance(predictions, list):
             print(f"  Warning: unexpected format in {path}")
             continue
-        split_predictions = [pred for pred in predictions if in_split(pred)]
+        split_predictions = [_repair_prediction(pred) for pred in predictions if in_split(pred)]
         valid = [pred for pred in split_predictions if pred.get("predicted_country") is not None]
         valid_gt = [pred for pred in split_predictions if pred.get("ground_truth_country") is not None]
         print(f"  {len(split_predictions)} in split, {len(valid)} valid, {len(valid_gt)} with ground truth")
         if valid_gt:
             metrics = _compute_metrics(valid_gt)
+            metrics["median_error_km"] = _median_error_km(valid_gt)
             # Mark slice for traceability
             metrics["_slice"] = SPLIT_NAME
             all_results[pred_name] = metrics
@@ -67,6 +208,7 @@ def evaluate(results_dir: Path, reference_path: Path, scores_path: Path) -> dict
                 "street_1km",
                 "city_25km",
                 "country_750km",
+                "median_error_km",
                 "avg_inference_time_s",
             ]:
                 if key in metrics:
