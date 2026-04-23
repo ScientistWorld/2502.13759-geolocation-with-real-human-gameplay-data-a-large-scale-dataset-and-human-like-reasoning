@@ -5,4 +5,4 @@ action: submit
 gpus: 0
 test: false
 milestone: core_claim_plus
-notes: "Rescore the train/test split on saved results artifacts after evaluator-side label recovery and adding median geodesic error to geocomp_distance."
+notes: "Rebuild the container with OS packages only in %post, then rerun the train/test rescore on saved results artifacts."
